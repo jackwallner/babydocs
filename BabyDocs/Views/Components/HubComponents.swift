@@ -43,6 +43,14 @@ struct DeadlinePill: View {
 
 // MARK: - Task row
 
+/// A row in the plan: a tick box that completes the task, and everything else,
+/// which pushes the detail screen.
+///
+/// The `NavigationLink` sits *beside* the `Button` rather than wrapping it, so
+/// the two tap targets are separate areas rather than two controls competing
+/// for the same one. The tick box also carries an explicit 44pt frame: its
+/// glyph alone is well under the minimum target size, which is a miss on a
+/// phone being held one-handed at 3am.
 struct TaskRow: View {
     let task: RequirementTask
     var showChildName = false
@@ -56,12 +64,29 @@ struct TaskRow: View {
                 Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
                     .foregroundStyle(task.isDone ? Color.accentColor : Color.secondary)
+                    // Without this the tap target is the glyph's own bounds,
+                    // which is under the 44pt minimum.
+                    .frame(width: 44, height: 44, alignment: .leading)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .disabled(onToggle == nil)
             .accessibilityLabel(task.isDone ? "Mark not done" : "Mark done")
 
-            VStack(alignment: .leading, spacing: 5) {
+            NavigationLink(value: task.id) {
+                content
+                    // Without both of these the link's hit area is the glyphs
+                    // themselves, so a tap in the whitespace beside a short
+                    // title lands on nothing and the row simply does not open.
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
+        }
+        .padding(.vertical, 3)
+    }
+
+    private var content: some View {
+        VStack(alignment: .leading, spacing: 5) {
                 Text(task.title)
                     .font(.body)
                     .foregroundStyle(task.isDone ? .secondary : .primary)
@@ -92,9 +117,7 @@ struct TaskRow: View {
                         }
                     }
                 }
-            }
         }
-        .padding(.vertical, 3)
     }
 
     private var outstandingDocuments: Int {

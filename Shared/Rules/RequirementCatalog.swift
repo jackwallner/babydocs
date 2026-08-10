@@ -813,11 +813,16 @@ enum RequirementCatalog {
         Calendar.current.date(byAdding: .day, value: days, to: date)
     }
 
+    /// Noon UTC, not midnight. These dates are only ever *displayed* ("checked
+    /// on the 9th"), and midnight UTC renders as the previous day everywhere
+    /// west of Greenwich, so a rule reviewed today reads as reviewed yesterday
+    /// to every user in the country this app is for.
     static func day(_ year: Int, _ month: Int, _ dayOfMonth: Int) -> Date {
         var components = DateComponents()
         components.year = year
         components.month = month
         components.day = dayOfMonth
+        components.hour = 12
         components.timeZone = TimeZone(identifier: "UTC")
         return Calendar(identifier: .gregorian).date(from: components) ?? Date()
     }

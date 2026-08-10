@@ -69,12 +69,8 @@ enum StateVitalRecords {
         verified.keys.sorted()
     }
 
+    /// Noon UTC. See `RequirementCatalog.day` for why midnight is wrong here.
     private static func date(_ year: Int, _ month: Int, _ day: Int) -> Date {
-        var components = DateComponents()
-        components.year = year
-        components.month = month
-        components.day = day
-        components.timeZone = TimeZone(identifier: "UTC")
-        return Calendar(identifier: .gregorian).date(from: components) ?? Date()
+        RequirementCatalog.day(year, month, day)
     }
 }

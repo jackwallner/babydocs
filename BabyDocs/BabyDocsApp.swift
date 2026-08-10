@@ -15,6 +15,21 @@ struct BabyDocsApp: App {
         #endif
         container = BabyModelStore.sharedModelContainer
 
+        #if DEBUG
+        // Screenshot and manual-inspection runs. Seeds the sample family so the
+        // plan renders from a real reconciliation pass rather than from a
+        // hand-built fixture, which is the only version of a screenshot worth
+        // trusting: if a rule is wrong, the picture is wrong too.
+        if ProcessInfo.processInfo.arguments.contains("-uitest-seed") {
+            MainActor.assumeIsolated {
+                let context = container.mainContext
+                if (try? context.fetchCount(FetchDescriptor<Child>())) == 0 {
+                    SampleData.seed(into: context)
+                }
+            }
+        }
+        #endif
+
         // Synchronous and network-free, so the first frame already knows
         // whether there is a session. Anything async here would put a spinner
         // in front of a plan that is sitting on disk.

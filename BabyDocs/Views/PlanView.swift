@@ -56,10 +56,8 @@ struct PlanView: View {
                 ForEach(openBuckets, id: \.bucket) { group in
                     Section {
                         ForEach(group.tasks) { task in
-                            NavigationLink(value: task.id) {
-                                TaskRow(task: task, showChildName: children.count > 1) {
-                                    toggle(task)
-                                }
+                            TaskRow(task: task, showChildName: children.count > 1) {
+                                toggle(task)
                             }
                         }
                     } header: {
@@ -75,10 +73,8 @@ struct PlanView: View {
                     Section {
                         DisclosureGroup(isExpanded: $showingDoneSection) {
                             ForEach(doneTasks) { task in
-                                NavigationLink(value: task.id) {
-                                    TaskRow(task: task, showChildName: children.count > 1) {
-                                        toggle(task)
-                                    }
+                                TaskRow(task: task, showChildName: children.count > 1) {
+                                    toggle(task)
                                 }
                             }
                         } label: {
