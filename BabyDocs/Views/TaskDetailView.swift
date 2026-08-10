@@ -149,10 +149,17 @@ struct TaskDetailView: View {
             } header: {
                 Text("Have these ready")
             } footer: {
+                // The "and the other parent sees it" half only appears in a
+                // build that can actually do it. Copy that promises sharing in
+                // a binary where `SupabaseConfig` is unconfigured is a claim
+                // the app cannot keep, and the person reading it is standing in
+                // front of the feature.
                 let outstanding = documents.filter { !$0.isOnHand }.count
                 Text(outstanding == 0
                      ? "Everything on this list is gathered."
-                     : "\(outstanding) still to find. Ticking one here shows it to the other parent too.")
+                     : SupabaseConfig.isConfigured
+                        ? "\(outstanding) still to find. Ticking one here shows it to the other parent too."
+                        : "\(outstanding) still to find.")
             }
         }
     }

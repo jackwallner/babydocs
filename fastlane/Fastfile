@@ -61,8 +61,8 @@ platform :ios do
 
           The app works with no account and no network. Every task, deadline,
           document checklist and official link is generated on device from the
-          answers given during setup. Sharing with a second parent is optional
-          and uses Sign in with Apple.
+          answers given during setup. There is no sign-in step and nothing to
+          create an account for.
 
           Core flow:
           1. Launch and answer the setup questions (state, coverage, situation)
@@ -70,12 +70,16 @@ platform :ios do
           3. Tap a task for why it applies, what documents to bring, and a link
              to the official government page for that task
           4. Children tab holds each child and the household answers
-          5. Family tab offers optional sign-in and invitations by link or code
+          5. Family tab explains that sharing is not switched on in this build
 
-          Every feature is free for one child on one device. Baby Docs Plus (IAP
-          via RevenueCat, one-time purchase or subscription) adds sharing with
-          the other parent and further children. An invited parent is never
-          charged as a separate seat.
+          Every feature is free for one child. Baby Docs Plus (IAP via
+          RevenueCat, one-time purchase or subscription) adds further children
+          and the printable one-page summary.
+
+          The Family tab contains an optional sharing feature that is not
+          enabled in this build: with no backend configured it shows an
+          explanatory empty state and makes no network requests. No metadata,
+          screenshot or in-app copy advertises sharing.
 
           The app gives no legal, tax, medical or insurance advice, and carries
           a disclaimer to that effect in Settings and on every exported summary.

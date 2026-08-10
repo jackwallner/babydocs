@@ -32,7 +32,9 @@ struct ChildrenView: View {
                     }
                 } footer: {
                     if !store.isPro {
-                        Text("The first baby is free. Plus covers any further children and lets both parents work from the same plan.")
+                        Text(SupabaseConfig.isConfigured
+                             ? "The first baby is free. Plus covers any further children and lets both parents work from the same plan."
+                             : "The first baby is free. Plus covers any further children.")
                     }
                 }
 

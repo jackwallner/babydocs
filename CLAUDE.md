@@ -83,9 +83,16 @@ than one that triggers nothing.
   30 to 90 days and then genuinely over, so the paywall leads with a one-time
   purchase and treats the subscriptions as alternates. Selling a subscription
   here sells a cancellation.
-- **Free tier is one child on one device.** Every deadline, document list and
-  official link is free. Plus adds the second parent and further children. A
-  deadline behind a paywall is a deadline the app caused someone to miss.
+- **Free tier is one child.** Every deadline, document list and official link is
+  free. A deadline behind a paywall is a deadline the app caused someone to miss.
+- **Sales copy may only promise what `SupabaseConfig.isConfigured` can deliver.**
+  While sharing is off, no paywall bullet, App Store description, landing-page
+  card or in-app footer may promise the second parent; Plus sells further
+  children and the one-page summary instead. The two in-app strings that mention
+  the other parent (`ChildrenView`, `TaskDetailView`) are gated on that flag so
+  they come back on their own. `FamilyView` already explains the state rather
+  than hiding it. Put the sharing copy back when the backend ships, and not a
+  build before.
 - Free keyword-field notes and the acquisition plan are in `aso-plan.md` once
   that exists. Assume App Store search is not the channel until proven
   otherwise: the audience is reachable through employers, hospitals, OB
