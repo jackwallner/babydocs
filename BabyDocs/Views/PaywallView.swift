@@ -51,13 +51,13 @@ struct PaywallView: View {
 
     private var header: some View {
         VStack(spacing: 10) {
-            Image(systemName: "person.2.badge.gearshape")
+            Image(systemName: "doc.text.fill")
                 .font(.system(size: 44))
                 .foregroundStyle(Color.accentColor)
-            Text("Both parents, one list")
+            Text("The whole plan, on one page")
                 .font(.title2.weight(.bold))
                 .multilineTextAlignment(.center)
-            Text("Every deadline, every document list and every official link is free for one baby. Plus is what makes it shared.")
+            Text("Every deadline, every document list and every official link is free for one baby. Plus is the summary you can hand to someone else, and room for the next one.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -65,10 +65,12 @@ struct PaywallView: View {
         .padding(.top, 12)
     }
 
+    /// Sharing is deliberately absent here. `SupabaseConfig.isConfigured` is
+    /// false in shipping builds, so a bullet promising the other parent would be
+    /// selling a feature this binary cannot deliver. It goes back when sharing
+    /// is switched on, and not a build before.
     private var benefits: some View {
         VStack(alignment: .leading, spacing: 12) {
-            benefit("person.2.fill", "The other parent joins free",
-                    "One purchase covers the family. Whoever you invite is never charged.")
             benefit("figure.and.child.holdinghands", "Every child",
                     "A second baby inherits your household answers instead of asking again.")
             benefit("square.and.arrow.up", "The printable one-pager",
