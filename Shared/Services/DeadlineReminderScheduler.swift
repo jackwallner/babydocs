@@ -42,6 +42,20 @@ enum DeadlineReminderScheduler {
         var title: String
         var body: String
         var fireAt: Date
+        /// Carried into the notification payload so a tap opens the task rather
+        /// than the app. A reminder that costs a parent the tap and then makes
+        /// them find the row themselves has spent the attention it asked for.
+        var taskID: UUID
+    }
+
+    /// Key in `UNNotificationContent.userInfo`.
+    nonisolated static let taskRouteKey = "babydocs.taskID"
+
+    /// The route a tapped notification asks for, or nil if it is not one of
+    /// ours. Nonisolated because the notification delegate callback is.
+    nonisolated static func taskID(fromUserInfo userInfo: [AnyHashable: Any]) -> UUID? {
+        guard let raw = userInfo[taskRouteKey] as? String else { return nil }
+        return UUID(uuidString: raw)
     }
 
     /// The pure half. Given the open tasks, decide exactly what should be
@@ -69,7 +83,8 @@ enum DeadlineReminderScheduler {
                     identifier: "\(identifierPrefix)\(task.id.uuidString).\(lead)",
                     title: lead == 1 ? "Last day tomorrow" : "\(lead) days left",
                     body: "\(task.title) for \(childName). \(task.deadlineBasis)",
-                    fireAt: fireAt
+                    fireAt: fireAt,
+                    taskID: task.id
                 ))
             }
         }
@@ -94,6 +109,7 @@ enum DeadlineReminderScheduler {
             content.title = plan.title
             content.body = plan.body
             content.sound = .default
+            content.userInfo = [taskRouteKey: plan.taskID.uuidString]
 
             let components = Calendar.current.dateComponents(
                 [.year, .month, .day, .hour, .minute],

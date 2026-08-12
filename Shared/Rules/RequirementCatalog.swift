@@ -47,13 +47,17 @@ struct Deadline: Sendable, Equatable {
     static let none = Deadline(date: nil, kind: .none, basis: "")
 }
 
-/// Where a rule comes from and when someone last read it.
-struct SourceCitation: Sendable, Equatable {
-    var label: String
-    var urlString: String
-    var verifiedOn: Date
-
-    var url: URL? { URL(string: urlString) }
+/// Where a rule's statement comes from, or why nothing can be cited.
+///
+/// The second case is the important one. A rule that reaches for the nearest
+/// plausible government URL rather than admitting it has none is how a childcare
+/// prompt ends up citing a birth-certificate page: formally a `.gov` link,
+/// substantively a lie about where the advice came from.
+enum RuleSourcing: Sendable {
+    /// Cites a manifest entry, which must itself cover this subject.
+    case cite(key: String, subject: SourceSubject)
+    /// Deliberately uncited, with the reason shown to the parent.
+    case none(reason: String)
 }
 
 /// The button that sends the parent to the official page. Always a government
@@ -76,11 +80,15 @@ struct DocumentSpec: Sendable, Equatable {
 struct RequirementRule: Identifiable, Sendable {
     let key: String
     let title: String
+    /// The navigation-bar title. A full task title is a sentence, and a sentence
+    /// truncates to "Order certified copies of the birth cer..." in a nav bar,
+    /// which tells a parent nothing.
+    let shortTitle: String
     let category: RequirementCategory
     /// Ascending. Ties inside a due-date bucket break on this, so the two hard
     /// insurance deadlines always sit above the nice-to-haves.
     let sortWeight: Int
-    let source: SourceCitation
+    let sourcing: RuleSourcing
     let documents: [DocumentSpec]
 
     /// Does this apply to this family at all?
@@ -93,15 +101,37 @@ struct RequirementRule: Identifiable, Sendable {
     let link: @Sendable (RuleInput) -> OfficialLink?
 
     var id: String { key }
+
+    /// The manifest entry behind this rule, or nil when the rule says outright
+    /// that there is nothing to cite.
+    var source: SourceEntry? {
+        guard case .cite(let key, _) = sourcing else { return nil }
+        return SourceManifest.entry(key)
+    }
+
+    /// What the rule needs the source to be about. Nil for uncited rules.
+    var sourceSubject: SourceSubject? {
+        guard case .cite(_, let subject) = sourcing else { return nil }
+        return subject
+    }
+
+    var noSourceReason: String {
+        guard case .none(let reason) = sourcing else { return "" }
+        return reason
+    }
 }
 
 // MARK: - Catalog
 
 enum RequirementCatalog {
-    /// The day this whole rule set was last reviewed end to end. Surfaced in
-    /// Settings, because a rules app that cannot tell you how old its rules are
-    /// is asking for trust it has not earned.
-    static let reviewedOn = day(2026, 8, 9)
+    /// The oldest source review in the whole manifest, which is the only
+    /// honest single number: a rule set is exactly as fresh as its stalest page.
+    static var reviewedOn: Date { SourceManifest.oldestReview }
+
+    /// Shown wherever a document or a task mentions the number. Repeated
+    /// verbatim rather than paraphrased, because it has to be the same sentence
+    /// every time a parent sees it.
+    static let ssnWarning = "Do not type the number into Baby Docs. Nothing here needs it, and receipts and notes are stored and synced as ordinary text."
 
     static let all: [RequirementRule] = [
         ssnCard,
@@ -135,13 +165,10 @@ enum RequirementCatalog {
     static let ssnCard = RequirementRule(
         key: "ssn_card",
         title: "Get the Social Security number and card",
+        shortTitle: "Social Security",
         category: .identity,
         sortWeight: 10,
-        source: SourceCitation(
-            label: "Social Security Administration: how long it takes",
-            urlString: "https://www.ssa.gov/faqs/en/questions/KA-10041.html",
-            verifiedOn: reviewedOn
-        ),
+        sourcing: .cite(key: "ssa_card_timing", subject: .socialSecurityNumber),
         documents: [
             DocumentSpec(
                 key: "hospital_form",
@@ -187,13 +214,10 @@ enum RequirementCatalog {
     static let birthCertificate = RequirementRule(
         key: "birth_certificate",
         title: "Order certified copies of the birth certificate",
+        shortTitle: "Birth certificate",
         category: .identity,
         sortWeight: 20,
-        source: SourceCitation(
-            label: "USAGov: how to get a birth certificate",
-            urlString: "https://www.usa.gov/birth-certificate",
-            verifiedOn: reviewedOn
-        ),
+        sourcing: .cite(key: "usagov_birth_certificate", subject: .birthCertificateOrder),
         documents: [
             DocumentSpec(key: "parent_id", title: "Photo ID for the parent named on the record"),
             DocumentSpec(
@@ -209,7 +233,10 @@ enum RequirementCatalog {
             let where_ = input.birthStateCode.isEmpty
                 ? "the state where the birth was registered"
                 : USState.displayName(for: input.birthStateCode)
-            return "Issued by \(where_), not by the hospital and not federally. Order two or three certified copies at once: the passport application keeps one, and a second request later costs the same fee and the same wait. Office: \(office.officeName)."
+            let verification = office.isVerified
+                ? "We have read that office's own page."
+                : "We have not read that office's own page yet, so the link goes to the national directory rather than to a specific office we would be guessing at."
+            return "Issued by \(where_), not by the hospital and not federally. Order two or three certified copies at once: the passport application keeps one, and a second request later costs the same fee and the same wait. Office: \(office.officeName). \(verification)"
         },
         deadline: { input in
             Deadline(
@@ -230,13 +257,18 @@ enum RequirementCatalog {
     static let birthRecordNameCheck = RequirementRule(
         key: "birth_record_name_check",
         title: "Check the name and details on the certificate",
+        shortTitle: "Check the record",
         category: .identity,
         sortWeight: 55,
-        source: SourceCitation(
-            label: "USAGov: correcting a birth certificate",
-            urlString: "https://www.usa.gov/birth-certificate",
-            verifiedOn: reviewedOn
-        ),
+        // Deliberately uncited. Corrections are state law end to end, and no
+        // federal page states the window, the fee or the form. Citing the
+        // federal ordering page here, which is what this rule used to do, would
+        // be an official-looking link that does not support a word of it.
+        sourcing: .none(reason: """
+        Correction windows, fees and forms are set by the state that issued the \
+        record, and no federal page states them. Rather than cite a page that \
+        does not say this, the task sends you to the issuing office.
+        """),
         documents: [
             DocumentSpec(key: "certified_copy", title: "The certified copy, in hand")
         ],
@@ -262,13 +294,14 @@ enum RequirementCatalog {
     static let employerInsurance = RequirementRule(
         key: "insurance_employer",
         title: "Add the baby to the job-based health plan",
+        shortTitle: "Job-based plan",
         category: .insurance,
         sortWeight: 1,
-        source: SourceCitation(
-            label: "HealthCare.gov: special enrollment period",
-            urlString: "https://www.healthcare.gov/glossary/special-enrollment-period/",
-            verifiedOn: reviewedOn
-        ),
+        // The Marketplace glossary used to stand in for this, which is the wrong
+        // authority: a job-based plan's window comes from the federal special
+        // enrollment rules the Department of Labor administers, not from
+        // HealthCare.gov.
+        sourcing: .cite(key: "dol_newborn_special_enrollment", subject: .employerCoverageEnrollment),
         documents: [
             DocumentSpec(key: "enrollment_form", title: "The plan's dependent enrollment form"),
             DocumentSpec(
@@ -278,25 +311,30 @@ enum RequirementCatalog {
             ),
             DocumentSpec(
                 key: "ssn_or_pending",
-                title: "The baby's Social Security number, if you have it",
-                detail: "Plans generally cannot refuse enrollment for a number that has not arrived yet. Say it is pending."
+                title: "Whether the baby's Social Security number has been issued yet",
+                detail: "Plans generally cannot refuse enrollment for a number that has not arrived. Tell them it is pending. \(ssnWarning)"
+            ),
+            DocumentSpec(
+                key: "benefits_contact",
+                title: "Your benefits administrator's name and number",
+                detail: "They are the only ones who can tell you your plan's exact window, which may be longer than the federal floor."
             )
         ],
         applies: { $0.insuranceKind == .employer },
         detail: { _ in
-            "This is the hardest date in the whole list. Job-based plans must offer at least a 30-day special enrollment period after a birth, and outside it you are waiting for open enrollment. Enrollment is normally backdated to the date of birth, which is what makes the hospital bill get paid."
+            "This is the hardest date in the whole list, and it is handled by your employer's benefits administrator rather than by any website. Federal rules give you at least 30 days from the birth, and the plan then has to make coverage effective from the date of birth, which is what makes the hospital bill get paid. Outside the window you are waiting for open enrollment."
         },
         deadline: { input in
             Deadline(
                 date: addDays(30, to: input.birthDate),
                 kind: .hard,
-                basis: "Job-based plans must provide a special enrollment period of at least 30 days after a birth. Your plan may allow longer, so check the plan documents, but never assume it does."
+                basis: "Federal rules give at least 30 days after a birth to request enrollment in a job-based plan, and coverage is then effective from the birth date. Your plan may allow longer. Ask your benefits administrator for the exact date and work to whichever is sooner."
             )
         },
         link: { _ in
             OfficialLink(
-                label: "HealthCare.gov: special enrollment",
-                urlString: "https://www.healthcare.gov/coverage-outside-open-enrollment/special-enrollment-period/"
+                label: "Department of Labor: special enrollment after a birth",
+                urlString: "https://webapps.dol.gov/elaws/ebsa/health/72.asp"
             )
         }
     )
@@ -304,21 +342,23 @@ enum RequirementCatalog {
     static let marketplaceInsurance = RequirementRule(
         key: "insurance_marketplace",
         title: "Report the birth to the Marketplace and add the baby",
+        shortTitle: "Marketplace",
         category: .insurance,
         sortWeight: 2,
-        source: SourceCitation(
-            label: "HealthCare.gov: special enrollment period",
-            urlString: "https://www.healthcare.gov/coverage-outside-open-enrollment/special-enrollment-period/",
-            verifiedOn: reviewedOn
-        ),
+        sourcing: .cite(key: "healthcaregov_special_enrollment", subject: .marketplaceCoverageEnrollment),
         documents: [
             DocumentSpec(key: "marketplace_login", title: "Your Marketplace account sign-in"),
             DocumentSpec(key: "proof_of_birth", title: "Proof of the birth"),
-            DocumentSpec(key: "household_income", title: "Current household income estimate")
+            DocumentSpec(key: "household_income", title: "Current household income estimate"),
+            DocumentSpec(
+                key: "first_premium",
+                title: "The first premium payment, once a plan is selected",
+                detail: "Enrolling is not the last step. Coverage does not start until the first payment is made."
+            )
         ],
         applies: { $0.insuranceKind == .marketplace },
         detail: { _ in
-            "Reporting the birth is also what re-runs your savings: a larger household usually changes the premium tax credit, and the change does not happen on its own. Marketplace coverage for a new baby is generally backdated to the date of birth."
+            "Reporting the birth is also what re-runs your savings: a larger household usually changes the premium tax credit, and the change does not happen on its own. Marketplace coverage for a new baby is generally backdated to the date of birth, and it is not in force until the first premium is paid."
         },
         deadline: { input in
             Deadline(
@@ -338,13 +378,10 @@ enum RequirementCatalog {
     static let medicaidCHIP = RequirementRule(
         key: "insurance_medicaid_chip",
         title: "Apply for Medicaid or CHIP coverage",
+        shortTitle: "Medicaid or CHIP",
         category: .insurance,
         sortWeight: 3,
-        source: SourceCitation(
-            label: "HealthCare.gov: getting Medicaid and CHIP",
-            urlString: "https://www.healthcare.gov/medicaid-chip/getting-medicaid-chip/",
-            verifiedOn: reviewedOn
-        ),
+        sourcing: .cite(key: "healthcaregov_medicaid_chip", subject: .medicaidCHIP),
         documents: [
             DocumentSpec(key: "income", title: "Household income for the last month"),
             DocumentSpec(key: "proof_of_birth", title: "Proof of the birth"),
@@ -375,16 +412,21 @@ enum RequirementCatalog {
     static let dependentCareFSA = RequirementRule(
         key: "dependent_care_fsa",
         title: "Change the dependent care FSA election",
+        shortTitle: "Dependent care FSA",
         category: .insurance,
         sortWeight: 25,
-        source: SourceCitation(
-            label: "IRS Topic 602: child and dependent care credit",
-            urlString: "https://www.irs.gov/taxtopics/tc313",
-            verifiedOn: reviewedOn
-        ),
+        // This rule used to cite "IRS Topic 602" while linking IRS Topic 313,
+        // which is college savings. The label was right and the address was
+        // somebody else's subject entirely.
+        sourcing: .cite(key: "irs_pub_503", subject: .dependentCareBenefits),
         documents: [
             DocumentSpec(key: "benefits_portal", title: "Your employer's benefits portal sign-in"),
-            DocumentSpec(key: "care_estimate", title: "An estimate of childcare spending for the rest of the year")
+            DocumentSpec(key: "care_estimate", title: "An estimate of childcare spending for the rest of the year"),
+            DocumentSpec(
+                key: "plan_window",
+                title: "The plan's own election-change window, in writing",
+                detail: "The IRS sets what a dependent care benefit is. Your employer's plan sets how long you have."
+            )
         ],
         applies: { $0.hasDependentCareFSA },
         detail: { _ in
@@ -394,38 +436,52 @@ enum RequirementCatalog {
             Deadline(
                 date: addDays(30, to: input.birthDate),
                 kind: .hard,
-                basis: "Cafeteria-plan election changes after a qualifying life event are limited by the plan, commonly to 30 days. The number is your plan's, so confirm it in the plan documents."
+                basis: "Cafeteria-plan election changes after a qualifying life event are limited by the plan, commonly to 30 days. The number is your plan's, not the law's, so confirm it in the plan documents and work to that date."
             )
         },
-        link: { _ in nil }
+        link: { _ in
+            OfficialLink(
+                label: "IRS: child and dependent care expenses",
+                urlString: "https://www.irs.gov/publications/p503"
+            )
+        }
     )
 
     static let hospitalBillCheck = RequirementRule(
         key: "hospital_bill_check",
         title: "Check the hospital billed under the baby's own coverage",
+        shortTitle: "Hospital bills",
         category: .insurance,
         sortWeight: 60,
-        source: SourceCitation(
-            label: "HealthCare.gov: special enrollment period",
-            urlString: "https://www.healthcare.gov/glossary/special-enrollment-period/",
-            verifiedOn: reviewedOn
-        ),
+        // Previously cited a Marketplace enrollment page, which says nothing
+        // about claims, explanations of benefits or appeals.
+        sourcing: .cite(key: "healthcaregov_appeals", subject: .claimsAndAppeals),
         documents: [
             DocumentSpec(key: "eob", title: "The explanation of benefits for the delivery stay"),
-            DocumentSpec(key: "member_id", title: "The baby's member ID card or number")
+            DocumentSpec(key: "member_id", title: "The baby's member ID card or number"),
+            DocumentSpec(
+                key: "denial_notice",
+                title: "Any denial notice, if a charge came back unpaid",
+                detail: "The appeal window and the address to send it to are printed on the notice itself."
+            )
         ],
         applies: { $0.insuranceKind == .employer || $0.insuranceKind == .marketplace },
         detail: { input in
-            "A newborn's nursery and pediatric charges are billed against the baby's own coverage, not the birth parent's. Enrollment is backdated to the date of birth, so a bill that arrives showing \(input.shortName) as uninsured usually means the enrollment landed late in the insurer's system rather than that you owe it."
+            "A newborn's nursery and pediatric charges are billed against the baby's own coverage, not the birth parent's. Enrollment is backdated to the date of birth, so a bill that arrives showing \(input.shortName) as uninsured usually means the enrollment landed late in the insurer's system rather than that you owe it. Call the number on the bill before you pay it, and if a claim is refused you have a right to an internal appeal and an external review."
         },
         deadline: { input in
             Deadline(
                 date: addDays(60, to: input.birthDate),
                 kind: .recommended,
-                basis: "No deadline of its own, but appeal windows run from the date on the explanation of benefits, so it is worth catching early."
+                basis: "No deadline of its own, but appeal windows run from the date on the denial notice or explanation of benefits, so it is worth catching early."
             )
         },
-        link: { _ in nil }
+        link: { _ in
+            OfficialLink(
+                label: "HealthCare.gov: appeal an insurance decision",
+                urlString: "https://www.healthcare.gov/appeal-insurance-company-decision/appeals/"
+            )
+        }
     )
 
     // MARK: Parentage
@@ -433,13 +489,10 @@ enum RequirementCatalog {
     static let parentageAcknowledgment = RequirementRule(
         key: "parentage_acknowledgment",
         title: "Establish the second parent on the record",
+        shortTitle: "Parentage",
         category: .parentage,
         sortWeight: 15,
-        source: SourceCitation(
-            label: "HHS Office of Child Support Services: establishing paternity",
-            urlString: "https://www.acf.hhs.gov/css/parents/establishing-paternity",
-            verifiedOn: reviewedOn
-        ),
+        sourcing: .cite(key: "acf_new_parent_checklist", subject: .parentageEstablishment),
         documents: [
             DocumentSpec(key: "vap_form", title: "Your state's voluntary acknowledgment form"),
             DocumentSpec(key: "both_ids", title: "Photo ID for both parents"),
@@ -461,8 +514,8 @@ enum RequirementCatalog {
         },
         link: { _ in
             OfficialLink(
-                label: "Establishing parentage: state programs",
-                urlString: "https://www.acf.hhs.gov/css/parents/establishing-paternity"
+                label: "Find your state's child support agency",
+                urlString: "https://acf.gov/css/contact-information/state-and-tribal-child-support-agency-contacts"
             )
         }
     )
@@ -472,13 +525,10 @@ enum RequirementCatalog {
     static let parentalLeaveClaim = RequirementRule(
         key: "parental_leave_claim",
         title: "File the parental leave claim",
+        shortTitle: "Parental leave",
         category: .work,
         sortWeight: 12,
-        source: SourceCitation(
-            label: "US Department of Labor: FMLA",
-            urlString: "https://www.dol.gov/agencies/whd/fmla",
-            verifiedOn: reviewedOn
-        ),
+        sourcing: .cite(key: "dol_fmla", subject: .familyLeave),
         documents: [
             DocumentSpec(key: "employer_form", title: "Your employer's leave request form"),
             DocumentSpec(key: "proof_of_birth", title: "Proof of the birth"),
@@ -506,13 +556,10 @@ enum RequirementCatalog {
     static let w4Update = RequirementRule(
         key: "w4_update",
         title: "Update tax withholding at work",
+        shortTitle: "Withholding",
         category: .work,
         sortWeight: 70,
-        source: SourceCitation(
-            label: "IRS: About Form W-4",
-            urlString: "https://www.irs.gov/forms-pubs/about-form-w-4",
-            verifiedOn: reviewedOn
-        ),
+        sourcing: .cite(key: "irs_form_w4", subject: .taxWithholding),
         documents: [
             DocumentSpec(key: "payroll_portal", title: "Your payroll or HR portal sign-in")
         ],
@@ -537,20 +584,17 @@ enum RequirementCatalog {
     static let trumpAccount = RequirementRule(
         key: "trump_account",
         title: "Make the Trump Account election",
+        shortTitle: "Trump Account",
         category: .money,
         sortWeight: 30,
-        source: SourceCitation(
-            label: "IRS: Trump Accounts",
-            urlString: "https://www.irs.gov/trumpaccounts",
-            verifiedOn: reviewedOn
-        ),
+        sourcing: .cite(key: "irs_form_4547_instructions", subject: .trumpAccounts),
         documents: [
             DocumentSpec(
                 key: "ssn",
-                title: "The baby's Social Security number",
-                detail: "The election cannot be made without a valid SSN for the child."
+                title: "Confirmation that the baby's Social Security number has been issued",
+                detail: "The election cannot be made until SSA has issued a number valid for employment. Baby Docs tracks whether it exists and nothing else. \(ssnWarning)"
             ),
-            DocumentSpec(key: "form_4547", title: "Form 4547 and its instructions"),
+            DocumentSpec(key: "form_4547", title: "Form 4547 and its current instructions"),
             DocumentSpec(key: "account_details", title: "The account the contribution should go to")
         ],
         applies: { input in
@@ -561,13 +605,13 @@ enum RequirementCatalog {
         detail: { input in
             input.hasSSN
                 ? "\(input.shortName) has an SSN, so the election can be made. Eligible US citizen children born from 2025 through 2028 can receive a one-time $1,000 pilot contribution."
-                : "Eligible US citizen children born from 2025 through 2028 can receive a one-time $1,000 pilot contribution, but the election needs a valid Social Security number for the child first. This one is waiting on the SSN card."
+                : "Eligible US citizen children born from 2025 through 2028 can receive a one-time $1,000 pilot contribution, but the election needs a Social Security number issued to the child first. This one is waiting on the SSN card."
         },
         deadline: { _ in
             Deadline(
                 date: nil,
                 kind: .recommended,
-                basis: "Read the current Form 4547 instructions for the election deadline before you rely on a date. This app does not hold one, because a wrong date on a one-time $1,000 election is worse than no date."
+                basis: "The current Form 4547 instructions set no filing deadline: the election can be made at any time, including with a return. They also say no pilot contribution is deposited before 4 July 2026. Read the current instructions before relying on any date, because a wrong date on a one-time $1,000 election is worse than no date."
             )
         },
         link: { _ in
@@ -578,21 +622,22 @@ enum RequirementCatalog {
     static let taxDependent = RequirementRule(
         key: "tax_dependent",
         title: "Claim the baby on your next tax return",
+        shortTitle: "Tax return",
         category: .money,
         sortWeight: 75,
-        source: SourceCitation(
-            label: "IRS: Child Tax Credit",
-            urlString: "https://www.irs.gov/credits-deductions/individuals/child-tax-credit",
-            verifiedOn: reviewedOn
-        ),
+        sourcing: .cite(key: "irs_child_tax_credit", subject: .childTaxCredit),
         documents: [
-            DocumentSpec(key: "ssn", title: "The baby's Social Security number"),
+            DocumentSpec(
+                key: "ssn",
+                title: "The baby's Social Security card, for whoever prepares the return",
+                detail: ssnWarning
+            ),
             DocumentSpec(key: "childcare_receipts", title: "Childcare receipts and the provider's tax ID, if any")
         ],
         applies: { _ in true },
         detail: { input in
             let year = Calendar.current.component(.year, from: input.birthDate)
-            return "A baby born at any point in \(year) counts as a dependent for the whole of \(year). The Child Tax Credit needs a valid SSN for the child issued before the return's due date, which is the real reason the SSN task sits at the top of this list."
+            return "A baby born at any point in \(year) counts as a dependent for the whole of \(year). The Child Tax Credit needs a valid SSN for the child issued before the return's due date, which is the real reason the SSN task sits at the top of this list. Whether you qualify depends on facts this app does not hold, so check the year you are filing for or ask whoever prepares the return."
         },
         deadline: { _ in
             Deadline(
@@ -612,15 +657,16 @@ enum RequirementCatalog {
     static let plan529 = RequirementRule(
         key: "plan_529",
         title: "Open a 529 college savings account",
+        shortTitle: "529 account",
         category: .money,
         sortWeight: 85,
-        source: SourceCitation(
-            label: "IRS Topic 313: qualified tuition programs",
-            urlString: "https://www.irs.gov/taxtopics/tc313",
-            verifiedOn: reviewedOn
-        ),
+        sourcing: .cite(key: "irs_topic_313", subject: .qualifiedTuitionPrograms),
         documents: [
-            DocumentSpec(key: "ssn", title: "The baby's Social Security number"),
+            DocumentSpec(
+                key: "ssn",
+                title: "The baby's Social Security card, which the provider will ask to see",
+                detail: ssnWarning
+            ),
             DocumentSpec(key: "beneficiary_details", title: "The baby's full legal name and date of birth"),
             DocumentSpec(key: "funding", title: "The account you will fund it from")
         ],
@@ -629,7 +675,7 @@ enum RequirementCatalog {
             let state = input.residenceStateCode.isEmpty
                 ? "your state"
                 : USState.displayName(for: input.residenceStateCode)
-            return "Optional and entirely yours to time. Worth checking whether \(state) gives a state income tax deduction for its own plan before picking one, because that is usually the only reason to prefer a home-state plan."
+            return "Optional and entirely yours to time. Worth checking whether \(state) gives a state income tax deduction for its own plan before picking one, because that is usually the only reason to prefer a home-state plan. Baby Docs does not recommend a plan or a provider."
         },
         deadline: { _ in
             Deadline(date: nil, kind: .none, basis: "No deadline. Open it whenever you want to.")
@@ -644,13 +690,10 @@ enum RequirementCatalog {
     static let passport = RequirementRule(
         key: "passport",
         title: "Apply for the baby's first passport",
+        shortTitle: "Passport",
         category: .travel,
         sortWeight: 80,
-        source: SourceCitation(
-            label: "USAGov: passports",
-            urlString: "https://www.usa.gov/passport",
-            verifiedOn: reviewedOn
-        ),
+        sourcing: .cite(key: "usagov_child_passport", subject: .passports),
         documents: [
             DocumentSpec(
                 key: "certified_birth_certificate",
@@ -659,19 +702,23 @@ enum RequirementCatalog {
             ),
             DocumentSpec(key: "both_parents", title: "Both parents present, or a notarized consent form from the absent one"),
             DocumentSpec(key: "parent_ids", title: "Photo ID for each parent, plus a photocopy of each"),
-            DocumentSpec(key: "photo", title: "A passport photo of the baby, eyes open, plain background")
+            DocumentSpec(
+                key: "photo",
+                title: "A passport photo of the baby",
+                detail: "Check the State Department's current photo rules before you take it. There are specific allowances for infants, and a rejected photo costs an appointment."
+            )
         ],
         applies: { $0.wantsPassport },
         detail: { input in
             input.hasBirthCertificate
-                ? "A first passport for a child under 16 is applied for in person, and both parents normally have to appear. Book the appointment before you need it: processing times move, and a child's passport is valid for five years."
-                : "Blocked until the certified birth certificate arrives, because the application submits the original. Both parents normally have to appear in person for a child under 16."
+                ? "A first passport for a child under 16 is applied for in person, and a parent has to be present to sign. Book the appointment before you need it: processing times move, and a child's passport is valid for five years."
+                : "Blocked until the certified birth certificate arrives, because the application submits the original. Every child under 16 applies in person, with a parent present to sign."
         },
         deadline: { _ in
             Deadline(date: nil, kind: .none, basis: "No deadline. Driven by when you plan to travel.")
         },
         link: { _ in
-            OfficialLink(label: "USAGov: passports", urlString: "https://www.usa.gov/passport")
+            OfficialLink(label: "USAGov: passport for a child", urlString: "https://www.usa.gov/child-passport")
         }
     )
 
@@ -680,13 +727,12 @@ enum RequirementCatalog {
     static let newbornScreeningResult = RequirementRule(
         key: "newborn_screening_result",
         title: "Get the newborn screening results in writing",
+        shortTitle: "Screening results",
         category: .household,
         sortWeight: 40,
-        source: SourceCitation(
-            label: "USAGov: birth and health records",
-            urlString: "https://www.usa.gov/birth-certificate",
-            verifiedOn: reviewedOn
-        ),
+        // Previously cited the federal birth-certificate page, which has nothing
+        // to do with newborn screening.
+        sourcing: .cite(key: "hrsa_newborn_screening_results", subject: .newbornScreening),
         documents: [
             DocumentSpec(key: "screening_letter", title: "The screening result letter or portal printout"),
             DocumentSpec(key: "hearing_result", title: "The hearing screening result")
@@ -702,26 +748,39 @@ enum RequirementCatalog {
                 basis: "No deadline. Results are typically back within a couple of weeks, and the paperwork is easiest to collect at the first well-baby visit."
             )
         },
-        link: { _ in nil }
+        link: { _ in
+            OfficialLink(
+                label: "Newborn screening in your state",
+                urlString: "https://newbornscreening.hrsa.gov/your-state"
+            )
+        }
     )
 
     static let beneficiaryUpdate = RequirementRule(
         key: "beneficiary_update",
         title: "Update beneficiaries on life insurance and retirement accounts",
+        shortTitle: "Beneficiaries",
         category: .household,
         sortWeight: 90,
-        source: SourceCitation(
-            label: "USAGov: life events and benefits",
-            urlString: "https://www.usa.gov/birth-certificate",
-            verifiedOn: reviewedOn
-        ),
+        // Household planning rather than government paperwork. Every account's
+        // rules come from its own plan documents, so there is nothing official
+        // to cite and the rule says so instead of borrowing a plausible URL.
+        sourcing: .none(reason: """
+        This is household planning, not government paperwork. Beneficiary rules \
+        come from each account's own plan documents, so there is no official \
+        page to send you to.
+        """),
         documents: [
             DocumentSpec(key: "account_list", title: "A list of the accounts that carry a beneficiary"),
-            DocumentSpec(key: "ssn", title: "The baby's Social Security number")
+            DocumentSpec(
+                key: "ssn",
+                title: "The baby's Social Security card, which some forms ask to see",
+                detail: ssnWarning
+            )
         ],
         applies: { _ in true },
         detail: { _ in
-            "Beneficiary designations on retirement accounts and life insurance override a will, so this is not covered by writing one. Naming a minor directly has consequences worth understanding first, which is usually why people name a trust or a custodian instead."
+            "Beneficiary designations on retirement accounts and life insurance override a will, so this is not covered by writing one. Naming a minor directly has consequences worth understanding first, which is usually why people name a trust or a custodian instead. Baby Docs is not a financial adviser and this is a prompt, not advice."
         },
         deadline: { input in
             Deadline(
@@ -736,20 +795,21 @@ enum RequirementCatalog {
     static let guardianNomination = RequirementRule(
         key: "guardian_nomination",
         title: "Name a guardian in a will",
+        shortTitle: "Guardian",
         category: .household,
         sortWeight: 95,
-        source: SourceCitation(
-            label: "USAGov: wills and estates",
-            urlString: "https://www.usa.gov/birth-certificate",
-            verifiedOn: reviewedOn
-        ),
+        sourcing: .none(reason: """
+        A valid will is state law and this app is not a lawyer. There is no \
+        federal page that sets it, and we will not link one state's page we have \
+        not read.
+        """),
         documents: [
             DocumentSpec(key: "guardian_choice", title: "Who you have both agreed on, and a second choice"),
             DocumentSpec(key: "existing_will", title: "Any existing will")
         ],
         applies: { _ in true },
         detail: { _ in
-            "The nomination of a guardian for a minor is made in a will, and without one a court chooses. Requirements for a valid will are state law. This app tracks the task and nothing else: it does not draft or store legal documents."
+            "The nomination of a guardian for a minor is made in a will, and without one a court chooses. Requirements for a valid will are state law. This app tracks the task and nothing else: it does not draft or store legal documents, and the questions this raises are for a lawyer."
         },
         deadline: { input in
             Deadline(
@@ -764,47 +824,48 @@ enum RequirementCatalog {
     static let pediatricPortal = RequirementRule(
         key: "pediatric_portal",
         title: "Set up the pediatric patient portal",
+        shortTitle: "Pediatric portal",
         category: .household,
         sortWeight: 100,
-        source: SourceCitation(
-            label: "USAGov: health records",
-            urlString: "https://www.usa.gov/birth-certificate",
-            verifiedOn: reviewedOn
-        ),
+        sourcing: .cite(key: "healthit_get_your_health_record", subject: .healthRecordsAccess),
         documents: [
             DocumentSpec(key: "practice_details", title: "The practice's portal invitation or sign-up link")
         ],
         applies: { _ in true },
         detail: { _ in
-            "The portal is where the immunization record lives, and daycare, school and travel all ask for it eventually. Both parents should have their own login rather than sharing one."
+            "The portal is where the immunization record lives, and daycare, school and travel all ask for it eventually. Federal law gives you the right to a copy of your child's record whether or not the practice runs a portal. Both parents should have their own login rather than sharing one."
         },
         deadline: { _ in
             Deadline(date: nil, kind: .none, basis: "No deadline.")
         },
-        link: { _ in nil }
+        link: { _ in
+            OfficialLink(
+                label: "How to get a health record",
+                urlString: "https://www.healthit.gov/how-to-get-your-health-record"
+            )
+        }
     )
 
     static let childcareWaitlist = RequirementRule(
         key: "childcare_waitlist",
         title: "Get on childcare waitlists",
+        shortTitle: "Childcare",
         category: .household,
         sortWeight: 110,
-        source: SourceCitation(
-            label: "USAGov: childcare",
-            urlString: "https://www.usa.gov/birth-certificate",
-            verifiedOn: reviewedOn
-        ),
+        sourcing: .cite(key: "childcare_gov", subject: .childcare),
         documents: [
             DocumentSpec(key: "shortlist", title: "A shortlist of places, with their deposit terms")
         ],
         applies: { _ in true },
         detail: { _ in
-            "Not paperwork the government asks for, and on this list only because the waits are measured in months and the deposits are usually refundable. Nothing here is time-critical in the way the insurance window is."
+            "Not paperwork the government asks for, and on this list only because the waits are measured in months and the deposits are usually refundable. Your state's child care resource and referral agency also holds the list of financial help, which is worth a look before you pay a deposit. Nothing here is time-critical in the way the insurance window is."
         },
         deadline: { _ in
             Deadline(date: nil, kind: .none, basis: "No deadline.")
         },
-        link: { _ in nil }
+        link: { _ in
+            OfficialLink(label: "Childcare.gov: find child care", urlString: "https://childcare.gov/")
+        }
     )
 
     // MARK: Helpers

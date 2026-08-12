@@ -54,6 +54,62 @@ struct SyncRulesTests {
         ) == .keepLocal)
     }
 
+    // MARK: - Child merge
+
+    @Test("A stale server child never overwrites a newer local edit")
+    func staleServerChildLoses() {
+        // The bug: the old rule only asked whether the *server* was newer, and
+        // wrote the server row in every other branch. A birth date corrected
+        // offline was replaced by the stale copy on the next pull, before the
+        // correction had ever been pushed.
+        #expect(ChildMerge.resolve(
+            localDirty: true, localUpdated: later, serverUpdated: earlier
+        ) == .keepLocal)
+    }
+
+    @Test("A newer server child lands on a clean local row")
+    func cleanChildTakesServer() {
+        #expect(ChildMerge.resolve(
+            localDirty: false, localUpdated: earlier, serverUpdated: later
+        ) == .takeServer)
+        // Including when the server row is older: a clean row has nothing to
+        // lose, and the server is where both phones agree.
+        #expect(ChildMerge.resolve(
+            localDirty: false, localUpdated: later, serverUpdated: earlier
+        ) == .takeServer)
+    }
+
+    @Test("A newer server edit against an unsent local edit goes to a human")
+    func childDisagreementConflicts() {
+        #expect(ChildMerge.resolve(
+            localDirty: true, localUpdated: earlier, serverUpdated: later
+        ) == .conflict)
+    }
+
+    @Test("Two dirty copies with the same timestamp are not agreement")
+    func childTiesConflict() {
+        #expect(ChildMerge.resolve(
+            localDirty: true, localUpdated: earlier, serverUpdated: earlier
+        ) == .conflict)
+    }
+
+    @Test("An unsent local child with nothing to compare against stands")
+    func unsentChildWins() {
+        #expect(ChildMerge.resolve(
+            localDirty: true, localUpdated: earlier, serverUpdated: nil
+        ) == .keepLocal)
+    }
+
+    @Test("A server tombstone cannot delete a newer local child")
+    func tombstoneCannotBeatANewerEdit() {
+        // A deletion arrives as a row with `deleted_at` set, so it is subject to
+        // the same comparison. `keepLocal` is what stops `modelContext.delete`
+        // from being reached at all.
+        #expect(ChildMerge.resolve(
+            localDirty: true, localUpdated: later, serverUpdated: earlier
+        ) != .takeServer)
+    }
+
     // MARK: - Deterministic ids
 
     @Test("The same namespace and name always give the same id")

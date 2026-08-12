@@ -213,28 +213,114 @@ struct PlanProgressCard: View {
 
 // MARK: - Source footnote
 
-/// Where a rule came from and when it was last read.
+/// Where a rule came from, when it was last read, what it does not cover, and
+/// when there is nothing honest to cite at all.
 ///
 /// Shown on every generated task, not hidden behind an info button. A paperwork
 /// app is asking to be trusted about dates that cost real money, and the only
-/// honest way to earn that is to show your working and admit how old it is.
+/// honest way to earn that is to show your working, admit how old it is, and say
+/// plainly when the answer is a state's rather than a page's.
 struct SourceFootnote: View {
     let urlString: String
     let verifiedOn: Date?
+    /// The catalog key, so the footnote can find the rule's declared source and
+    /// its limitations. Empty for a task a parent typed themselves.
+    var catalogKey: String = ""
+
+    private var rule: RequirementRule? {
+        catalogKey.isEmpty ? nil : RequirementCatalog.rule(key: catalogKey)
+    }
 
     var body: some View {
         if let url = URL(string: urlString), !urlString.isEmpty {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Link(destination: url) {
                     Label("Where this comes from", systemImage: "text.book.closed")
                         .font(.caption)
                 }
-                if let verifiedOn {
-                    Text("Checked \(verifiedOn, format: .dateTime.month().day().year())")
+                if let entry = rule?.source {
+                    Text(entry.title)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if let verifiedOn {
+                    Text(checkedLine(verifiedOn))
+                        .font(.caption2)
+                        .foregroundStyle(rule?.source?.status == .awaitingReview ? .orange : .secondary)
+                }
+                if let limitations = rule?.source?.limitations, !limitations.isEmpty {
+                    Text("What it does not tell you: \(limitations)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
+        } else if let reason = rule?.noSourceReason, !reason.isEmpty {
+            // No link, and the reason there is none is the point. A task that
+            // simply has no footnote reads as an oversight; this reads as a
+            // limit the app knows about.
+            Label {
+                Text(reason)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } icon: {
+                Image(systemName: "questionmark.circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func checkedLine(_ date: Date) -> String {
+        let day = date.formatted(.dateTime.month().day().year())
+        switch rule?.source?.status {
+        case .awaitingReview: return "Link added \(day). Nobody has read this page end to end yet."
+        case .federalFallback: return "Checked \(day). Federal page: your state or plan has the final word."
+        default: return "Checked \(day)"
+        }
+    }
+}
+
+// MARK: - One-page summary
+
+/// The Plus one-pager, wherever it is offered.
+///
+/// Gated in one place rather than at each call site, because the two ShareLinks
+/// this replaces were ungated: the paywall sold the summary and the app handed it
+/// over for free, which makes every other line on that paywall worth less.
+struct SummaryShareControl: View {
+    let summary: () -> String
+    var title = "Share a one-page summary"
+
+    @State private var store = StoreService.shared
+    @State private var family = FamilyService.shared
+    @State private var navigator = AppNavigator.shared
+
+    private var isEntitled: Bool { store.isPro || family.hasPlus }
+
+    var body: some View {
+        if isEntitled {
+            ShareLink(item: summary()) {
+                Label(title, systemImage: "square.and.arrow.up")
+            }
+        } else {
+            Button {
+                navigator.requestUpgrade()
+            } label: {
+                HStack {
+                    Label(title, systemImage: "square.and.arrow.up")
+                    Spacer(minLength: 8)
+                    Text("Plus")
+                        .font(.caption2.weight(.semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.accentColor.opacity(0.15), in: Capsule())
+                        .foregroundStyle(Color.accentColor)
+                }
+            }
+            .accessibilityLabel("\(title). Included with Plus.")
         }
     }
 }

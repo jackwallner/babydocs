@@ -21,6 +21,9 @@ struct TaskDetailView: View {
     var body: some View {
         List {
             Section {
+                Text(task.title)
+                    .font(.title3.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(task.detail)
                     .font(.body)
                     .fixedSize(horizontal: false, vertical: true)
@@ -70,11 +73,19 @@ struct TaskDetailView: View {
             }
 
             Section {
-                SourceFootnote(urlString: task.sourceURLString, verifiedOn: task.sourceVerifiedOn)
+                SourceFootnote(
+                    urlString: task.sourceURLString,
+                    verifiedOn: task.sourceVerifiedOn,
+                    catalogKey: task.catalogKey
+                )
             }
         }
-        .navigationTitle(task.title)
+        // The full title is a sentence and truncates to "Order certified copies
+        // of the birth cer..." in a nav bar. The heading above still carries the
+        // whole thing, and so does VoiceOver.
+        .navigationTitle(shortTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .accessibilityLabel(task.title)
         .onDisappear { task.recordLocalChange(in: context) }
         .alert("Record a confirmation", isPresented: $isAddingReceipt) {
             TextField("Number or reference", text: $receiptValue)
@@ -83,6 +94,12 @@ struct TaskDetailView: View {
         } message: {
             Text("Whatever the office gave you back, so neither of you has to find the email again.")
         }
+    }
+
+    /// The catalog's own short label, falling back to the full title for a task
+    /// a parent typed in themselves.
+    private var shortTitle: String {
+        RequirementCatalog.rule(key: task.catalogKey)?.shortTitle ?? task.title
     }
 
     // MARK: - Sections

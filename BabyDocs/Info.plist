@@ -47,9 +47,9 @@
 	</array>
 	<key>UIUserInterfaceStyle</key>
 	<string>Automatic</string>
-	<key>NSCameraUsageDescription</key>
-	<string>Photograph a birth certificate, Social Security card, or confirmation letter so it is on hand when a form asks for it.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Attach a photo of a document or confirmation letter to the task it belongs to.</string>
+	<!-- No NSCameraUsageDescription or NSPhotoLibraryUsageDescription. The app
+	     has no attachment capture, so asking for that trust would be asking for
+	     it on account of a feature that does not exist. They go back the day a
+	     document locker ships with a threat model behind it. -->
 </dict>
 </plist>

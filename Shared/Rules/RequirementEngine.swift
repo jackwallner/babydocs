@@ -43,10 +43,19 @@ enum RequirementEngine {
     ) -> Result {
         var result = Result()
         let input = makeInput(child: child, profile: profile)
+        // Tombstoned rows are included deliberately. The id of a generated task
+        // is derived from (child, catalog key), so a rule that becomes
+        // inapplicable, is retired, and then applies again would otherwise be
+        // inserted a second time under an id the store already holds. One
+        // logical task, one row, forever: a retired row is *restored*, never
+        // recreated. Insurance switching from employer to Marketplace and back
+        // is the ordinary way a family reaches this.
         let existing = Dictionary(
-            grouping: child.liveTasks.filter { !$0.catalogKey.isEmpty },
+            grouping: (child.tasks ?? []).filter { !$0.catalogKey.isEmpty },
             by: \.catalogKey
-        ).compactMapValues(\.first)
+        ).compactMapValues { rows in
+            rows.first { $0.deletedAt == nil } ?? rows.first
+        }
 
         for rule in RequirementCatalog.all {
             let applies = rule.applies(input)
@@ -54,7 +63,11 @@ enum RequirementEngine {
 
             switch (applies, row) {
             case (true, .some(let task)):
-                if update(task, from: rule, input: input, in: context) { result.updated += 1 }
+                let wasRetired = task.deletedAt != nil
+                if wasRetired { restore(task, in: context) }
+                if update(task, from: rule, input: input, in: context) || wasRetired {
+                    result.updated += 1
+                }
                 result.total += 1
 
             case (true, .none):
@@ -66,6 +79,9 @@ enum RequirementEngine {
                 result.total += 1
 
             case (false, .some(let task)):
+                // Already retired: leave it exactly as it is. Tombstoning a
+                // tombstone would queue the same delete on every launch.
+                if task.deletedAt != nil { continue }
                 // Only retire what the family has not touched. Someone who
                 // ticked a document and then corrected an intake answer has
                 // still done that work, and silently deleting it is worse than
@@ -184,12 +200,34 @@ enum RequirementEngine {
         task.deadlineBasis = deadline.basis
         task.officialURLString = link?.urlString ?? ""
         task.officialLinkLabel = link?.label ?? ""
-        task.sourceURLString = rule.source.urlString
-        task.sourceVerifiedOn = rule.source.verifiedOn
+        // Empty for a rule that deliberately cites nothing. The task screen says
+        // why rather than showing a footnote that quietly is not there.
+        task.sourceURLString = rule.source?.urlString ?? ""
+        task.sourceVerifiedOn = rule.source?.reviewedOn
+    }
+
+    /// Brings a retired row back rather than inserting a second one under the
+    /// same derived id. Everything the family did to it is still attached, which
+    /// is the point: a parent who switched insurance twice should find their
+    /// ticked documents where they left them.
+    private static func restore(_ task: RequirementTask, in context: ModelContext) {
+        task.deletedAt = nil
+        for document in (task.documents ?? []) where document.deletedAt != nil {
+            document.deletedAt = nil
+            document.recordLocalChange(in: context)
+        }
+        task.recordLocalChange(in: context)
     }
 
     /// Only the engine-owned fields. Deliberately excludes everything a parent
     /// can edit, so a family's own note never counts as a rule change.
+    ///
+    /// `sourceVerifiedOn` is excluded on purpose, and that is a decision rather
+    /// than an oversight. The review date is a property of the bundled catalog,
+    /// not of the family's row: every device recomputes it from its own build,
+    /// so syncing it would put twenty rows per child into the outbox on every
+    /// release for a value the other phone already knows. The source *URL* is in
+    /// the fingerprint, because that one genuinely changes what the task says.
     private static func fingerprint(_ task: RequirementTask) -> String {
         [
             task.title,
@@ -215,14 +253,21 @@ enum RequirementEngine {
         in context: ModelContext
     ) -> Bool {
         var changed = false
+        // Tombstones included, for the same reason as the task lookup above: a
+        // document id is derived from (task, spec key), so a retired row has to
+        // be restored rather than inserted again under an id the store holds.
         let existing = Dictionary(
-            grouping: task.liveDocuments.filter { !$0.catalogKey.isEmpty },
+            grouping: (task.documents ?? []).filter { !$0.catalogKey.isEmpty },
             by: \.catalogKey
-        ).compactMapValues(\.first)
+        ).compactMapValues { rows in
+            rows.first { $0.deletedAt == nil } ?? rows.first
+        }
 
         for (index, spec) in specs.enumerated() {
             if let item = existing[spec.key] {
-                if item.title != spec.title || item.detail != spec.detail {
+                let wasRetired = item.deletedAt != nil
+                if wasRetired { item.deletedAt = nil }
+                if wasRetired || item.title != spec.title || item.detail != spec.detail {
                     item.title = spec.title
                     item.detail = spec.detail
                     item.recordLocalChange(in: context)

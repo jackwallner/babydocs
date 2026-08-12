@@ -53,9 +53,18 @@ final class ScreenshotUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Children"].waitForExistence(timeout: 5))
         capture(name: "04-children")
 
+        // The paywall, reached the way a free user actually reaches it. Also the
+        // only proof that the price, the billing period and the renewal
+        // disclosure all render together: a subscription sold without them is a
+        // rejection at review and a refund request afterwards.
+        app.buttons["Add another child"].tap()
+        XCTAssertTrue(app.navigationBars["Baby Docs Plus"].waitForExistence(timeout: 10))
+        capture(name: "05-paywall")
+        app.buttons["Close"].tap()
+
         app.tabBars.buttons["Settings"].tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
-        capture(name: "05-settings")
+        capture(name: "06-settings")
     }
 
     func testCaptureTheIntake() {

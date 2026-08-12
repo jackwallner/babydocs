@@ -90,6 +90,35 @@ struct RemindersAndExportTests {
         #expect(Set(first).count == first.count)
     }
 
+    @Test("Every reminder carries the route back to its task")
+    func remindersCarryTheirTask() {
+        // A reminder that opens the plan list has spent the parent's attention
+        // and given nothing back, which is how a useful notification becomes one
+        // that gets switched off.
+        let one = task(title: "Insurance", dueInDays: 30, kind: .hard)
+        let plans = DeadlineReminderScheduler.plans(for: [one], now: now)
+        #expect(!plans.isEmpty)
+        #expect(plans.allSatisfy { $0.taskID == one.id })
+    }
+
+    @Test("A notification payload round-trips to the task it is about")
+    func routeSurvivesTheNotificationPayload() {
+        let one = task(title: "Insurance", dueInDays: 30, kind: .hard)
+        guard let plan = DeadlineReminderScheduler.plans(for: [one], now: now).first else {
+            Issue.record("nothing scheduled")
+            return
+        }
+        let payload: [AnyHashable: Any] = [
+            DeadlineReminderScheduler.taskRouteKey: plan.taskID.uuidString
+        ]
+        #expect(DeadlineReminderScheduler.taskID(fromUserInfo: payload) == one.id)
+        #expect(DeadlineReminderScheduler.taskID(fromUserInfo: [:]) == nil)
+        // Anything that is not ours is ignored rather than routed somewhere odd.
+        #expect(DeadlineReminderScheduler.taskID(
+            fromUserInfo: [DeadlineReminderScheduler.taskRouteKey: "not-a-uuid"]
+        ) == nil)
+    }
+
     // MARK: - Export
 
     @Test("The one-pager never prints a Social Security number")

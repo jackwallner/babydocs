@@ -14,6 +14,13 @@ struct PlanOption: Identifiable, Sendable {
     let title: String
     let price: String
     let package: Package?
+    /// "per month", "per year", or "one-time payment". Rendered next to the
+    /// price, because a price with no period beside it is the single most
+    /// common way a subscription purchase surprises the person who made it.
+    var period: String = ""
+    /// "7 days free, then …" when the product carries an introductory offer.
+    /// Nil when it does not, or when eligibility could not be determined.
+    var introOffer: String?
 
     var isLifetime: Bool { id == ProProduct.lifetime }
 }
@@ -65,6 +72,11 @@ final class StoreService: NSObject {
     private(set) var offerings: Offerings?
     private(set) var plans: [PlanOption] = []
     private(set) var isLoading: Bool = false
+    /// Set when the products could not be loaded. Observable rather than only
+    /// logged, because the paywall's silent failure mode is an empty list with a
+    /// spinner over it, which reads as "nothing for sale" rather than "try
+    /// again".
+    private(set) var loadError: String?
 
     private var isConfigured = false
     private var localOverride: Bool?
@@ -123,17 +135,47 @@ final class StoreService: NSObject {
             apply(info)
             let offerings = try await Purchases.shared.offerings()
             self.offerings = offerings
-            plans = (offerings.current?.availablePackages ?? []).map {
-                PlanOption(
-                    id: $0.storeProduct.productIdentifier,
-                    title: ProProduct.title(for: $0.storeProduct.productIdentifier),
-                    price: $0.storeProduct.localizedPriceString,
-                    package: $0
+            plans = (offerings.current?.availablePackages ?? []).map { package in
+                let product = package.storeProduct
+                return PlanOption(
+                    id: product.productIdentifier,
+                    title: ProProduct.title(for: product.productIdentifier),
+                    price: product.localizedPriceString,
+                    package: package,
+                    period: Self.periodLabel(
+                        unit: product.subscriptionPeriod?.unit.calendarUnitLabel,
+                        count: product.subscriptionPeriod?.value
+                    ),
+                    introOffer: product.introductoryDiscount.map {
+                        Self.introLabel(
+                            isFree: $0.paymentMode == .freeTrial,
+                            price: $0.localizedPriceString,
+                            unit: $0.subscriptionPeriod.unit.calendarUnitLabel,
+                            count: $0.subscriptionPeriod.value
+                        )
+                    }
                 )
             }
+            loadError = plans.isEmpty ? "No plans came back from the store." : nil
         } catch {
             log.error("refresh failed: \(error.localizedDescription, privacy: .public)")
+            loadError = error.localizedDescription
         }
+    }
+
+    // MARK: - Disclosure copy
+
+    /// "per month" / "per year" / "one-time payment". Apple requires the billing
+    /// period beside the price for an auto-renewing product, and a buyer
+    /// deserves it whether or not Apple asked.
+    static func periodLabel(unit: String?, count: Int?) -> String {
+        guard let unit, let count, count > 0 else { return "one-time payment" }
+        return count == 1 ? "per \(unit)" : "every \(count) \(unit)s"
+    }
+
+    static func introLabel(isFree: Bool, price: String, unit: String, count: Int) -> String {
+        let span = count == 1 ? "1 \(unit)" : "\(count) \(unit)s"
+        return isFree ? "\(span) free, then the price below" : "\(price) for the first \(span)"
     }
 
     /// Populates `plans` from the local `.storekit` catalog. Only ever runs when
@@ -144,16 +186,31 @@ final class StoreService: NSObject {
             let order = ProProduct.all
             plans = products
                 .sorted { (order.firstIndex(of: $0.id) ?? 0) < (order.firstIndex(of: $1.id) ?? 0) }
-                .map {
-                    PlanOption(
-                        id: $0.id,
-                        title: ProProduct.title(for: $0.id),
-                        price: $0.displayPrice,
-                        package: nil
+                .map { product in
+                    let subscription = product.subscription
+                    return PlanOption(
+                        id: product.id,
+                        title: ProProduct.title(for: product.id),
+                        price: product.displayPrice,
+                        package: nil,
+                        period: Self.periodLabel(
+                            unit: subscription?.subscriptionPeriod.unit.calendarUnitLabel,
+                            count: subscription?.subscriptionPeriod.value
+                        ),
+                        introOffer: subscription?.introductoryOffer.map {
+                            Self.introLabel(
+                                isFree: $0.paymentMode == .freeTrial,
+                                price: $0.displayPrice,
+                                unit: $0.period.unit.calendarUnitLabel,
+                                count: $0.period.value
+                            )
+                        }
                     )
                 }
+            loadError = plans.isEmpty ? "No plans came back from the store." : nil
         } catch {
             log.error("StoreKit Testing load failed: \(error.localizedDescription, privacy: .public)")
+            loadError = error.localizedDescription
         }
     }
 
@@ -168,11 +225,22 @@ final class StoreService: NSObject {
         await propagateToFamily()
     }
 
-    func restore() async throws {
-        guard isConfigured else { return }
+    /// What a restore actually did. "Nothing happened" and "nothing was there to
+    /// restore" look identical from a button that only throws, and the second is
+    /// the case a customer needs told plainly before they buy twice.
+    enum RestoreOutcome: Sendable {
+        case restored
+        case nothingToRestore
+        case unavailable
+    }
+
+    @discardableResult
+    func restore() async throws -> RestoreOutcome {
+        guard isConfigured else { return .unavailable }
         let info = try await Purchases.shared.restorePurchases()
         apply(info)
         await propagateToFamily()
+        return isPro ? .restored : .nothingToRestore
     }
 
     /// The webhook is what actually writes `family_billing`, and it arrives
@@ -207,5 +275,33 @@ final class StoreService: NSObject {
         Purchases.configure(withAPIKey: RevenueCatConfig.apiKey)
         isConfigured = true
         #endif
+    }
+}
+
+// MARK: - Period units
+
+/// The two SDKs describe a billing period with two different enums, and the
+/// paywall needs one word out of either.
+extension RevenueCat.SubscriptionPeriod.Unit {
+    var calendarUnitLabel: String {
+        switch self {
+        case .day: return "day"
+        case .week: return "week"
+        case .month: return "month"
+        case .year: return "year"
+        @unknown default: return "period"
+        }
+    }
+}
+
+extension Product.SubscriptionPeriod.Unit {
+    var calendarUnitLabel: String {
+        switch self {
+        case .day: return "day"
+        case .week: return "week"
+        case .month: return "month"
+        case .year: return "year"
+        @unknown default: return "period"
+        }
     }
 }

@@ -156,6 +156,98 @@ struct RequirementEngineTests {
         #expect(!child.liveTasks.contains { $0.catalogKey == "passport" })
     }
 
+    // MARK: - Retiring and coming back
+
+    @Test("A rule that applies again restores its row instead of duplicating the id")
+    func retiredTasksAreRestoredInPlace() {
+        // Employer to Marketplace and back is an ordinary week for a family
+        // changing jobs. Because the id is derived from (child, catalog key),
+        // recreating the row would put two rows with one id in the store, and
+        // one server key with two writers.
+        let context = makeContext()
+        let (child, profile) = seed(context)
+        RequirementEngine.reconcile(child: child, profile: profile, in: context)
+
+        let originalID = child.liveTasks.first { $0.catalogKey == "insurance_employer" }?.id
+        #expect(originalID != nil)
+
+        profile.insuranceKind = .marketplace
+        RequirementEngine.reconcile(child: child, profile: profile, in: context)
+        #expect(!child.liveTasks.contains { $0.catalogKey == "insurance_employer" })
+
+        profile.insuranceKind = .employer
+        RequirementEngine.reconcile(child: child, profile: profile, in: context)
+
+        let rows = (child.tasks ?? []).filter { $0.catalogKey == "insurance_employer" }
+        #expect(rows.count == 1, "the retired row was recreated rather than restored")
+        #expect(rows.first?.deletedAt == nil)
+        #expect(rows.first?.id == originalID)
+    }
+
+    @Test("Restoring a task brings its documents back without duplicating them")
+    func restoredTasksKeepOneSetOfDocuments() {
+        let context = makeContext()
+        let (child, profile) = seed(context)
+        profile.wantsPassport = true
+        RequirementEngine.reconcile(child: child, profile: profile, in: context)
+
+        let expected = RequirementCatalog.passport.documents.count
+        #expect(child.liveTasks.first { $0.catalogKey == "passport" }?.liveDocuments.count == expected)
+
+        profile.wantsPassport = false
+        RequirementEngine.reconcile(child: child, profile: profile, in: context)
+        profile.wantsPassport = true
+        RequirementEngine.reconcile(child: child, profile: profile, in: context)
+
+        guard let task = child.liveTasks.first(where: { $0.catalogKey == "passport" }) else {
+            Issue.record("the passport task did not come back")
+            return
+        }
+        #expect((task.documents ?? []).count == expected, "documents were duplicated on restore")
+        #expect(task.liveDocuments.count == expected)
+        #expect(Set(task.liveDocuments.map(\.catalogKey)).count == expected)
+    }
+
+    @Test("A restored task and its documents keep the ids both phones derived")
+    func restoreKeepsEveryDerivedID() {
+        // The reason this matters is not tidiness. Both parents' phones derive
+        // the same ids offline, so a row that comes back under a fresh identity
+        // is a row the other phone will never recognise as the same task.
+        let context = makeContext()
+        let (child, profile) = seed(context)
+        profile.wants529 = true
+        RequirementEngine.reconcile(child: child, profile: profile, in: context)
+
+        guard let task = child.liveTasks.first(where: { $0.catalogKey == "plan_529" }) else {
+            Issue.record("no 529 task")
+            return
+        }
+        let taskID = task.id
+        let documentIDs = Set(task.liveDocuments.map(\.id))
+
+        profile.wants529 = false
+        RequirementEngine.reconcile(child: child, profile: profile, in: context)
+        profile.wants529 = true
+        RequirementEngine.reconcile(child: child, profile: profile, in: context)
+
+        let restored = child.liveTasks.first { $0.catalogKey == "plan_529" }
+        #expect(restored?.id == taskID)
+        #expect(Set(restored?.liveDocuments.map(\.id) ?? []) == documentIDs)
+    }
+
+    @Test("A retired row is not re-tombstoned on every later pass")
+    func retirementIsQuietOnceItHasHappened() {
+        let context = makeContext()
+        let (child, profile) = seed(context)
+        profile.wantsPassport = true
+        RequirementEngine.reconcile(child: child, profile: profile, in: context)
+
+        profile.wantsPassport = false
+        #expect(RequirementEngine.reconcile(child: child, profile: profile, in: context).retired == 1)
+        // Every launch afterwards would otherwise queue the same delete again.
+        #expect(RequirementEngine.reconcile(child: child, profile: profile, in: context).retired == 0)
+    }
+
     // MARK: - Documents
 
     @Test("Each task gets its document checklist")

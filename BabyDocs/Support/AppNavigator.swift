@@ -26,6 +26,12 @@ final class AppNavigator {
     /// been set up yet.
     var pendingInviteCode: String?
 
+    /// Set when a deadline reminder is tapped. Held rather than acted on
+    /// immediately: on a cold launch the notification response arrives before
+    /// the store has loaded, so the plan screen consumes this once the row
+    /// exists. Cleared by whoever navigates, so a tap is never replayed.
+    var pendingTaskID: UUID?
+
     /// Set when a gated action was attempted. Presenting the paywall from here
     /// rather than from each call site keeps one sheet, so two taps in quick
     /// succession cannot stack two paywalls.

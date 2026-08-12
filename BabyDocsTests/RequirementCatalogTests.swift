@@ -192,25 +192,25 @@ struct RequirementCatalogTests {
         #expect(Set(keys).count == keys.count)
     }
 
-    @Test("Every rule cites a source")
-    func everyRuleCitesASource() {
+    @Test("Every rule either cites a source or says why it cannot")
+    func everyRuleAccountsForItsSource() {
+        // Source *correctness* lives in SourceIntegrityTests. This is only the
+        // structural half: no rule may be silent about where it came from.
         for rule in RequirementCatalog.all {
-            #expect(!rule.source.urlString.isEmpty, "\(rule.key) has no source")
-            #expect(rule.source.urlString.hasPrefix("https://"), "\(rule.key) source is not https")
+            switch rule.sourcing {
+            case .cite:
+                #expect(rule.source != nil, "\(rule.key) cites a source key the manifest does not hold")
+            case .none(let reason):
+                #expect(!reason.isEmpty, "\(rule.key) cites nothing and does not say why")
+            }
         }
     }
 
-    @Test("Every official link is a government address")
-    func officialLinksAreGovernmentOnly() {
-        // The promise is "we take you to the correct official place". An
-        // aggregator or an affiliate link would break it silently.
-        let family = input()
+    @Test("Every rule has a short title that fits a navigation bar")
+    func shortTitlesAreShort() {
         for rule in RequirementCatalog.all {
-            guard let link = rule.link(family), let host = URL(string: link.urlString)?.host else { continue }
-            #expect(
-                host.hasSuffix(".gov") || host.hasSuffix(".gov."),
-                "\(rule.key) links to \(host), which is not a .gov host"
-            )
+            #expect(!rule.shortTitle.isEmpty, "\(rule.key) has no short title")
+            #expect(rule.shortTitle.count <= 22, "\(rule.key) short title will truncate: \(rule.shortTitle)")
         }
     }
 

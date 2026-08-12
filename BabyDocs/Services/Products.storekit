@@ -8,7 +8,7 @@
       "internalID" : "BDLIFETIME01",
       "localizations" : [
         {
-          "description" : "One-time purchase. Every child, both parents, no expiry.",
+          "description" : "One-time purchase. Every child, and the one-page summary. No expiry.",
           "displayName" : "Lifetime",
           "locale" : "en_US"
         }
@@ -43,7 +43,7 @@
           },
           "localizations" : [
             {
-              "description" : "Every child and both parents, billed monthly.",
+              "description" : "Every child, and the one-page summary. Billed monthly.",
               "displayName" : "Monthly",
               "locale" : "en_US"
             }
@@ -68,7 +68,7 @@
           },
           "localizations" : [
             {
-              "description" : "Every child and both parents, billed yearly.",
+              "description" : "Every child, and the one-page summary. Billed yearly.",
               "displayName" : "Yearly",
               "locale" : "en_US"
             }

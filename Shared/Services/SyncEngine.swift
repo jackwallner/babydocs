@@ -235,11 +235,20 @@ actor SyncEngine {
         let existing = fetchOne(Child.self, #Predicate { $0.id == id })
 
         if let existing {
-            if isRealConflict(localDirty: existing.isDirty,
-                              localUpdated: existing.updatedAt,
-                              serverUpdated: dto.updated_at) {
+            switch ChildMerge.resolve(
+                localDirty: existing.isDirty,
+                localUpdated: existing.updatedAt,
+                serverUpdated: dto.updated_at
+            ) {
+            case .keepLocal:
+                // An unsent local edit that is newer than what came down. The
+                // row stays dirty and its outbox entry stays queued.
+                return
+            case .conflict:
                 flagConflict(entity: .child, id: dto.id)
                 return
+            case .takeServer:
+                break
             }
             if dto.deleted_at != nil {
                 modelContext.delete(existing)
@@ -528,9 +537,20 @@ actor SyncEngine {
 
     private func push(entry: OutboxEntry, remote: any SyncRemote, groupID: UUID) async throws {
         let id = entry.entityID
+        // An entry queued under a different family than the one signed in now
+        // must never be written under this one. The way a device reaches this is
+        // ordinary: queue a write offline, leave the family, join another, come
+        // back online. Refused rather than retried, because retrying cannot make
+        // it right and the row would land in the wrong household.
+        if let queued = entry.groupID, queued != groupID {
+            throw SyncError.rejected(
+                "This change was made in a different family and was not sent."
+            )
+        }
         switch entry.entityType {
         case .familyProfile:
             guard let profile = fetchOne(FamilyProfile.self, #Predicate { $0.id == id }) else { return }
+            try requireOwnership(of: profile, by: groupID)
             try await remote.push([FamilyProfileDTO(
                 id: profile.id, family_id: groupID,
                 residence_state: profile.residenceStateCode,
@@ -548,6 +568,7 @@ actor SyncEngine {
 
         case .child:
             guard let child = fetchOne(Child.self, #Predicate { $0.id == id }) else { return }
+            try requireOwnership(of: child, by: groupID)
             try await remote.push([ChildDTO(
                 id: child.id, family_id: groupID, name: child.name,
                 birth_date: child.birthDate, birth_state: child.birthStateCode,
@@ -562,6 +583,7 @@ actor SyncEngine {
         case .task:
             guard let task = fetchOne(RequirementTask.self, #Predicate { $0.id == id }),
                   let childID = task.child?.id else { return }
+            try requireOwnership(of: task, by: groupID)
             try await remote.push([RequirementTaskDTO(
                 id: task.id, family_id: groupID, child_id: childID,
                 catalog_key: task.catalogKey, title: task.title, detail: task.detail,
@@ -580,6 +602,7 @@ actor SyncEngine {
         case .document:
             guard let item = fetchOne(DocumentItem.self, #Predicate { $0.id == id }),
                   let taskID = item.task?.id else { return }
+            try requireOwnership(of: item, by: groupID)
             try await remote.push([DocumentItemDTO(
                 id: item.id, family_id: groupID, task_id: taskID,
                 catalog_key: item.catalogKey, title: item.title, detail: item.detail,
@@ -591,6 +614,7 @@ actor SyncEngine {
         case .receipt:
             guard let receipt = fetchOne(Receipt.self, #Predicate { $0.id == id }),
                   let taskID = receipt.task?.id else { return }
+            try requireOwnership(of: receipt, by: groupID)
             try await remote.push([ReceiptDTO(
                 id: receipt.id, family_id: groupID, task_id: taskID,
                 kind: receipt.kindRaw, value: receipt.value,
@@ -601,6 +625,7 @@ actor SyncEngine {
         case .note:
             guard let note = fetchOne(ChildNote.self, #Predicate { $0.id == id }),
                   let childID = note.child?.id else { return }
+            try requireOwnership(of: note, by: groupID)
             try await remote.push([ChildNoteDTO(
                 id: note.id, family_id: groupID, child_id: childID,
                 title: note.title, body: note.body, is_pinned: note.isPinned,
@@ -608,6 +633,18 @@ actor SyncEngine {
                 updated_at: nil, deleted_at: note.deletedAt
             )])
         }
+    }
+
+    /// Refuses to send a row that belongs to another family.
+    ///
+    /// The DTO's family id used to come from whichever family happened to be
+    /// active, never from the row, so a row retained across a family switch
+    /// would have been rewritten into the new household on its way out.
+    private func requireOwnership<T: SyncableRecord>(of row: T, by groupID: UUID) throws {
+        // A nil owner is a local-only row that has not been adopted yet, which
+        // is the ordinary state before a family exists. Adoption stamps it.
+        guard let owner = row.groupID, owner != groupID else { return }
+        throw SyncError.rejected("This change belongs to a different family and was not sent.")
     }
 
     private func markSynced(_ entry: OutboxEntry) {
@@ -731,6 +768,42 @@ actor SyncEngine {
         var descriptor = FetchDescriptor<T>(predicate: predicate)
         descriptor.fetchLimit = 1
         return (try? modelContext.fetch(descriptor))?.first
+    }
+}
+
+// MARK: - Child merge rule
+
+/// The merge rule for the row every deadline in the app is computed from.
+///
+/// The bug this type exists to make impossible: a pull used to treat "the server
+/// is not newer" as "no conflict" and then write the server row anyway, so a name
+/// or a birth date corrected offline five minutes ago was silently replaced by
+/// the stale copy that came down on the next cycle. Because the cycle pulls
+/// before it pushes, the correction never left the phone at all.
+///
+/// Every timestamp relation is now named, and only one of them writes.
+enum ChildMerge {
+    enum Resolution: Equatable {
+        case takeServer
+        case keepLocal
+        case conflict
+    }
+
+    static func resolve(
+        localDirty: Bool,
+        localUpdated: Date,
+        serverUpdated: Date?
+    ) -> Resolution {
+        // Nothing unsent here: the server row is simply the newer truth, and
+        // that includes a tombstone.
+        guard localDirty else { return .takeServer }
+        // An unsent edit with nothing to compare against is the only write we
+        // know about.
+        guard let serverUpdated else { return .keepLocal }
+        if localUpdated > serverUpdated { return .keepLocal }
+        // Equal timestamps with two dirty copies is not agreement, it is two
+        // writes we cannot order. A person decides.
+        return .conflict
     }
 }
 

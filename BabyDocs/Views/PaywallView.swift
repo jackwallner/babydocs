@@ -22,6 +22,7 @@ struct PaywallView: View {
                     header
                     benefits
                     plans
+                    subscriptionTerms
                     footerLinks
                 }
                 .padding(.horizontal, 22)
@@ -41,7 +42,7 @@ struct PaywallView: View {
                     selection = store.plans.first(where: \.isLifetime)?.id ?? store.plans.first?.id
                 }
             }
-            .alert("Something went wrong", isPresented: errorBinding) {
+            .alert("Purchases", isPresented: errorBinding) {
                 Button("OK", role: .cancel) { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "")
@@ -95,26 +96,57 @@ struct PaywallView: View {
         }
     }
 
+    @ViewBuilder
     private var plans: some View {
         VStack(spacing: 10) {
             if store.plans.isEmpty {
-                ProgressView().padding(.vertical, 20)
+                if let error = store.loadError {
+                    // An empty list under a spinner reads as "nothing for sale".
+                    // A customer who cannot see a price cannot buy, and cannot
+                    // tell whether that is the app or their connection.
+                    VStack(spacing: 8) {
+                        Text("The App Store did not send the prices back.")
+                            .font(.subheadline)
+                            .multilineTextAlignment(.center)
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                        Button("Try again") {
+                            Task { await store.refresh() }
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    .padding(.vertical, 12)
+                } else {
+                    ProgressView().padding(.vertical, 20)
+                }
             }
             ForEach(store.plans) { plan in
                 Button {
                     selection = plan.id
                 } label: {
-                    HStack {
+                    HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(plan.title).font(.body.weight(.medium))
-                            if plan.isLifetime {
-                                Text("Pay once. No renewal.")
+                            Text(plan.isLifetime ? "Pay once. No renewal." : "Renews automatically. Cancel any time.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            if let intro = plan.introOffer {
+                                Text(intro)
                                     .font(.caption)
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                        }
+                        Spacer(minLength: 10)
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text(plan.price).font(.body.weight(.semibold))
+                            if !plan.period.isEmpty {
+                                Text(plan.period)
+                                    .font(.caption2)
                                     .foregroundStyle(.secondary)
                             }
                         }
-                        Spacer()
-                        Text(plan.price).font(.body.weight(.semibold))
                     }
                     .padding(14)
                     .background(
@@ -126,8 +158,23 @@ struct PaywallView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(
+                    "\(plan.title), \(plan.price) \(plan.period). \(plan.introOffer ?? "")"
+                )
             }
         }
+    }
+
+    /// The disclosure Apple asks for on an auto-renewing subscription, in the
+    /// place the decision is made rather than in a terms page nobody opens.
+    private var subscriptionTerms: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("The one-time purchase is charged once and never renews.")
+            Text("The monthly and yearly plans renew automatically at the price above until cancelled. Payment is charged to your Apple Account at confirmation, and renewal is charged within 24 hours of the end of the current period. Manage or cancel in Settings, Apple Account, Subscriptions. A free trial that goes unused when a subscription is bought is forfeited.")
+        }
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var buyBar: some View {
@@ -182,8 +229,16 @@ struct PaywallView: View {
         Task {
             defer { isWorking = false }
             do {
-                try await store.restore()
-                if store.isPro { dismiss() }
+                switch try await store.restore() {
+                case .restored:
+                    dismiss()
+                case .nothingToRestore:
+                    // Said plainly, because the alternative is a customer who
+                    // already paid buying the same thing twice.
+                    errorMessage = "No previous purchase was found for this Apple Account. If you bought Plus with a different account, sign in with that one and try again."
+                case .unavailable:
+                    errorMessage = "Purchases cannot be restored in this build."
+                }
             } catch {
                 errorMessage = error.localizedDescription
             }

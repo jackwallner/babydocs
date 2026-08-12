@@ -96,11 +96,41 @@ extension NotificationService: UNUserNotificationCenterDelegate {
     ) async -> UNNotificationPresentationOptions {
         [.banner, .sound, .list]
     }
+
+    /// A tapped reminder routes to the task it is about.
+    ///
+    /// The id is only recorded here. Navigation is the plan screen's job,
+    /// because on a cold launch this runs before the store has been read and
+    /// there is nothing yet to navigate to.
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        let userInfo = response.notification.request.content.userInfo
+        guard let taskID = DeadlineReminderScheduler.taskID(fromUserInfo: userInfo) else { return }
+        await MainActor.run {
+            AppNavigator.shared.pendingTaskID = taskID
+            AppNavigator.shared.selectedTab = .plan
+        }
+    }
 }
 
 /// APNs hands the device token to the app delegate and nowhere else, so SwiftUI
 /// apps still need one.
 final class AppDelegate: NSObject, UIApplicationDelegate {
+    /// The notification delegate has to be in place before launch finishes, or
+    /// the tap that launched the app is delivered to nobody and the reminder
+    /// opens the plan list instead of the task.
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        MainActor.assumeIsolated {
+            UNUserNotificationCenter.current().delegate = NotificationService.shared
+        }
+        return true
+    }
+
     func application(
         _ application: UIApplication,
         didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data

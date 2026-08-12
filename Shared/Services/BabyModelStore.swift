@@ -28,6 +28,12 @@ enum BabyModelStore {
         SyncCursor.self
     ])
 
+    /// Set when the store on disk could not be opened and was moved aside. The
+    /// plan on screen is then empty for a reason the parent has to be told
+    /// about: an app that silently reopens as a blank household looks like it
+    /// deleted the baby, and the parent's real work is still on the disk.
+    @MainActor private(set) static var recoveredStoreURL: URL?
+
     static let sharedModelContainer: ModelContainer = {
         let url = storeURL
 
@@ -35,13 +41,18 @@ enum BabyModelStore {
             return container
         }
 
-        // A schema change during development can leave an unreadable store
-        // behind. Drop it and retry once before falling back to memory.
-        for file in [url, url.appendingPathExtension("wal"), url.appendingPathExtension("shm")] {
-            try? FileManager.default.removeItem(at: file)
-        }
+        // An unreadable store used to be deleted here and retried. That is
+        // survivable while a schema is still moving in development and
+        // indefensible in a shipped build: it is a parent's whole plan, and the
+        // failure that reaches this line is as likely to be a bad migration or a
+        // full disk as a corrupt file. So it is moved aside, never removed, and
+        // the app says so.
+        let archived = archiveStoreFiles(at: url)
 
         if let container = makeContainer(url: url) {
+            if let archived {
+                Task { @MainActor in recoveredStoreURL = archived }
+            }
             return container
         }
 
@@ -57,6 +68,37 @@ enum BabyModelStore {
             fatalError("BabyModelStore could not initialize: \(error)")
         }
     }()
+
+    /// Moves an unreadable store and its sidecars out of the way, keeping every
+    /// byte, and returns where they went. Nothing in this app deletes a store
+    /// file outside a DEBUG test flag.
+    private static func archiveStoreFiles(at url: URL) -> URL? {
+        let manager = FileManager.default
+        guard manager.fileExists(atPath: url.path) else { return nil }
+
+        let stamp = ISO8601DateFormatter().string(from: Date())
+            .replacingOccurrences(of: ":", with: "-")
+        let destination = url
+            .deletingLastPathComponent()
+            .appendingPathComponent("BabyDocs-unreadable-\(stamp).store")
+
+        var moved: URL?
+        for suffix in ["", "wal", "shm"] {
+            let source = suffix.isEmpty ? url : url.appendingPathExtension(suffix)
+            let target = suffix.isEmpty ? destination : destination.appendingPathExtension(suffix)
+            guard manager.fileExists(atPath: source.path) else { continue }
+            do {
+                try manager.moveItem(at: source, to: target)
+                if suffix.isEmpty { moved = target }
+            } catch {
+                // If it cannot even be moved, leave it alone. A container that
+                // fails to build is recoverable; a file destroyed on the way to
+                // recovery is not.
+                return moved
+            }
+        }
+        return moved
+    }
 
     /// Deletes the store from disk. DEBUG-only, and called from exactly one
     /// place: the `-uitest-wipe-store` launch flag, before the container is

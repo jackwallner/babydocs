@@ -160,13 +160,11 @@ struct ChildDetailView: View {
             }
 
             Section {
-                ShareLink(
-                    item: PlanExporter.summary(
+                SummaryShareControl {
+                    PlanExporter.summary(
                         for: child,
                         profile: FamilyProfileStore.current(in: context)
                     )
-                ) {
-                    Label("Share a one-page summary", systemImage: "square.and.arrow.up")
                 }
             } footer: {
                 Text("Plain text, so it can be printed or pasted into a message. It never includes the Social Security number.")

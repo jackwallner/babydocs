@@ -14,7 +14,10 @@ struct PlanView: View {
 
     @State private var selectedChildID: UUID?
     @State private var showingDoneSection = false
+    @State private var isEditingHousehold = false
+    @State private var path: [UUID] = []
     @State private var family = FamilyService.shared
+    @State private var navigator = AppNavigator.shared
 
     private var visibleChildren: [Child] {
         guard let selectedChildID else { return children }
@@ -25,12 +28,20 @@ struct PlanView: View {
         visibleChildren.flatMap(\.liveTasks)
     }
 
+    /// Every task, whichever child is filtered in. A pushed detail and a
+    /// notification route both have to resolve against the whole plan: a
+    /// reminder that fires for the second baby must still open when the picker
+    /// happens to be showing the first.
+    private var allTasks: [RequirementTask] {
+        children.flatMap(\.liveTasks)
+    }
+
     private var overview: TaskPlanner.Overview {
         TaskPlanner.overview(for: tasks)
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             List {
                 Section {
                     NextDeadlineCard(overview: overview)
@@ -90,7 +101,7 @@ struct PlanView: View {
                             title: "No plan yet",
                             message: "Finish the questions about your household and the plan builds itself.",
                             actionTitle: "Answer the questions",
-                            action: {}
+                            action: { isEditingHousehold = true }
                         )
                         .listRowBackground(Color.clear)
                     }
@@ -98,7 +109,7 @@ struct PlanView: View {
             }
             .navigationTitle("Plan")
             .navigationDestination(for: UUID.self) { id in
-                if let task = tasks.first(where: { $0.id == id }) {
+                if let task = allTasks.first(where: { $0.id == id }) {
                     TaskDetailView(task: task)
                 }
             }
@@ -111,13 +122,11 @@ struct PlanView: View {
                             Label("Rebuild the plan", systemImage: "arrow.clockwise")
                         }
                         if let child = visibleChildren.first {
-                            ShareLink(
-                                item: PlanExporter.summary(
+                            SummaryShareControl {
+                                PlanExporter.summary(
                                     for: child,
                                     profile: FamilyProfileStore.current(in: context)
                                 )
-                            ) {
-                                Label("Share a one-page summary", systemImage: "square.and.arrow.up")
                             }
                         }
                     } label: {
@@ -125,11 +134,33 @@ struct PlanView: View {
                     }
                 }
             }
+            .sheet(isPresented: $isEditingHousehold) {
+                HouseholdEditorView()
+            }
             .refreshable {
                 await SyncCoordinator.shared.syncNow()
                 RequirementEngine.reconcileAll(in: context)
             }
+            // A reminder that opens the app on the plan list has spent the
+            // parent's attention and given nothing back. The route is held until
+            // the store has the row, so a cold launch lands on the task too.
+            .onChange(of: navigator.pendingTaskID) { _, _ in openPendingTask() }
+            // The row usually is not in the store yet on a cold launch: the
+            // first reconciliation pass creates it a moment after this screen
+            // appears, which is what this watches for.
+            .onChange(of: allTasks.count) { _, _ in openPendingTask() }
+            .task { openPendingTask() }
         }
+    }
+
+    private func openPendingTask() {
+        guard let id = navigator.pendingTaskID else { return }
+        guard allTasks.contains(where: { $0.id == id }) else { return }
+        // The filter is cleared first: pushing a detail for a child the picker
+        // has hidden would pop straight back off.
+        selectedChildID = nil
+        path = [id]
+        navigator.pendingTaskID = nil
     }
 
     private var openBuckets: [(bucket: TaskPlanner.Bucket, tasks: [RequirementTask])] {
