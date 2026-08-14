@@ -3,13 +3,11 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var context
-    @State private var auth = AuthService.shared
-    @State private var family = FamilyService.shared
     @State private var store = StoreService.shared
+    @State private var vault = VaultStore.shared
     @State private var notifications = NotificationService.shared
     @State private var navigator = AppNavigator.shared
 
-    @State private var isConfirmingDelete = false
     @State private var errorMessage: String?
 
     var body: some View {
@@ -48,7 +46,7 @@ struct SettingsView: View {
                     }
                 }
 
-                Section("Reminders") {
+                Section {
                     LabeledContent("Notifications") {
                         Text(notificationStatus)
                     }
@@ -66,19 +64,31 @@ struct SettingsView: View {
                             }
                         }
                     }
-                    if notifications.remoteRegistrationFailed {
-                        Text("This device could not register for notifications. Reminders scheduled on the phone still work.")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
+                } header: {
+                    Text("Reminders")
+                } footer: {
+                    Text("Only the two dates that are real doors closing get a notification: the job-based health plan and the Marketplace. A suggestion that fires at 9am is what teaches someone to switch the whole category off, and then they miss the one that mattered.")
+                }
+
+                Section {
+                    LabeledContent("On this phone") {
+                        Text(vaultSize)
                     }
+                } header: {
+                    Text("Document vault")
+                } footer: {
+                    Text("Photographs of your documents live in this app, unreadable while the phone is locked, and are excluded from every iCloud and computer backup. That is the trade: nothing can leak them, and nothing can restore them to a new phone either. The originals are still the record.")
                 }
 
                 Section("Plus") {
                     LabeledContent("Status") {
-                        Text(store.isPro || family.hasPlus ? "Active" : "Free")
+                        Text(store.isPro ? "Active" : "Free")
                     }
-                    if !(store.isPro || family.hasPlus) {
+                    if !store.isPro {
                         Button("See what Plus adds") { navigator.requestUpgrade() }
+                    }
+                    if store.isPro {
+                        Link("Manage subscription", destination: URL(string: "https://apps.apple.com/account/subscriptions")!)
                     }
                     Button("Restore purchases") {
                         Task {
@@ -98,14 +108,18 @@ struct SettingsView: View {
                     }
                 }
 
-                if auth.isSignedIn {
-                    Section("Account") {
-                        LabeledContent("Signed in as") {
-                            Text(auth.displayName.isEmpty ? "Apple ID" : auth.displayName)
-                        }
-                        Button("Sign out") { Task { await auth.signOut() } }
-                        Button("Delete account", role: .destructive) { isConfirmingDelete = true }
+                Section {
+                    Label {
+                        Text("Baby Docs has no account and no server. Everything you enter, and every photograph you add, is on this phone and nowhere else. There is nothing for us to delete on your behalf, and nothing for anyone to breach.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } icon: {
+                        Image(systemName: "lock.shield")
+                            .foregroundStyle(.secondary)
                     }
+                } header: {
+                    Text("Your data")
                 }
 
                 Section {
@@ -116,23 +130,21 @@ struct SettingsView: View {
                     Text("Version \(appVersion)")
                 }
             }
+            .listStyle(.insetGrouped)
+            .planPageBackground()
             .navigationTitle("Settings")
-            .alert("Delete your account?", isPresented: $isConfirmingDelete) {
-                Button("Delete", role: .destructive) {
-                    Task {
-                        do { try await auth.deleteAccount() } catch { errorMessage = error.localizedDescription }
-                    }
-                }
-                Button("Cancel", role: .cancel) { }
-            } message: {
-                Text("This removes your account and your membership. The plan on this phone stays where it is.")
-            }
             .alert("Baby Docs", isPresented: errorBinding) {
                 Button("OK", role: .cancel) { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "")
             }
         }
+    }
+
+    private var vaultSize: String {
+        let bytes = vault.totalBytes()
+        guard bytes > 0 else { return "Nothing yet" }
+        return ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
     }
 
     private var verifiedStates: String {
@@ -225,6 +237,8 @@ struct SourcesView: View {
                 }
             }
         }
+        .listStyle(.insetGrouped)
+        .planPageBackground()
         .navigationTitle("Sources")
         .navigationBarTitleDisplayMode(.inline)
     }

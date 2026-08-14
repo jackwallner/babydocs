@@ -28,7 +28,7 @@ enum SampleData {
         profile.takingParentalLeave = true
         profile.wantsPassport = true
         profile.wants529 = true
-        profile.wantsTrumpAccount = true
+        profile.wantsNewbornAccount = true
 
         let child = Child(
             name: "Rosa",
@@ -53,6 +53,16 @@ enum SampleData {
             receipt.task = insurance
             receipt.recordedByName = "Sam"
             context.insert(receipt)
+        }
+
+        // One thing sent and overdue back, so the follow-up section on the plan
+        // renders in previews. It is the state a checklist cannot represent, and
+        // a sample family that never reaches it hides the feature from every
+        // screenshot.
+        if let certificate = child.liveTasks.first(where: { $0.catalogKey == "birth_certificate" }) {
+            let calendar = Calendar.current
+            certificate.submittedAt = calendar.date(byAdding: .day, value: -34, to: Date())
+            certificate.expectedByAt = calendar.date(byAdding: .day, value: -6, to: Date())
         }
 
         try? context.save()

@@ -17,31 +17,17 @@ enum AppTheme {
         return childColors[((index % childColors.count) + childColors.count) % childColors.count]
     }
 
-    /// One colour per category, so a task is recognisable by its icon before its
-    /// label is read. Ordered to match `RequirementCategory.colorIndex`.
+    // MARK: - Urgency owns colour
+
+    /// **One colour system, and it means one thing: how close a door is to
+    /// closing.** Nothing else in this app is allowed to be coloured.
     ///
-    /// Icon tints only, never a text colour and never a fill behind text: at low
-    /// opacity behind a saturated glyph they clear contrast in both appearances,
-    /// which is the constraint that matters when the phone is being read
-    /// one-handed at 3am.
-    static let categoryColors: [Color] = [
-        Color(red: 0.24, green: 0.51, blue: 0.85),  // identity
-        Color(red: 0.85, green: 0.32, blue: 0.38),  // insurance
-        Color(red: 0.45, green: 0.42, blue: 0.80),  // parentage
-        Color(red: 0.24, green: 0.60, blue: 0.44),  // money
-        Color(red: 0.25, green: 0.62, blue: 0.70),  // travel
-        Color(red: 0.86, green: 0.55, blue: 0.20),  // work
-        Color(red: 0.50, green: 0.50, blue: 0.55)   // household
-    ]
-
-    static func color(forCategoryIndex index: Int) -> Color {
-        guard !categoryColors.isEmpty else { return .accentColor }
-        return categoryColors[((index % categoryColors.count) + categoryColors.count) % categoryColors.count]
-    }
-
-    /// Deadline urgency. A hard deadline is never drawn in the same colour as a
-    /// suggestion, in any state, because the difference between the two is the
-    /// only thing this app is really selling.
+    /// The screen this replaced had three competing systems in a single row: a
+    /// blue category label, an orange due pill and a red banner above them, none
+    /// of which were about each other. The eye had no way to know which colour
+    /// was the important one, so all three stopped being information and became
+    /// decoration. Categories are now a grey glyph, because their job is
+    /// recognition, not alarm, and grey is perfectly good at recognition.
     static func color(for kind: DeadlineKind, daysRemaining: Int?) -> Color {
         switch kind {
         case .hard:
@@ -49,20 +35,54 @@ enum AppTheme {
             if daysRemaining < 0 { return .red }
             return daysRemaining <= 7 ? .red : .orange
         case .recommended:
-            guard let daysRemaining, daysRemaining < 0 else { return .orange }
             return .orange
         case .none:
             return .secondary
         }
     }
 
+    // MARK: - Surfaces
+
+    /// The page behind everything.
+    ///
+    /// Explicitly painted rather than left to the system, and that is what makes
+    /// the floating tab bar work. A flat black page gives the glass nothing to
+    /// blur, so the bar reads as a grey slab sitting on a void with black gaps
+    /// around it. A real background means content passes under the bar and
+    /// through it, which is the whole point of the shape.
+    static var pageBackground: Color { Color(uiColor: .systemGroupedBackground) }
+
+    /// Cards, rows, anything raised off the page.
+    static var surface: Color { Color(uiColor: .secondarySystemGroupedBackground) }
+
+    /// A card that needs to sit on top of another card.
+    static var raisedSurface: Color { Color(uiColor: .tertiarySystemGroupedBackground) }
+
     static let cardCornerRadius: CGFloat = 14
+
+    /// **The one horizontal margin in the app.**
+    ///
+    /// Every card, every section and every row starts here. The old Plan screen
+    /// set a custom inset on its two header cards and left the task list on the
+    /// system default, so one screen had two left edges about fourteen points
+    /// apart. Nothing about that is legible as a decision, and it is most of why
+    /// the screen read as unfinished: the eye reads a broken vertical line long
+    /// before it reads a heading.
+    static let margin: CGFloat = 16
+
+    /// Vertical rhythm. Three values, used everywhere, so spacing is chosen from
+    /// a set rather than typed fresh each time.
+    static let tightSpacing: CGFloat = 6
+    static let spacing: CGFloat = 12
+    static let looseSpacing: CGFloat = 20
 }
 
 extension RequirementCategory {
-    var color: Color {
-        AppTheme.color(forCategoryIndex: colorIndex)
-    }
+    /// Deliberately not a hue. See `AppTheme.color(for:daysRemaining:)`: the
+    /// category tells you what kind of errand this is, which is a recognition
+    /// job that a glyph does better than a colour, and spending colour on it is
+    /// what stopped colour meaning "this is closing".
+    var tint: Color { .secondary }
 }
 
 extension Child {
@@ -80,5 +100,75 @@ extension Child {
 extension RequirementTask {
     var accentColor: Color {
         AppTheme.color(for: deadlineKind, daysRemaining: daysRemaining())
+    }
+}
+
+// MARK: - Shared modifiers
+
+extension View {
+    /// A card that lines up with every other card on the screen.
+    ///
+    /// Used as a list row, it zeroes the row insets and paints the page colour
+    /// behind itself, so the card's own edges are the only edges. That is what
+    /// keeps a header card and the task section below it on the same two
+    /// vertical lines.
+    func planCard(padding: CGFloat = AppTheme.spacing) -> some View {
+        self
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(padding)
+            .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius))
+    }
+
+    /// Applied to a card used as a `List` row. Pairs with `planCard`.
+    func planCardRow() -> some View {
+        self
+            .listRowInsets(EdgeInsets(
+                top: AppTheme.tightSpacing,
+                leading: AppTheme.margin,
+                bottom: AppTheme.tightSpacing,
+                trailing: AppTheme.margin
+            ))
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+    }
+
+    /// The page treatment every top-level screen wears.
+    ///
+    /// Hiding the scroll background and painting our own is what lets the
+    /// floating tab bar be transparent: the system's default list background is
+    /// drawn *over* the safe area in a way that makes the bar's blur read as a
+    /// hard edge, and this replaces it with one continuous surface the bar can
+    /// actually sit in front of.
+    ///
+    /// The bottom margin comes with it, and is not optional. Once content
+    /// scrolls under the bar, the last row of every list ends up behind glass
+    /// unless something reserves the space, and on a task detail the last row is
+    /// the source footnote: the one element that carries the app's whole claim
+    /// to be checkable. `LayoutUITests` asserts it stays reachable.
+    func planPageBackground() -> some View {
+        self
+            .scrollContentBackground(.hidden)
+            .background(AppTheme.pageBackground)
+            .contentMargins(.bottom, 44, for: .scrollContent)
+    }
+}
+
+// MARK: - Wrapping badge row
+
+/// Lays badges out in a row, and drops to a column when they will not fit.
+///
+/// This exists because of a screenshot. At an accessibility text size the plan's
+/// task rows put a due pill, an assignee and a document count on one line, ran
+/// out of width, and each one truncated to about four characters. `ViewThatFits`
+/// is the whole fix: it measures the row and takes the column instead, so the
+/// large-text layout is a different shape rather than the same shape unreadable.
+struct BadgeRow<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: AppTheme.tightSpacing) { content }
+            VStack(alignment: .leading, spacing: AppTheme.tightSpacing) { content }
+        }
     }
 }

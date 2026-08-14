@@ -40,6 +40,18 @@ struct HouseholdEditorView: View {
         }
     }
 
+    private func labelledToggle(_ title: String, _ detail: String, isOn: Binding<Bool>) -> some View {
+        Toggle(isOn: isOn) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
     @ViewBuilder
     private func form(for profile: FamilyProfile) -> some View {
         @Bindable var profile = profile
@@ -86,11 +98,32 @@ struct HouseholdEditorView: View {
                 Text("If you are covered both through a job and through the Marketplace, pick the job-based plan: it is the shorter window, and it is the one that closes first.")
             }
 
-            Section("Plans") {
-                Toggle("Taking parental leave", isOn: $profile.takingParentalLeave)
-                Toggle("Want a passport", isOn: $profile.wantsPassport)
-                Toggle("Want a 529", isOn: $profile.wants529)
-                Toggle("Want the Trump Account contribution", isOn: $profile.wantsTrumpAccount)
+            // Bare toggles are fine *here* and were not fine in the intake.
+            // Someone in this screen has already read the page that explained
+            // each of these and is coming back to change their mind; someone in
+            // the intake had never heard of any of them. The subtitles carry
+            // enough to jog a memory without repeating four screens of prose.
+            Section("Optional tasks") {
+                labelledToggle(
+                    "Parental leave",
+                    "A state or employer claim, usually with its own window.",
+                    isOn: $profile.takingParentalLeave
+                )
+                labelledToggle(
+                    "The $1,000 newborn account",
+                    "A one-time federal contribution for citizen children born 2025 to 2028. The IRS calls these Trump Accounts.",
+                    isOn: $profile.wantsNewbornAccount
+                )
+                labelledToggle(
+                    "A 529",
+                    "Education savings. No deadline, easier now than in eighteen months.",
+                    isOn: $profile.wants529
+                )
+                labelledToggle(
+                    "A passport",
+                    "Needs the certified birth certificate first, and both parents in person.",
+                    isOn: $profile.wantsPassport
+                )
             }
         }
     }

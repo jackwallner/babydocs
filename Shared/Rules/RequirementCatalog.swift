@@ -24,7 +24,7 @@ struct RuleInput: Sendable, Equatable {
     var hasDependentCareFSA: Bool = false
     var wantsPassport: Bool = false
     var wants529: Bool = false
-    var wantsTrumpAccount: Bool = false
+    var wantsNewbornAccount: Bool = false
     var takingParentalLeave: Bool = false
 
     var shortName: String {
@@ -90,6 +90,15 @@ struct RequirementRule: Identifiable, Sendable {
     let sortWeight: Int
     let sourcing: RuleSourcing
     let documents: [DocumentSpec]
+    /// Whether this is a thing you send away and then wait for.
+    ///
+    /// True unlocks follow-up tracking on the task: the family records when it
+    /// went and what the office told them to expect, and the app says something
+    /// when that date passes. **No turnaround figure is hardcoded anywhere in
+    /// this catalog.** Processing times move constantly and differ by county,
+    /// so the only trustworthy number is the one the office gave this family,
+    /// and the app asks for that rather than guessing on their behalf.
+    var isPostedAway: Bool = false
 
     /// Does this apply to this family at all?
     let applies: @Sendable (RuleInput) -> Bool
@@ -131,7 +140,7 @@ enum RequirementCatalog {
     /// Shown wherever a document or a task mentions the number. Repeated
     /// verbatim rather than paraphrased, because it has to be the same sentence
     /// every time a parent sees it.
-    static let ssnWarning = "Do not type the number into Baby Docs. Nothing here needs it, and receipts and notes are stored and synced as ordinary text."
+    static let ssnWarning = "Do not type the number into Baby Docs. Nothing here needs it, and receipts and notes are stored as ordinary text on this phone."
 
     static let all: [RequirementRule] = [
         ssnCard,
@@ -146,7 +155,7 @@ enum RequirementCatalog {
         parentalLeaveClaim,
         w4Update,
         hospitalBillCheck,
-        trumpAccount,
+        newbornAccount,
         taxDependent,
         plan529,
         passport,
@@ -182,11 +191,12 @@ enum RequirementCatalog {
                 detail: "A certified birth certificate, or the hospital record if the certificate has not arrived."
             )
         ],
+        isPostedAway: true,
         applies: { !$0.hasSSN },
         detail: { input in
             switch input.ssnStatus {
             case .requestedAtHospital:
-                return "You requested it on the hospital form. Nothing else is needed unless the card has not arrived, and it blocks the tax return, the Trump Account and most bank accounts until it does."
+                return "You requested it on the hospital form. Nothing else is needed unless the card has not arrived, and it blocks the tax return, the $1,000 newborn account and most bank accounts until it does."
             case .appliedDirectly:
                 return "You applied directly with SSA. Watch for the card, then mark it received here so the tasks waiting on it open up."
             case .cardReceived:
@@ -227,6 +237,7 @@ enum RequirementCatalog {
             ),
             DocumentSpec(key: "fee", title: "The per-copy fee")
         ],
+        isPostedAway: true,
         applies: { !$0.hasBirthCertificate },
         detail: { input in
             let office = StateVitalRecords.office(for: input.birthStateCode)
@@ -356,6 +367,7 @@ enum RequirementCatalog {
                 detail: "Enrolling is not the last step. Coverage does not start until the first payment is made."
             )
         ],
+        isPostedAway: true,
         applies: { $0.insuranceKind == .marketplace },
         detail: { _ in
             "Reporting the birth is also what re-runs your savings: a larger household usually changes the premium tax credit, and the change does not happen on its own. Marketplace coverage for a new baby is generally backdated to the date of birth, and it is not in force until the first premium is paid."
@@ -498,6 +510,7 @@ enum RequirementCatalog {
             DocumentSpec(key: "both_ids", title: "Photo ID for both parents"),
             DocumentSpec(key: "witness", title: "A notary or witness, if your state requires one")
         ],
+        isPostedAway: true,
         applies: { $0.parentage == .unmarriedBothParents && !$0.secondParentOnRecord },
         detail: { input in
             let state = input.birthStateCode.isEmpty
@@ -581,10 +594,10 @@ enum RequirementCatalog {
 
     // MARK: Money
 
-    static let trumpAccount = RequirementRule(
+    static let newbornAccount = RequirementRule(
         key: "trump_account",
-        title: "Make the Trump Account election",
-        shortTitle: "Trump Account",
+        title: "Claim the $1,000 newborn account",
+        shortTitle: "Newborn account",
         category: .money,
         sortWeight: 30,
         sourcing: .cite(key: "irs_form_4547_instructions", subject: .trumpAccounts),
@@ -594,18 +607,25 @@ enum RequirementCatalog {
                 title: "Confirmation that the baby's Social Security number has been issued",
                 detail: "The election cannot be made until SSA has issued a number valid for employment. Baby Docs tracks whether it exists and nothing else. \(ssnWarning)"
             ),
-            DocumentSpec(key: "form_4547", title: "Form 4547 and its current instructions"),
+            DocumentSpec(key: "form_4547", title: "Form 4547, Trump Account Election, and its current instructions"),
             DocumentSpec(key: "account_details", title: "The account the contribution should go to")
         ],
         applies: { input in
-            guard input.isUSCitizen, input.wantsTrumpAccount else { return false }
+            guard input.isUSCitizen, input.wantsNewbornAccount else { return false }
             let year = Calendar.current.component(.year, from: input.birthDate)
             return (2025...2028).contains(year)
         },
         detail: { input in
-            input.hasSSN
-                ? "\(input.shortName) has an SSN, so the election can be made. Eligible US citizen children born from 2025 through 2028 can receive a one-time $1,000 pilot contribution."
-                : "Eligible US citizen children born from 2025 through 2028 can receive a one-time $1,000 pilot contribution, but the election needs a Social Security number issued to the child first. This one is waiting on the SSN card."
+            // The official name is stated once, deliberately. The government
+            // calls these Trump Accounts, the IRS page lives at
+            // irs.gov/trumpaccounts and the form is titled "Trump Account
+            // Election", so a parent who follows the link without having read
+            // the term here would arrive somewhere that looks like the wrong
+            // page and turn around. Naming it once is what makes the link work.
+            let official = "The IRS calls these Trump Accounts, which is the name on the form and on irs.gov."
+            return input.hasSSN
+                ? "\(input.shortName) has an SSN, so the election can be made. Eligible US citizen children born from 2025 through 2028 can receive a one-time $1,000 federal contribution. \(official)"
+                : "Eligible US citizen children born from 2025 through 2028 can receive a one-time $1,000 federal contribution, but the election needs a Social Security number issued to the child first, so this one is waiting on the SSN card. \(official)"
         },
         deadline: { _ in
             Deadline(
@@ -615,7 +635,7 @@ enum RequirementCatalog {
             )
         },
         link: { _ in
-            OfficialLink(label: "IRS: Trump Accounts", urlString: "https://www.irs.gov/trumpaccounts")
+            OfficialLink(label: "IRS: the official page", urlString: "https://www.irs.gov/trumpaccounts")
         }
     )
 
@@ -708,6 +728,7 @@ enum RequirementCatalog {
                 detail: "Check the State Department's current photo rules before you take it. There are specific allowances for infants, and a rejected photo costs an appointment."
             )
         ],
+        isPostedAway: true,
         applies: { $0.wantsPassport },
         detail: { input in
             input.hasBirthCertificate

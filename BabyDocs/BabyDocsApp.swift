@@ -30,11 +30,6 @@ struct BabyDocsApp: App {
         }
         #endif
 
-        // Synchronous and network-free, so the first frame already knows
-        // whether there is a session. Anything async here would put a spinner
-        // in front of a plan that is sitting on disk.
-        AuthService.shared.bootstrap()
-        FamilyService.shared.loadFromCache()
     }
 
     var body: some Scene {
@@ -44,14 +39,9 @@ struct BabyDocsApp: App {
                 .task {
                     StoreService.shared.start()
                     NotificationService.shared.start()
-                    await AuthService.shared.refreshInBackground()
-                    await FamilyService.shared.refresh()
-                    await SyncCoordinator.shared.syncNow()
                 }
                 .onOpenURL { url in
-                    if let code = InviteLink.code(from: url) {
-                        AppNavigator.shared.pendingInviteCode = code
-                    }
+                    AppNavigator.shared.open(url)
                 }
         }
     }

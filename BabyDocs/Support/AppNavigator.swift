@@ -4,9 +4,9 @@ import SwiftUI
 /// Cross-screen navigation intents that arrive from outside the view tree: a
 /// deep link, a notification tap, a paywall dismissal.
 ///
-/// One object rather than a pile of `@State` bindings threaded down, because the
-/// invitation link can arrive at any point, including while the onboarding
-/// wizard is halfway through.
+/// One object rather than a pile of `@State` bindings threaded down, because a
+/// shared plan link can arrive at any point, including while the intake is
+/// halfway through.
 @MainActor
 @Observable
 final class AppNavigator {
@@ -15,16 +15,21 @@ final class AppNavigator {
     enum Tab: Hashable {
         case plan
         case children
-        case family
+        case documents
         case settings
     }
 
     var selectedTab: Tab = .plan
 
-    /// Set by `onOpenURL`. The onboarding flow and the family screen both watch
-    /// it, so an invitation opens the right thing whether or not the app has
-    /// been set up yet.
-    var pendingInviteCode: String?
+    /// Set by `onOpenURL` when the other parent's link is tapped. Held rather
+    /// than applied, because the answer to "shall I replace what is already
+    /// here" belongs to the person holding the phone.
+    var pendingSeed: PlanSeed?
+
+    /// Set when a link arrived but could not be read. Distinguished from no link
+    /// at all: silence after tapping a link someone sent you reads as a broken
+    /// app, and the honest message is that the link itself did not survive.
+    var seedFailed = false
 
     /// Set when a deadline reminder is tapped. Held rather than acted on
     /// immediately: on a cold launch the notification response arrives before
@@ -41,5 +46,14 @@ final class AppNavigator {
 
     func requestUpgrade() {
         isShowingPaywall = true
+    }
+
+    func open(_ url: URL) {
+        if let seed = PlanSeed.decode(from: url) {
+            pendingSeed = seed
+            seedFailed = false
+        } else {
+            seedFailed = true
+        }
     }
 }

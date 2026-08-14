@@ -3,11 +3,17 @@ import SwiftUI
 
 /// The upgrade.
 ///
-/// One-time purchase first, and that is a product decision rather than a layout
-/// one. The need this app serves is intense for about ninety days and then
-/// genuinely over. Leading with a subscription would sell something the customer
-/// will cancel, and a cancellation is worse for both sides than a purchase that
-/// simply stays bought.
+/// Weekly leads, which is unusual and deliberate. Almost every subscription app
+/// leads with an annual plan because almost every subscription app is used for
+/// years; this one is used for six to thirteen weeks and is then genuinely
+/// finished. A weekly price is the honest one for a need that ends.
+///
+/// Lifetime sits underneath because the document vault is the part that does
+/// not end, and a tier that keeps those photographs for good is a different
+/// product from a tier that gets you through the deadlines.
+///
+/// Nothing on this page is sold that the app does not already do, and no
+/// deadline, official link or document list is behind it.
 struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var store = StoreService.shared
@@ -39,7 +45,8 @@ struct PaywallView: View {
             .task {
                 await store.refresh()
                 if selection == nil {
-                    selection = store.plans.first(where: \.isLifetime)?.id ?? store.plans.first?.id
+                    selection = store.plans.first { $0.id == ProProduct.weekly }?.id
+                        ?? store.plans.first?.id
                 }
             }
             .alert("Purchases", isPresented: errorBinding) {
@@ -55,10 +62,10 @@ struct PaywallView: View {
             Image(systemName: "doc.text.fill")
                 .font(.system(size: 44))
                 .foregroundStyle(Color.accentColor)
-            Text("The whole plan, on one page")
+            Text("For the weeks it is actually happening")
                 .font(.title2.weight(.bold))
                 .multilineTextAlignment(.center)
-            Text("Every deadline, every document list and every official link is free for one baby. Plus is the summary you can hand to someone else, and room for the next one.")
+            Text("Every deadline, document list and official link stays free. Plus is the work around them: keeping copies, chasing what has not come back, and the pages you hand to somebody else.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -66,16 +73,21 @@ struct PaywallView: View {
         .padding(.top, 12)
     }
 
-    /// Sharing is deliberately absent here. `SupabaseConfig.isConfigured` is
-    /// false in shipping builds, so a bullet promising the other parent would be
-    /// selling a feature this binary cannot deliver. It goes back when sharing
-    /// is switched on, and not a build before.
+    /// Every line here is a thing this build does today.
+    ///
+    /// Live sync between two phones is deliberately absent, because there is no
+    /// server and there is not going to be one. Sending the plan to the other
+    /// parent works, and it is free, so it is not sold here either.
     private var benefits: some View {
         VStack(alignment: .leading, spacing: 12) {
+            benefit("lock.doc", "The document vault",
+                    "Photographs of the birth certificate, the card and the insurance details, on your phone at the counter. Never backed up, never uploaded.")
+            benefit("clock.badge.exclamationmark", "Chase what has not arrived",
+                    "Record what you sent and what you were told to expect. The plan speaks up when that date passes, because nothing else will.")
+            benefit("briefcase", "The employer packet",
+                    "The qualifying-life-event page HR asks for, with the event, the date and the enclosures already filled in.")
             benefit("figure.and.child.holdinghands", "Every child",
                     "A second baby inherits your household answers instead of asking again.")
-            benefit("square.and.arrow.up", "The printable one-pager",
-                    "What is left, what to bring, and every confirmation number, on one page.")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -129,12 +141,13 @@ struct PaywallView: View {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(plan.title).font(.body.weight(.medium))
-                            Text(plan.isLifetime ? "Pay once. No renewal." : "Renews automatically. Cancel any time.")
+                            Text(ProProduct.rationale(for: plan.id))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
                             if let intro = plan.introOffer {
                                 Text(intro)
-                                    .font(.caption)
+                                    .font(.caption.weight(.medium))
                                     .foregroundStyle(Color.accentColor)
                             }
                         }
@@ -165,12 +178,21 @@ struct PaywallView: View {
         }
     }
 
-    /// The disclosure Apple asks for on an auto-renewing subscription, in the
-    /// place the decision is made rather than in a terms page nobody opens.
+    /// The disclosure App Review 3.1.2 requires, in the place the decision is
+    /// actually made rather than in a terms page nobody opens.
+    ///
+    /// Built from the selected product rather than typed in, because a hardcoded
+    /// sentence goes stale the first time a price or a trial length moves, and
+    /// the failure mode is a paywall stating a price the store is not charging.
+    /// Kept to one quiet paragraph: this has to be unmissable and true, not
+    /// loud.
     private var subscriptionTerms: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("The one-time purchase is charged once and never renews.")
-            Text("The monthly and yearly plans renew automatically at the price above until cancelled. Payment is charged to your Apple Account at confirmation, and renewal is charged within 24 hours of the end of the current period. Manage or cancel in Settings, Apple Account, Subscriptions. A free trial that goes unused when a subscription is bought is forfeited.")
+            if let plan = store.plans.first(where: { $0.id == selection }) {
+                Text(StoreService.disclosure(for: plan))
+            }
+            Text("Payment is charged to your Apple Account at confirmation. A subscription renews within 24 hours of the end of the current period unless cancelled first, and is managed in Settings, Apple Account, Subscriptions. Buying the one-time purchase forfeits any unused part of a free trial.")
+            Text("What you add to the vault stays readable even if a subscription lapses. Lapsing stops you adding new documents; it never takes back the ones you have.")
         }
         .font(.caption2)
         .foregroundStyle(.secondary)
@@ -182,7 +204,7 @@ struct PaywallView: View {
             Button {
                 purchase()
             } label: {
-                Text(store.isPro ? "You already have Plus" : "Continue")
+                Text(buyTitle)
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -195,6 +217,19 @@ struct PaywallView: View {
         .padding(.horizontal, 22)
         .padding(.vertical, 12)
         .background(.bar)
+    }
+
+    /// "Continue" tells a buyer nothing about what is about to happen. When the
+    /// selected plan carries a trial, the button says so, because the difference
+    /// between "charged now" and "charged in three days" is the whole reason
+    /// somebody hesitates over this button.
+    private var buyTitle: String {
+        if store.isPro { return "You already have Plus" }
+        guard let plan = store.plans.first(where: { $0.id == selection }) else { return "Continue" }
+        if let intro = plan.introOffer, intro.hasSuffix("free") {
+            return "Start my free trial"
+        }
+        return plan.isLifetime ? "Buy it once" : "Continue"
     }
 
     private var footerLinks: some View {

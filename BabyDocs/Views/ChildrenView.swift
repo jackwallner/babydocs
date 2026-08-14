@@ -32,9 +32,7 @@ struct ChildrenView: View {
                     }
                 } footer: {
                     if !store.isPro {
-                        Text(SupabaseConfig.isConfigured
-                             ? "The first baby is free. Plus covers any further children and lets both parents work from the same plan."
-                             : "The first baby is free. Plus covers any further children.")
+                        Text("The first baby is free, with every deadline, link and document list. Plus covers any further children.")
                     }
                 }
 
@@ -48,6 +46,8 @@ struct ChildrenView: View {
                     Text("Where you live, how you are covered, whether you are taking leave. Changing an answer here rebuilds every child's plan.")
                 }
             }
+            .listStyle(.insetGrouped)
+            .planPageBackground()
             .navigationTitle("Children")
             .navigationDestination(for: UUID.self) { id in
                 if let child = children.first(where: { $0.id == id }) {
@@ -70,7 +70,6 @@ struct ChildrenView: View {
         }
         let child = Child(birthDate: Date())
         child.colorIndex = children.count
-        child.groupID = FamilyService.shared.activeGroupID
         // Inherit the household's state, which is right far more often than it
         // is wrong, and is trivially corrected on the sheet that opens next.
         child.birthStateCode = FamilyProfileStore.current(in: context).residenceStateCode
@@ -123,14 +122,14 @@ struct ChildDetailView: View {
     @Environment(\.modelContext) private var context
     @Bindable var child: Child
     @State private var isEditing = false
+    @State private var isSharing = false
 
     var body: some View {
         List {
             Section {
                 let overview = TaskPlanner.overview(for: child.liveTasks)
                 PlanProgressCard(overview: overview)
-                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
-                    .listRowBackground(Color.clear)
+                    .planCardRow()
             }
 
             Section {
@@ -160,20 +159,24 @@ struct ChildDetailView: View {
             }
 
             Section {
-                SummaryShareControl {
-                    PlanExporter.summary(
-                        for: child,
-                        profile: FamilyProfileStore.current(in: context)
-                    )
+                Button {
+                    isSharing = true
+                } label: {
+                    Label("Send or print this plan", systemImage: "square.and.arrow.up")
                 }
             } footer: {
-                Text("Plain text, so it can be printed or pasted into a message. It never includes the Social Security number.")
+                Text("The link for the other parent, the printable one-pager and the employer packet.")
             }
         }
+        .listStyle(.insetGrouped)
+        .planPageBackground()
         .navigationTitle(child.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $isEditing) {
             ChildEditorSheet(child: child)
+        }
+        .sheet(isPresented: $isSharing) {
+            SharePlanSheet(child: child)
         }
     }
 
@@ -254,7 +257,7 @@ struct ChildEditorSheet: View {
                             Text(state.name).tag(state.code)
                         }
                     }
-                    TextField("County (optional)", text: $child.birthCounty)
+                    CountyField(stateCode: child.birthStateCode, county: $child.birthCounty)
                     Toggle("US citizen", isOn: $child.isUSCitizen)
                 } footer: {
                     let office = StateVitalRecords.office(for: child.birthStateCode)
@@ -285,6 +288,33 @@ struct ChildEditorSheet: View {
                         )
                         dismiss()
                     }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - County
+
+/// A picker where the Census has a list, a text field where it does not.
+///
+/// Shared between the intake and the editor so the two cannot disagree about
+/// what a county is. It routes nothing: see `USCounties` for why a generated
+/// list of three thousand clerks would be worse than the state-level link a
+/// human has actually read.
+struct CountyField: View {
+    let stateCode: String
+    @Binding var county: String
+
+    var body: some View {
+        let counties = USCounties.names(forStateCode: stateCode)
+        if stateCode.isEmpty || counties.isEmpty {
+            TextField("County (optional)", text: $county)
+        } else {
+            Picker("County (optional)", selection: $county) {
+                Text("Not sure").tag("")
+                ForEach(counties, id: \.self) { name in
+                    Text(name).tag(name)
                 }
             }
         }

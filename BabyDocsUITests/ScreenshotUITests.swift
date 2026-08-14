@@ -62,9 +62,15 @@ final class ScreenshotUITests: XCTestCase {
         capture(name: "05-paywall")
         app.buttons["Close"].tap()
 
+        // Where a parent goes when someone is waiting at a counter: what is
+        // still to find, gathered across every task, and the copies they keep.
+        app.tabBars.buttons["Documents"].tap()
+        XCTAssertTrue(app.navigationBars["Documents"].waitForExistence(timeout: 5))
+        capture(name: "06-documents")
+
         app.tabBars.buttons["Settings"].tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
-        capture(name: "06-settings")
+        capture(name: "07-settings")
     }
 
     func testCaptureTheIntake() {
@@ -74,6 +80,47 @@ final class ScreenshotUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["The paperwork, in order"].waitForExistence(timeout: 15))
         capture(name: "00-welcome")
+
+        // One of the four explained pages, which is the change that matters most
+        // in the intake: a toggle that says "We want the Trump Account
+        // contribution" asks someone to decide using knowledge nobody gave them.
+        // Reached rather than constructed, so the picture is proof the flow
+        // actually arrives here.
+        app.buttons["Get started"].tap()
+        XCTAssertTrue(app.navigationBars["Your baby"].waitForExistence(timeout: 5))
+        choose(state: "California", labelled: "State of birth", in: app)
+        app.buttons["Continue"].firstMatch.tap()
+
+        XCTAssertTrue(app.navigationBars["Your household"].waitForExistence(timeout: 5))
+        choose(state: "California", labelled: "State you live in", in: app)
+        app.buttons["Continue"].firstMatch.tap()
+
+        XCTAssertTrue(app.navigationBars["Coverage"].waitForExistence(timeout: 5))
+        capture(name: "01-coverage")
+        app.buttons["Through a job"].firstMatch.tap()
+        app.buttons["Continue"].firstMatch.tap()
+
+        XCTAssertTrue(app.navigationBars["Leave"].waitForExistence(timeout: 5))
+        capture(name: "02-explained-choice")
+    }
+
+    /// A `Picker` row in a SwiftUI `Form` is a cell containing the label, not a
+    /// tappable static text. Querying the label directly finds an element that
+    /// exists and is not hittable, which fails in a way that reads like the
+    /// screen is wrong rather than the query.
+    private func choose(state: String, labelled label: String, in app: XCUIApplication) {
+        let row = app.cells.containing(.staticText, identifier: label).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "No picker row labelled \(label)")
+        row.tap()
+
+        let option = app.buttons[state].firstMatch
+        XCTAssertTrue(option.waitForExistence(timeout: 5), "\(state) never appeared in the picker")
+        option.tap()
+
+        // Pushed picker styles need popping; inline ones do not.
+        if app.navigationBars[label].exists {
+            app.navigationBars.buttons.element(boundBy: 0).tap()
+        }
     }
 
     /// Written into the simulator's own `/tmp`, which is a real directory on the

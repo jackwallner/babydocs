@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A Baby Docs plan was shared with you</title>
+<!--
+  This page is part of the app, not the marketing site.
+
+  Every "send the plan" link points here, and those links sit in inboxes far
+  longer than the build that wrote them, so this path has to stay published
+  exactly where it is. No build whose share link is live may ship before this
+  page is.
+
+  The payload rides in the URL fragment, which browsers never send to a server.
+  This page reads it in the visitor's own browser and hands it straight back to
+  the app. Nothing about the family reaches any host, including this one, which
+  is the only reason it is acceptable for a plan to travel through a web page at
+  all.
+-->
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="legal.css">
+<style>
+  .card { max-width: 34rem; margin: 3rem auto; padding: 0 1.25rem; }
+  .cta { display: inline-block; padding: .85rem 1.4rem; border-radius: 12px;
+         background: #2f6fd0; color: #fff; text-decoration: none; font-weight: 600; }
+  .cta.secondary { background: transparent; color: #2f6fd0; border: 1px solid #2f6fd0; }
+  .row { display: flex; gap: .75rem; flex-wrap: wrap; margin: 1.5rem 0; }
+  .muted { color: #666; font-size: .9rem; }
+  .warn { display: none; padding: .9rem 1rem; border-radius: 10px;
+          background: #fdf2e6; color: #7a4a00; }
+  @media (prefers-color-scheme: dark) {
+    .muted { color: #9a9a9a; }
+    .warn { background: #3a2a10; color: #ffcf94; }
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>A Baby Docs plan was shared with you</h1>
+  <p>
+    Someone sent you the answers behind their newborn paperwork plan. Open this
+    on your iPhone and Baby Docs will build the same list: the same tasks, the
+    same deadlines, and reminders of your own.
+  </p>
+
+  <div class="row">
+    <a class="cta" id="open" href="#">Open in Baby Docs</a>
+    <a class="cta secondary" href="https://apps.apple.com/app/id0000000000">Get the app</a>
+  </div>
+
+  <p class="warn" id="warn">
+    This link looks incomplete. Some message apps cut long links in half. Ask
+    whoever sent it to try again, or just answer the questions yourself: it takes
+    about a minute.
+  </p>
+
+  <h2>What travelled and what did not</h2>
+  <p>
+    The link carries a birth date, a state and county, and a dozen household
+    answers such as how the family is covered. That is all the app needs to
+    rebuild the plan.
+  </p>
+  <p>
+    It does <strong>not</strong> carry anything anyone has done: no completed
+    tasks, no confirmation numbers, no photographs of documents. Those never
+    leave the phone they were entered on.
+  </p>
+  <p class="muted">
+    Baby Docs has no accounts and no server. This page holds nothing and stores
+    nothing: everything after the <code>#</code> in the address stays in your
+    browser and is passed straight to the app.
+  </p>
+  <p class="muted">
+    <a href="privacy-policy.html">Privacy</a> &middot;
+    <a href="terms.html">Terms</a> &middot;
+    <a href="support.html">Support</a>
+  </p>
+</main>
+
+<script>
+  (function () {
+    var payload = window.location.hash.replace(/^#/, '');
+    var open = document.getElementById('open');
+    if (!payload) {
+      document.getElementById('warn').style.display = 'block';
+      open.style.display = 'none';
+      return;
+    }
+    var deepLink = 'babydocs://plan?d=' + payload;
+    open.setAttribute('href', deepLink);
+    // Tried once, immediately. A phone with the app installed switches to it;
+    // one without simply stays here with the App Store button in front of it,
+    // which is the correct outcome and needs no timer or redirect to achieve.
+    window.location.replace(deepLink);
+  })();
+</script>
+</body>
+</html>

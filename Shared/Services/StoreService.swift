@@ -26,22 +26,43 @@ struct PlanOption: Identifiable, Sendable {
 }
 
 enum ProProduct {
-    static let monthly = "com.jackwallner.babydocs.pro.monthly"
+    static let weekly = "com.jackwallner.babydocs.pro.weekly"
     static let yearly = "com.jackwallner.babydocs.pro.yearly"
     static let lifetime = "com.jackwallner.babydocs.pro.lifetime"
 
-    /// Lifetime first, deliberately. The need this app serves is intense for
-    /// about ninety days and then over, so a subscription is the wrong default
-    /// to put in front of someone: they would cancel it, and a cancellation is a
-    /// worse outcome for both sides than a one-time purchase.
-    static let all: [String] = [lifetime, yearly, monthly]
+    /// Weekly first, and that is unusual on purpose.
+    ///
+    /// Almost every subscription app leads with an annual plan because almost
+    /// every subscription app is used for years. This one is not: the paperwork
+    /// is intense for six to thirteen weeks and then genuinely finished. A
+    /// weekly price is the honest one for a need that ends, and someone who uses
+    /// it for eight weeks pays for eight weeks.
+    ///
+    /// Lifetime sits underneath it because the vault is the part that does not
+    /// end. Those photographs are still useful at kindergarten registration, so
+    /// the tier that keeps them is sold as a thing you own. The yearly sits
+    /// between the two and mostly exists to make the comparison legible.
+    static let all: [String] = [weekly, yearly, lifetime]
 
     static func title(for productID: String) -> String {
         switch productID {
-        case monthly: return "Monthly"
+        case weekly: return "Weekly"
         case yearly: return "Yearly"
-        case lifetime: return "One-time"
+        case lifetime: return "Keep it forever"
         default: return "Baby Docs Plus"
+        }
+    }
+
+    /// One line under each plan saying what it is *for*, which is the question a
+    /// price does not answer. A parent choosing between $4.99 a week and $59.99
+    /// once is really choosing between "until this is over" and "for good", and
+    /// nothing on a price row says that.
+    static func rationale(for productID: String) -> String {
+        switch productID {
+        case weekly: return "For the weeks the paperwork is actually happening."
+        case yearly: return "If you would rather not think about it again this year."
+        case lifetime: return "Keeps the document vault for good. No renewal."
+        default: return ""
         }
     }
 }
@@ -58,11 +79,15 @@ enum RevenueCatConfig {
 
 /// Freemium gate.
 ///
-/// Everything that makes the plan worth having is free for one baby on one
-/// phone: every task, every deadline, every document list, every official link.
-/// Plus is the second parent and any further children. That split is the honest
-/// one, because a deadline hidden behind a paywall is a deadline the app caused
-/// someone to miss.
+/// Everything that makes the plan worth having is free for one baby: every task,
+/// every deadline, every document list, every official link, every reminder, and
+/// sending the plan to the other parent. A deadline hidden behind a paywall is a
+/// deadline the app caused someone to miss, so no date in this app is ever
+/// behind one.
+///
+/// Plus is the work *around* the deadlines: keeping copies of the documents,
+/// chasing the things that were sent and have not come back, the printable plan
+/// and the employer packet, and further children.
 @MainActor
 @Observable
 final class StoreService: NSObject {
@@ -96,24 +121,7 @@ final class StoreService: NSObject {
 
     func start() {
         configureIfNeeded()
-        Task {
-            await identify()
-            await refresh()
-        }
-    }
-
-    /// Ties the RevenueCat customer to the Supabase user id, which is what makes
-    /// the webhook able to find the payer's family. Without this the webhook
-    /// sees an anonymous RevenueCat id, has nobody to credit, and the other
-    /// parent silently never gets Plus.
-    func identify() async {
-        guard isConfigured, let userID = AuthService.shared.userID else { return }
-        do {
-            let (info, _) = try await Purchases.shared.logIn(userID.uuidString)
-            apply(info)
-        } catch {
-            log.error("logIn failed: \(error.localizedDescription, privacy: .public)")
-        }
+        Task { await refresh() }
     }
 
     func refresh() async {
@@ -173,9 +181,28 @@ final class StoreService: NSObject {
         return count == 1 ? "per \(unit)" : "every \(count) \(unit)s"
     }
 
+    /// "3 days free" or "$0.99 for the first month".
+    ///
+    /// Deliberately no "then the price below": the price is six points to the
+    /// right on the same row, so the phrase pointed at something already in
+    /// view and read as filler. The full renewal sentence is `disclosure`, which
+    /// sits under the buttons where App Review looks for it.
     static func introLabel(isFree: Bool, price: String, unit: String, count: Int) -> String {
         let span = count == 1 ? "1 \(unit)" : "\(count) \(unit)s"
-        return isFree ? "\(span) free, then the price below" : "\(price) for the first \(span)"
+        return isFree ? "\(span) free" : "\(price) for the first \(span)"
+    }
+
+    /// The disclosure App Review 3.1.2 requires, built from the product rather
+    /// than typed into the view. A hardcoded sentence goes stale the first time
+    /// a price or a trial length changes, and the failure mode is a paywall that
+    /// states a price the store is not charging.
+    static func disclosure(for plan: PlanOption) -> String {
+        guard !plan.isLifetime, !plan.period.isEmpty else {
+            return "One payment. No subscription, nothing to cancel."
+        }
+        let renewal = "Renews at \(plan.price) \(plan.period) until cancelled. Cancel any time in Settings."
+        guard let intro = plan.introOffer, intro.hasSuffix("free") else { return renewal }
+        return "\(intro), then \(plan.price) \(plan.period). \(renewal)"
     }
 
     /// Populates `plans` from the local `.storekit` catalog. Only ever runs when
@@ -212,7 +239,55 @@ final class StoreService: NSObject {
             log.error("StoreKit Testing load failed: \(error.localizedDescription, privacy: .public)")
             loadError = error.localizedDescription
         }
+
+        #if DEBUG
+        // A UI test host gets no StoreKit configuration: Xcode attaches the
+        // `.storekit` file to the *launch* action only, so `Product.products`
+        // comes back empty and the paywall renders its "no prices" state. That
+        // makes the one screen where price, billing period and renewal
+        // disclosure have to appear together the one screen a screenshot can
+        // never check, which is exactly backwards.
+        //
+        // So on a simulator with nothing loaded, fall back to display-only
+        // plans. They carry no `Package`, so `purchase(_:)` already returns
+        // without charging anything, and this whole block is compiled out of
+        // release.
+        if plans.isEmpty {
+            plans = Self.placeholderPlans
+            loadError = nil
+        }
+        #endif
     }
+
+    #if DEBUG
+    /// Layout stand-ins, so a screenshot of the paywall is a screenshot of the
+    /// paywall. The numbers mirror `Products.storekit`; if they drift, the
+    /// picture is wrong rather than the app.
+    private static let placeholderPlans: [PlanOption] = [
+        PlanOption(
+            id: ProProduct.weekly,
+            title: ProProduct.title(for: ProProduct.weekly),
+            price: "$4.99",
+            package: nil,
+            period: "per week",
+            introOffer: "3 days free"
+        ),
+        PlanOption(
+            id: ProProduct.yearly,
+            title: ProProduct.title(for: ProProduct.yearly),
+            price: "$29.99",
+            package: nil,
+            period: "per year"
+        ),
+        PlanOption(
+            id: ProProduct.lifetime,
+            title: ProProduct.title(for: ProProduct.lifetime),
+            price: "$59.99",
+            package: nil,
+            period: ""
+        )
+    ]
+    #endif
 
     func purchase(_ plan: PlanOption) async throws {
         guard let package = plan.package else {
@@ -222,7 +297,6 @@ final class StoreService: NSObject {
         let result = try await Purchases.shared.purchase(package: package)
         guard !result.userCancelled else { return }
         apply(result.customerInfo)
-        await propagateToFamily()
     }
 
     /// What a restore actually did. "Nothing happened" and "nothing was there to
@@ -239,19 +313,7 @@ final class StoreService: NSObject {
         guard isConfigured else { return .unavailable }
         let info = try await Purchases.shared.restorePurchases()
         apply(info)
-        await propagateToFamily()
         return isPro ? .restored : .nothingToRestore
-    }
-
-    /// The webhook is what actually writes `family_billing`, and it arrives
-    /// server-to-server a moment later. This pulls the row so the other parent's
-    /// entitlement is current on the payer's own device too.
-    private func propagateToFamily() async {
-        // Give the webhook a beat to land. Not load-bearing: the payer is
-        // already unlocked locally either way, and the next foreground refresh
-        // picks it up regardless.
-        try? await Task.sleep(for: .seconds(2))
-        await FamilyService.shared.refreshBilling()
     }
 
     private func apply(_ info: CustomerInfo) {

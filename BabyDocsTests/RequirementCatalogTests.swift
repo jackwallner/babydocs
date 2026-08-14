@@ -40,7 +40,7 @@ struct RequirementCatalogTests {
             hasDependentCareFSA: false,
             wantsPassport: true,
             wants529: true,
-            wantsTrumpAccount: true,
+            wantsNewbornAccount: true,
             takingParentalLeave: true
         )
     }
@@ -131,29 +131,29 @@ struct RequirementCatalogTests {
         #expect(!RequirementCatalog.parentageAcknowledgment.applies(family))
     }
 
-    // MARK: - Trump Accounts
+    // MARK: - The $1,000 newborn account
 
-    @Test("Trump Account applies only to eligible citizen children in the pilot years")
+    @Test("The newborn account applies only to eligible citizen children in the pilot years")
     func trumpAccountEligibility() {
-        #expect(RequirementCatalog.trumpAccount.applies(input(birthYear: 2026)))
-        #expect(!RequirementCatalog.trumpAccount.applies(input(citizen: false, birthYear: 2026)))
-        #expect(!RequirementCatalog.trumpAccount.applies(input(birthYear: 2024)))
-        #expect(!RequirementCatalog.trumpAccount.applies(input(birthYear: 2029)))
+        #expect(RequirementCatalog.newbornAccount.applies(input(birthYear: 2026)))
+        #expect(!RequirementCatalog.newbornAccount.applies(input(citizen: false, birthYear: 2026)))
+        #expect(!RequirementCatalog.newbornAccount.applies(input(birthYear: 2024)))
+        #expect(!RequirementCatalog.newbornAccount.applies(input(birthYear: 2029)))
     }
 
-    @Test("Trump Account holds no date of its own")
+    @Test("The newborn account holds no date of its own")
     func trumpAccountRefusesToGuessADate() {
         // A wrong date on a one-time $1,000 election is worse than no date, so
         // the rule deliberately carries none and points at the instructions.
-        let deadline = RequirementCatalog.trumpAccount.deadline(input(birthYear: 2026))
+        let deadline = RequirementCatalog.newbornAccount.deadline(input(birthYear: 2026))
         #expect(deadline.date == nil)
         #expect(deadline.basis.contains("4547"))
     }
 
-    @Test("Without an SSN the Trump Account task says it is blocked")
+    @Test("Without an SSN the newborn account task says it is blocked")
     func trumpAccountExplainsTheSSNDependency() {
-        let blocked = RequirementCatalog.trumpAccount.detail(input(hasSSN: false, birthYear: 2026))
-        let ready = RequirementCatalog.trumpAccount.detail(input(hasSSN: true, birthYear: 2026))
+        let blocked = RequirementCatalog.newbornAccount.detail(input(hasSSN: false, birthYear: 2026))
+        let ready = RequirementCatalog.newbornAccount.detail(input(hasSSN: true, birthYear: 2026))
         #expect(blocked.contains("waiting on the SSN"))
         #expect(!ready.contains("waiting on the SSN"))
     }

@@ -96,7 +96,7 @@ struct TaskPlannerTests {
 
     @Test("An undated hard deadline says the date depends on the plan")
     func undatedHardDeadlineIsHonest() {
-        // Trump Accounts are the real case: the rule applies and there is a
+        // The newborn account is the real case: the rule applies and there is a
         // date somewhere, but it is not one this app is willing to assert.
         let phrase = TaskPlanner.duePhrase(for: task(dueInDays: nil, kind: .recommended), now: now)
         #expect(phrase == "Date depends on your plan")

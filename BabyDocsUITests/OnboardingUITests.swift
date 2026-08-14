@@ -22,6 +22,10 @@ final class OnboardingUITests: XCTestCase {
             "A clean install should open on the intake, not on an empty plan"
         )
         XCTAssertTrue(app.buttons["Get started"].exists)
-        XCTAssertTrue(app.buttons["I have an invitation"].exists)
+        // There is deliberately no second button here. The welcome screen used
+        // to offer "I have an invitation", which named a concept the reader had
+        // no way to have met yet and pointed at a feature the build could not
+        // deliver. A shared plan now arrives as a link and opens its own sheet,
+        // so there is nothing to find on this screen.
     }
 }

@@ -15,8 +15,8 @@ struct PlanView: View {
     @State private var selectedChildID: UUID?
     @State private var showingDoneSection = false
     @State private var isEditingHousehold = false
+    @State private var isSharingPlan = false
     @State private var path: [UUID] = []
-    @State private var family = FamilyService.shared
     @State private var navigator = AppNavigator.shared
 
     private var visibleChildren: [Child] {
@@ -40,16 +40,35 @@ struct PlanView: View {
         TaskPlanner.overview(for: tasks)
     }
 
+    /// Sent, overdue back, and nobody has told the family. Hoisted to the top of
+    /// the screen because it is the one thing here that a parent could not have
+    /// worked out from their own calendar.
+    private var lateTasks: [RequirementTask] {
+        tasks.filter { $0.isLate() }
+    }
+
     var body: some View {
         NavigationStack(path: $path) {
             List {
                 Section {
                     NextDeadlineCard(overview: overview)
-                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
-                        .listRowBackground(Color.clear)
+                        .planCardRow()
                     PlanProgressCard(overview: overview)
-                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 6, trailing: 16))
-                        .listRowBackground(Color.clear)
+                        .planCardRow()
+                }
+
+                if !lateTasks.isEmpty {
+                    Section {
+                        ForEach(lateTasks) { task in
+                            TaskRow(task: task, showChildName: children.count > 1) {
+                                toggle(task)
+                            }
+                        }
+                    } header: {
+                        Text("Sent, and still not here")
+                    } footer: {
+                        Text("Past the date the office told you to expect it. Nothing else in your life is going to mention this, which is why it is at the top.")
+                    }
                 }
 
                 if children.count > 1 {
@@ -62,6 +81,10 @@ struct PlanView: View {
                         }
                         .pickerStyle(.segmented)
                     }
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(
+                        top: 0, leading: AppTheme.margin, bottom: AppTheme.tightSpacing, trailing: AppTheme.margin
+                    ))
                 }
 
                 ForEach(openBuckets, id: \.bucket) { group in
@@ -107,6 +130,8 @@ struct PlanView: View {
                     }
                 }
             }
+            .listStyle(.insetGrouped)
+            .planPageBackground()
             .navigationTitle("Plan")
             .navigationDestination(for: UUID.self) { id in
                 if let task = allTasks.first(where: { $0.id == id }) {
@@ -116,18 +141,24 @@ struct PlanView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        Button {
-                            RequirementEngine.reconcileAll(in: context)
-                        } label: {
-                            Label("Rebuild the plan", systemImage: "arrow.clockwise")
-                        }
-                        if let child = visibleChildren.first {
+                        if let child = visibleChildren.first ?? children.first {
+                            Button {
+                                isSharingPlan = true
+                            } label: {
+                                Label("Send this plan to the other parent", systemImage: "paperplane")
+                            }
                             SummaryShareControl {
                                 PlanExporter.summary(
                                     for: child,
                                     profile: FamilyProfileStore.current(in: context)
                                 )
                             }
+                        }
+                        Divider()
+                        Button {
+                            RequirementEngine.reconcileAll(in: context)
+                        } label: {
+                            Label("Rebuild the plan", systemImage: "arrow.clockwise")
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
@@ -137,8 +168,12 @@ struct PlanView: View {
             .sheet(isPresented: $isEditingHousehold) {
                 HouseholdEditorView()
             }
+            .sheet(isPresented: $isSharingPlan) {
+                if let child = visibleChildren.first ?? children.first {
+                    SharePlanSheet(child: child)
+                }
+            }
             .refreshable {
-                await SyncCoordinator.shared.syncNow()
                 RequirementEngine.reconcileAll(in: context)
             }
             // A reminder that opens the app on the plan list has spent the
@@ -164,7 +199,11 @@ struct PlanView: View {
     }
 
     private var openBuckets: [(bucket: TaskPlanner.Bucket, tasks: [RequirementTask])] {
-        TaskPlanner.buckets(for: tasks).filter { $0.bucket != .done }
+        let late = Set(lateTasks.map(\.id))
+        return TaskPlanner.buckets(for: tasks)
+            .filter { $0.bucket != .done }
+            .map { (bucket: $0.bucket, tasks: $0.tasks.filter { !late.contains($0.id) }) }
+            .filter { !$0.tasks.isEmpty }
     }
 
     private var doneTasks: [RequirementTask] {
@@ -174,10 +213,8 @@ struct PlanView: View {
     private func toggle(_ task: RequirementTask) {
         if task.isDone {
             task.completedAt = nil
-            task.completedByName = ""
         } else {
             task.completedAt = Date()
-            task.completedByName = family.selfDisplayName
         }
         task.recordLocalChange(in: context)
         Task {

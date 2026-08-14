@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// The shared visual vocabulary. Anything that appears on more than one screen
-/// lives here, so the plan, the child hub and the export cannot drift into three
-/// different ideas of what a deadline looks like.
+/// lives here, so the plan, the child hub and the documents tab cannot drift into
+/// three different ideas of what a deadline looks like.
 
 // MARK: - Deadline pill
 
@@ -15,8 +15,6 @@ import SwiftUI
 struct DeadlinePill: View {
     let task: RequirementTask
     var compact = false
-
-    private var days: Int? { task.daysRemaining() }
 
     var body: some View {
         HStack(spacing: 4) {
@@ -41,6 +39,26 @@ struct DeadlinePill: View {
     }
 }
 
+/// "Sent three weeks ago and still not here." The one badge that is not about a
+/// deadline, and it earns its place because it is the only thing in the app that
+/// tells a parent something they could not have worked out themselves.
+struct LatePill: View {
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "clock.badge.exclamationmark.fill")
+                .font(.caption2)
+            Text("Not arrived")
+                .font(.caption.weight(.semibold))
+        }
+        .foregroundStyle(.red)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(Color.red.opacity(0.12), in: Capsule())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Sent, and past the date it was expected back")
+    }
+}
+
 // MARK: - Task row
 
 /// A row in the plan: a tick box that completes the task, and everything else,
@@ -57,7 +75,7 @@ struct TaskRow: View {
     var onToggle: (() -> Void)?
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: AppTheme.spacing) {
             Button {
                 onToggle?()
             } label: {
@@ -82,71 +100,55 @@ struct TaskRow: View {
                     .contentShape(Rectangle())
             }
         }
-        .padding(.vertical, 3)
+        .padding(.vertical, 2)
     }
 
     private var content: some View {
-        VStack(alignment: .leading, spacing: 5) {
-                Text(task.title)
-                    .font(.body)
-                    .foregroundStyle(task.isDone ? .secondary : .primary)
-                    .strikethrough(task.isDone, color: .secondary)
-
-                HStack(spacing: 6) {
-                    Label(task.category.label, systemImage: task.category.symbol)
-                        .font(.caption2)
-                        .labelStyle(.titleAndIcon)
-                        .foregroundStyle(task.category.color)
-                    if showChildName, let name = task.child?.displayName {
-                        Text(name).font(.caption2).foregroundStyle(.secondary)
-                    }
-                }
-
-                if !task.isDone {
-                    HStack(spacing: 6) {
-                        DeadlinePill(task: task)
-                        if !task.assigneeName.isEmpty {
-                            Text(task.assigneeName)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                        if outstandingDocuments > 0 {
-                            Text("\(outstandingDocuments) to gather")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-        }
-    }
-
-    private var outstandingDocuments: Int {
-        task.liveDocuments.filter { !$0.isOnHand }.count
-    }
-}
-
-// MARK: - Stat tile
-
-struct StatTile: View {
-    let value: String
-    let caption: String
-    var tint: Color = .accentColor
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(value)
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(tint)
-            Text(caption)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: AppTheme.tightSpacing) {
+            Text(task.title)
+                .font(.body)
+                .foregroundStyle(task.isDone ? .secondary : .primary)
+                .strikethrough(task.isDone, color: .secondary)
                 .fixedSize(horizontal: false, vertical: true)
+
+            if !task.isDone {
+                // One wrapping row rather than two fixed ones. At an
+                // accessibility text size these badges cannot share a line, and
+                // the previous layout let them truncate to four characters each
+                // instead of stacking.
+                BadgeRow {
+                    DeadlinePill(task: task)
+                    if task.isLate() { LatePill() }
+                    metadata
+                }
+            } else {
+                metadata
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius))
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(value) \(caption)")
+    }
+
+    @ViewBuilder
+    private var metadata: some View {
+        HStack(spacing: 4) {
+            Image(systemName: task.category.symbol)
+                .font(.caption2)
+            Text(secondaryLine)
+                .font(.caption)
+        }
+        .foregroundStyle(.secondary)
+        .accessibilityLabel("\(task.category.label). \(secondaryLine)")
+    }
+
+    /// Category, child and outstanding-document count in one grey line rather
+    /// than three coloured fragments. Everything here is context, and context
+    /// reads better as a sentence than as a row of chips.
+    private var secondaryLine: String {
+        var parts = [task.category.label]
+        if showChildName, let name = task.child?.displayName { parts.append(name) }
+        if !task.assigneeName.isEmpty { parts.append(task.assigneeName) }
+        let outstanding = task.liveDocuments.filter { !$0.isOnHand }.count
+        if outstanding > 0 && !task.isDone { parts.append("\(outstanding) to gather") }
+        return parts.joined(separator: " \u{00B7} ")
     }
 }
 
@@ -154,35 +156,44 @@ struct StatTile: View {
 
 /// The one thing worth putting in front of someone who has thirty seconds and
 /// one hand free.
+///
+/// The card itself is neutral. It used to be washed in red, which made the most
+/// important element on the home screen read as an error state rather than as a
+/// heading, and left no colour in reserve for the thing that actually is urgent.
+/// Red now appears on exactly one line: the date.
 struct NextDeadlineCard: View {
     let overview: TaskPlanner.Overview
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(overview.nextHardDeadline == nil ? "No hard deadlines left" : "Next hard deadline")
-                .font(.caption.weight(.semibold))
-                .textCase(.uppercase)
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: AppTheme.tightSpacing) {
+            Label {
+                Text(overview.nextHardDeadline == nil ? "Nothing closing" : "Next hard deadline")
+                    .font(.caption.weight(.semibold))
+                    .textCase(.uppercase)
+                    .tracking(0.4)
+            } icon: {
+                Image(systemName: overview.nextHardDeadline == nil
+                      ? "checkmark.circle.fill"
+                      : "exclamationmark.circle.fill")
+                    .font(.caption)
+            }
+            .foregroundStyle(overview.nextHardDeadline == nil ? Color.green : Color.red)
 
             if let date = overview.nextHardDeadline, let title = overview.nextHardDeadlineTitle {
                 Text(title)
                     .font(.headline)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(date, format: .dateTime.weekday(.wide).month().day())
-                    .font(.subheadline)
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(.red)
             } else {
-                Text("Everything with a closing window is done or does not apply to you.")
+                Text("Every closing window is behind you. What is left has no date attached to it.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius)
-                .fill(overview.nextHardDeadline == nil ? Color.green.opacity(0.10) : Color.red.opacity(0.08))
-        )
+        .planCard(padding: AppTheme.spacing + 2)
     }
 }
 
@@ -192,22 +203,44 @@ struct PlanProgressCard: View {
     let overview: TaskPlanner.Overview
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
+        VStack(alignment: .leading, spacing: AppTheme.tightSpacing) {
+            BadgeRow {
                 Text("\(overview.doneCount) of \(overview.totalCount) done")
                     .font(.subheadline.weight(.medium))
-                Spacer()
+                Spacer(minLength: 0)
                 if overview.overdueCount > 0 {
                     Text("\(overview.overdueCount) past due")
-                        .font(.caption)
+                        .font(.caption.weight(.medium))
                         .foregroundStyle(.red)
                 }
             }
-            ProgressView(value: overview.progress)
-                .tint(.accentColor)
+            // A real bar rather than the system hairline, which on a dark page
+            // was close to invisible and made a screen showing genuine progress
+            // look like a screen showing none.
+            ProgressBar(value: overview.progress)
         }
-        .padding(14)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius))
+        .planCard()
+    }
+}
+
+/// Six points tall with a visible track. `ProgressView`'s default is two points
+/// of tinted line on a track that all but vanishes in dark mode.
+struct ProgressBar: View {
+    let value: Double
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.primary.opacity(0.12))
+                Capsule()
+                    .fill(Color.accentColor)
+                    .frame(width: max(0, min(1, value)) * proxy.size.width)
+            }
+        }
+        .frame(height: 6)
+        .accessibilityElement()
+        .accessibilityLabel("Progress")
+        .accessibilityValue("\(Int((value * 100).rounded())) percent")
     }
 }
 
@@ -283,41 +316,43 @@ struct SourceFootnote: View {
     }
 }
 
-// MARK: - One-page summary
+// MARK: - Gated controls
+
+/// The one place a Plus-only row is marked as one, so the badge cannot drift
+/// into three slightly different treatments across three screens.
+struct PlusBadge: View {
+    var body: some View {
+        Text("Plus")
+            .font(.caption2.weight(.semibold))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.accentColor.opacity(0.15), in: Capsule())
+            .foregroundStyle(Color.accentColor)
+    }
+}
 
 /// The Plus one-pager, wherever it is offered.
-///
-/// Gated in one place rather than at each call site, because the two ShareLinks
-/// this replaces were ungated: the paywall sold the summary and the app handed it
-/// over for free, which makes every other line on that paywall worth less.
 struct SummaryShareControl: View {
     let summary: () -> String
     var title = "Share a one-page summary"
+    var symbol = "square.and.arrow.up"
 
     @State private var store = StoreService.shared
-    @State private var family = FamilyService.shared
     @State private var navigator = AppNavigator.shared
 
-    private var isEntitled: Bool { store.isPro || family.hasPlus }
-
     var body: some View {
-        if isEntitled {
+        if store.isPro {
             ShareLink(item: summary()) {
-                Label(title, systemImage: "square.and.arrow.up")
+                Label(title, systemImage: symbol)
             }
         } else {
             Button {
                 navigator.requestUpgrade()
             } label: {
                 HStack {
-                    Label(title, systemImage: "square.and.arrow.up")
+                    Label(title, systemImage: symbol)
                     Spacer(minLength: 8)
-                    Text("Plus")
-                        .font(.caption2.weight(.semibold))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.accentColor.opacity(0.15), in: Capsule())
-                        .foregroundStyle(Color.accentColor)
+                    PlusBadge()
                 }
             }
             .accessibilityLabel("\(title). Included with Plus.")
@@ -335,11 +370,11 @@ struct EmptyStateView: View {
     var action: (() -> Void)?
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: AppTheme.spacing) {
             Image(systemName: symbol)
-                .font(.system(size: 40))
+                .font(.system(size: 38))
                 .foregroundStyle(.secondary)
-            Text(title).font(.headline)
+            Text(title).font(.headline).multilineTextAlignment(.center)
             Text(message)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -352,6 +387,7 @@ struct EmptyStateView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(28)
+        .padding(.vertical, 28)
+        .padding(.horizontal, AppTheme.looseSpacing)
     }
 }

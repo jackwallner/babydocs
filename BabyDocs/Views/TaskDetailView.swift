@@ -2,7 +2,7 @@ import SwiftData
 import SwiftUI
 
 /// One task, end to end: why it applies, when it closes, what to bring, where to
-/// go, who has it, and what came back.
+/// go, what has been sent, and what came back.
 ///
 /// The order of the sections is the order a parent needs them in, and it is not
 /// negotiable. "Why this applies to you" is first because a personalised list
@@ -13,7 +13,6 @@ struct TaskDetailView: View {
     @Environment(\.modelContext) private var context
     @Bindable var task: RequirementTask
 
-    @State private var family = FamilyService.shared
     @State private var isAddingReceipt = false
     @State private var receiptKind: ReceiptKind = .confirmationNumber
     @State private var receiptValue = ""
@@ -29,7 +28,7 @@ struct TaskDetailView: View {
                     .fixedSize(horizontal: false, vertical: true)
             } header: {
                 Label(task.category.label, systemImage: task.category.symbol)
-                    .foregroundStyle(task.category.color)
+                    .foregroundStyle(.secondary)
             }
 
             deadlineSection
@@ -49,6 +48,7 @@ struct TaskDetailView: View {
             }
 
             documentsSection
+            if task.isPostedAway { followUpSection }
             ownerSection
             receiptsSection
 
@@ -80,6 +80,8 @@ struct TaskDetailView: View {
                 )
             }
         }
+        .listStyle(.insetGrouped)
+        .planPageBackground()
         // The full title is a sentence and truncates to "Order certified copies
         // of the birth cer..." in a nav bar. The heading above still carries the
         // whole thing, and so does VoiceOver.
@@ -92,7 +94,7 @@ struct TaskDetailView: View {
             Button("Save", action: saveReceipt)
             Button("Cancel", role: .cancel) { receiptValue = "" }
         } message: {
-            Text("Whatever the office gave you back, so neither of you has to find the email again.")
+            Text("Whatever the office gave you back, so you do not have to find the email again.")
         }
     }
 
@@ -152,6 +154,7 @@ struct TaskDetailView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(item.title)
                                     .foregroundStyle(.primary)
+                                    .fixedSize(horizontal: false, vertical: true)
                                 if !item.detail.isEmpty {
                                     Text(item.detail)
                                         .font(.caption)
@@ -166,47 +169,67 @@ struct TaskDetailView: View {
             } header: {
                 Text("Have these ready")
             } footer: {
-                // The "and the other parent sees it" half only appears in a
-                // build that can actually do it. Copy that promises sharing in
-                // a binary where `SupabaseConfig` is unconfigured is a claim
-                // the app cannot keep, and the person reading it is standing in
-                // front of the feature.
                 let outstanding = documents.filter { !$0.isOnHand }.count
                 Text(outstanding == 0
                      ? "Everything on this list is gathered."
-                     : SupabaseConfig.isConfigured
-                        ? "\(outstanding) still to find. Ticking one here shows it to the other parent too."
-                        : "\(outstanding) still to find.")
+                     : "\(outstanding) still to find. They are collected with everything else on the Documents tab.")
             }
+        }
+    }
+
+    /// The half of the job a checklist drops.
+    ///
+    /// Ticking "ordered the certificates" is not finishing the errand, it is
+    /// starting a wait, and the wait is where things actually go wrong: the
+    /// request was never received, the cheque was returned, the address was
+    /// wrong. Nothing else in a parent's life is going to raise its hand about
+    /// that, so the app asks for two dates and then does.
+    ///
+    /// The expected date is typed in, never guessed. Processing times move
+    /// constantly and differ by county, so the only figure worth acting on is
+    /// the one this family was actually told.
+    @ViewBuilder
+    private var followUpSection: some View {
+        Section {
+            Toggle("Sent it", isOn: submittedBinding)
+
+            if task.submittedAt != nil {
+                DatePicker("Sent on", selection: submittedDateBinding, displayedComponents: .date)
+                DatePicker(
+                    "They said by",
+                    selection: expectedBinding,
+                    displayedComponents: .date
+                )
+                if task.isLate() {
+                    Label {
+                        Text("This is past the date you were given. That is usually worth a phone call rather than more waiting.")
+                            .font(.footnote)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } icon: {
+                        Image(systemName: "clock.badge.exclamationmark.fill")
+                    }
+                    .foregroundStyle(.red)
+                }
+            }
+        } header: {
+            Text("Sent and waiting")
+        } footer: {
+            Text(task.submittedAt == nil
+                 ? "Once this is posted or filed, record when it went and what the office told you to expect. The plan will say something when that date passes."
+                 : "No turnaround is guessed here. Whatever the office told you is the only figure worth acting on, because it differs by county and changes constantly.")
         }
     }
 
     @ViewBuilder
     private var ownerSection: some View {
-        Section("Who has this") {
-            if family.members.isEmpty {
-                Text(task.assigneeName.isEmpty ? "Nobody assigned" : task.assigneeName)
-                    .foregroundStyle(.secondary)
-            } else {
-                Picker("Assigned to", selection: assigneeBinding) {
-                    Text("Nobody").tag(UUID?.none)
-                    ForEach(family.members) { member in
-                        Text(member.resolvedName).tag(UUID?.some(member.id))
-                    }
-                }
-            }
+        Section {
+            TextField("Nobody assigned", text: $task.assigneeName)
+                .onSubmit { task.recordLocalChange(in: context) }
+        } header: {
+            Text("Who has this")
+        } footer: {
+            Text("A name, for your own benefit. Both of you keep your own copy of the plan, so this does not appear on their phone.")
         }
-    }
-
-    private var assigneeBinding: Binding<UUID?> {
-        Binding(
-            get: { task.assigneeUserID },
-            set: { newValue in
-                task.assigneeUserID = newValue
-                task.assigneeName = family.members.first { $0.id == newValue }?.displayName ?? ""
-                task.recordLocalChange(in: context)
-            }
-        )
     }
 
     @ViewBuilder
@@ -236,20 +259,49 @@ struct TaskDetailView: View {
         } header: {
             Text("Confirmations")
         } footer: {
-            Text("Confirmation and tracking numbers only. Do not put the Social Security number here: it is stored and synced as ordinary text.")
+            Text("Confirmation and tracking numbers only. Do not put the Social Security number here: it is stored as ordinary text.")
         }
+    }
+
+    // MARK: - Bindings
+
+    private var submittedBinding: Binding<Bool> {
+        Binding(
+            get: { task.submittedAt != nil },
+            set: { isSent in
+                if isSent {
+                    task.submittedAt = Date()
+                    // Two weeks is a placeholder for the picker to open on, not
+                    // a claim about any office. The footer says so, and the
+                    // parent replaces it with what they were told.
+                    task.expectedByAt = Calendar.current.date(byAdding: .day, value: 14, to: Date())
+                } else {
+                    task.submittedAt = nil
+                    task.expectedByAt = nil
+                }
+                task.recordLocalChange(in: context)
+            }
+        )
+    }
+
+    private var submittedDateBinding: Binding<Date> {
+        Binding(
+            get: { task.submittedAt ?? Date() },
+            set: { task.submittedAt = $0; task.recordLocalChange(in: context) }
+        )
+    }
+
+    private var expectedBinding: Binding<Date> {
+        Binding(
+            get: { task.expectedByAt ?? Date() },
+            set: { task.expectedByAt = $0; task.recordLocalChange(in: context) }
+        )
     }
 
     // MARK: - Actions
 
     private func toggleDone() {
-        if task.isDone {
-            task.completedAt = nil
-            task.completedByName = ""
-        } else {
-            task.completedAt = Date()
-            task.completedByName = family.selfDisplayName
-        }
+        task.completedAt = task.isDone ? nil : Date()
         task.recordLocalChange(in: context)
     }
 
@@ -263,8 +315,6 @@ struct TaskDetailView: View {
         guard !trimmed.isEmpty else { return }
         let receipt = Receipt(kind: receiptKind, value: trimmed)
         receipt.task = task
-        receipt.groupID = task.groupID
-        receipt.recordedByName = family.selfDisplayName
         context.insert(receipt)
         receipt.recordLocalChange(in: context)
         receiptValue = ""

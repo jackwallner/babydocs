@@ -587,7 +587,7 @@
           <h3>What came back</h3>
           <p>
             Confirmation and tracking numbers live on the task they belong to,
-            so neither of you has to find the email again.
+            so you never have to find the email again.
           </p>
         </div>
         <div class="feature-card">
@@ -603,15 +603,15 @@
           <h3>The next one is easier</h3>
           <p>
             A second baby inherits your household answers instead of asking
-            again, and the plan prints to one page you can hand to someone.
+            again.
           </p>
         </div>
         <div class="feature-card">
           <span class="label">Offline</span>
           <h3>Works at the counter</h3>
           <p>
-            Everything renders from a copy on your phone. Sync catches up
-            afterwards and never sits in front of the list.
+            Everything is on your phone, so the plan opens at the counter with
+            one bar of signal. There is no server for it to wait on.
           </p>
         </div>
       </div>
@@ -628,11 +628,13 @@
         <h2>It never asks for a Social Security number</h2>
         <p>
           Baby Docs tracks whether the number has been requested and whether the
-          card has arrived. It has no field for the number itself, and the
-          shareable one-page summary never prints one. The whole app works with
-          no account: sharing is opt-in, uses Sign in with Apple, and the
-          database enforces per-row who can read what. No advertising SDK, no
-          behavioural analytics, no location code. Nothing is sold.
+          card has arrived. It has no field for the number itself, and neither
+          the one-page summary nor the employer packet ever prints one. There is
+          no account and no server: everything you enter, and every document you
+          photograph, stays on your iPhone. Photographs are held unreadable while
+          the phone is locked and are excluded from every backup. No advertising
+          SDK, no behavioural analytics, nothing sold, and nothing for anyone to
+          breach.
         </p>
         <a href="privacy-policy.html">Privacy Policy &rarr;</a>
       </div>
@@ -659,7 +661,7 @@
               child's birth certificate, because they do not know where you are.
             </p>
             <p>
-              Baby Docs asks six screens of questions, and every answer changes
+              Baby Docs asks a short set of questions, and every answer changes
               the list. Married or not. Job-based plan or Marketplace. Born in
               one state, living in another. Then it gives you the tasks that
               apply, ordered by when they close, each one with the documents you
@@ -682,11 +684,15 @@
               is a deadline the app caused you to miss.
             </p>
             <p>
-              Plus adds any further children and the printable one-page
-              summary. It is sold as a one-time purchase first, because the need
-              is intense for about ninety days and then genuinely over, and
-              selling you a subscription for that is selling you a cancellation.
-              A monthly and a yearly option exist for people who prefer them.
+              Plus is the work around the deadlines: a place to keep photographs
+              of the documents themselves, tracking for the things you have sent
+              and are waiting on, the packet your employer asks for, the
+              printable one-pager, and further children.
+              It is priced weekly, which is unusual and deliberate. The need is
+              intense for six to thirteen weeks and then genuinely over, so a
+              weekly price is the honest one for something that ends. There is a
+              one-time option for people who want to keep the document vault for
+              good.
             </p>
           </div>
 
@@ -696,9 +702,9 @@
               <tr><td>Platform</td><td>iPhone, iOS 17 and later</td></tr>
               <tr><td>Language</td><td>Swift 6, strict concurrency</td></tr>
               <tr><td>Framework</td><td>SwiftUI</td></tr>
-              <tr><td>Data</td><td>SwiftData on device, Postgres for shared families</td></tr>
+              <tr><td>Data</td><td>SwiftData, on one device. No backend.</td></tr>
               <tr><td>Storage</td><td>Local first, encrypted at rest by iOS</td></tr>
-              <tr><td>Account</td><td>Optional, Sign in with Apple only</td></tr>
+              <tr><td>Account</td><td>None. There is nothing to sign in to.</td></tr>
             </table>
           </div>
 
@@ -746,9 +752,11 @@
       <div>
         <!-- Load-bearing, not decoration: the portfolio mirror that serves this
              page at jackwallner.com copies index.html plus the closure of what
-             it links to, so join.html reaches the canonical URL only because
-             this link exists. Every invitation message points at that URL. -->
-        <a href="join.html">Have an invitation?</a>
+             it links to, so plan.html reaches the canonical URL only because
+             this link exists. Every shared plan link points at that URL, and
+             those messages outlive the build that sent them. Do not remove it
+             for tidiness. -->
+        <a href="plan.html">Someone sent you a plan?</a>
         <a href="support.html">Support</a>
         <a href="privacy-policy.html">Privacy</a>
         <a href="terms.html">Terms</a>

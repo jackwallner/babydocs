@@ -23,7 +23,7 @@ struct SourceIntegrityTests {
             hasDependentCareFSA: true,
             wantsPassport: true,
             wants529: true,
-            wantsTrumpAccount: true,
+            wantsNewbornAccount: true,
             takingParentalLeave: true
         )
     }
@@ -137,7 +137,7 @@ struct SourceIntegrityTests {
 
     @Test("Nothing in the catalog asks a parent to enter a Social Security number")
     func noCopyInvitesTheNumber() {
-        // The Trump Account document used to be titled "The baby's Social
+        // The newborn account document used to be titled "The baby's Social
         // Security number", which reads to a tired parent as a field to fill in.
         // Anywhere the number is mentioned at all, the warning has to be beside
         // it, verbatim.

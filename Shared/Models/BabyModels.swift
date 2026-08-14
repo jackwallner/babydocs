@@ -56,9 +56,9 @@ struct USState: Hashable, Sendable, Codable, Identifiable {
 /// How far along the Social Security number is.
 ///
 /// This is the single most load-bearing piece of state in the app. A missing SSN
-/// blocks the tax return, the Trump Account election and most bank accounts, and
-/// the commonest way it goes wrong is quiet: the hospital form was never
-/// submitted and nobody finds out until April.
+/// blocks the tax return, the $1,000 newborn account election and most bank
+/// accounts, and the commonest way it goes wrong is quiet: the hospital form was
+/// never submitted and nobody finds out until April.
 enum SSNStatus: String, Codable, CaseIterable, Sendable {
     case unknown
     /// The parent believes the hospital birth-registration form included the
@@ -188,16 +188,16 @@ enum RequirementCategory: String, Codable, CaseIterable, Sendable {
 @Model
 final class Child {
     var id: UUID = UUID()
-    var groupID: UUID?
     var name: String = ""
     var birthDate: Date = Date()
     /// Where the birth was registered, which is not always where the family
     /// lives, and is what decides who issues the birth certificate.
     var birthStateCode: String = ""
     var birthCounty: String = ""
-    /// Trump Account eligibility turns on this. Defaulted true because the
-    /// overwhelming majority of births this app sees are to US citizens, and a
-    /// wrong default here only ever shows one extra task.
+    /// Eligibility for the $1,000 federal newborn account turns on this.
+    /// Defaulted true because the overwhelming majority of births this app sees
+    /// are to US citizens, and a wrong default here only ever shows one extra
+    /// task.
     var isUSCitizen: Bool = true
     var ssnStatusRaw: String = SSNStatus.unknown.rawValue
     /// When the SSN card actually arrived, so the follow-up reminder can be
@@ -212,13 +212,15 @@ final class Child {
 
     var updatedAt: Date = Date()
     var deletedAt: Date?
-    var isDirty: Bool = true
 
     @Relationship(deleteRule: .cascade, inverse: \RequirementTask.child)
     var tasks: [RequirementTask]? = []
 
     @Relationship(deleteRule: .cascade, inverse: \ChildNote.child)
     var notesList: [ChildNote]? = []
+
+    @Relationship(deleteRule: .cascade, inverse: \VaultDocument.child)
+    var vaultDocuments: [VaultDocument]? = []
 
     init(name: String = "", birthDate: Date = Date(), birthStateCode: String = "") {
         self.id = UUID()
@@ -236,14 +238,24 @@ final class Child {
     var hasSSN: Bool { ssnStatus == .cardReceived }
 
     /// Reads skip tombstoned rows. Every list in the UI goes through these
-    /// rather than the raw relationship, because a deleted row stays in the
-    /// store until the outbox has pushed it.
+    /// rather than the raw relationship, because `tombstone` soft-deletes: the
+    /// row stays in the store so a mis-swipe is recoverable.
     var liveTasks: [RequirementTask] {
         (tasks ?? []).filter { $0.deletedAt == nil }
     }
 
     var liveNotes: [ChildNote] {
         (notesList ?? []).filter { $0.deletedAt == nil }
+    }
+
+    var liveVaultDocuments: [VaultDocument] {
+        (vaultDocuments ?? [])
+            .filter { $0.deletedAt == nil }
+            .sorted {
+                $0.kind.sortWeight == $1.kind.sortWeight
+                    ? $0.addedAt < $1.addedAt
+                    : $0.kind.sortWeight < $1.kind.sortWeight
+            }
     }
 
     var displayName: String {
@@ -266,7 +278,6 @@ final class Child {
 @Model
 final class FamilyProfile {
     var id: UUID = UUID()
-    var groupID: UUID?
     var residenceStateCode: String = ""
     var parentageRaw: String = ParentageSituation.unknown.rawValue
     /// Whether the second parent is already named on the birth record. For
@@ -280,12 +291,11 @@ final class FamilyProfile {
     var hasDependentCareFSA: Bool = false
     var wantsPassport: Bool = false
     var wants529: Bool = false
-    var wantsTrumpAccount: Bool = true
+    var wantsNewbornAccount: Bool = true
     var takingParentalLeave: Bool = true
 
     var updatedAt: Date = Date()
     var deletedAt: Date?
-    var isDirty: Bool = true
 
     init(id: UUID = UUID()) {
         self.id = id
@@ -325,7 +335,6 @@ final class FamilyProfile {
 @Model
 final class RequirementTask {
     var id: UUID = UUID()
-    var groupID: UUID?
     var child: Child?
     /// Stable identifier from `RequirementCatalog`, or empty for a custom task.
     var catalogKey: String = ""
@@ -350,10 +359,20 @@ final class RequirementTask {
     var sourceURLString: String = ""
     var sourceVerifiedOn: Date?
 
-    var assigneeUserID: UUID?
     var assigneeName: String = ""
     var completedAt: Date?
     var completedByName: String = ""
+    /// Engine-owned. Whether this task is a thing you send away and wait for,
+    /// which is what puts the follow-up controls on its detail screen.
+    var isPostedAway: Bool = false
+    /// When the family actually sent this off. Set by hand, because only they
+    /// know: the app never files anything, so it cannot observe a submission.
+    var submittedAt: Date?
+    /// When it should have come back, from the office's own published
+    /// turnaround. This is the whole point of tracking a submission: a birth
+    /// certificate that has not arrived in six weeks is not slow, it is lost,
+    /// and nobody finds out because nothing was ever going to tell them.
+    var expectedByAt: Date?
     /// Set when a parent says this one does not apply to them. Dismissed tasks
     /// stay in the store so the engine does not resurrect them on the next pass.
     var dismissedAt: Date?
@@ -364,7 +383,6 @@ final class RequirementTask {
 
     var updatedAt: Date = Date()
     var deletedAt: Date?
-    var isDirty: Bool = true
 
     @Relationship(deleteRule: .cascade, inverse: \DocumentItem.task)
     var documents: [DocumentItem]? = []
@@ -400,6 +418,14 @@ final class RequirementTask {
     var isDismissed: Bool { dismissedAt != nil }
     var isOpen: Bool { !isDone && !isDismissed }
 
+    /// Sent, past the date it should have come back, and still not ticked off.
+    /// The one state the old checklist could not represent, and the reason
+    /// someone opens this app in week eight.
+    func isLate(from now: Date = Date()) -> Bool {
+        guard isOpen, submittedAt != nil, let expectedByAt else { return false }
+        return expectedByAt < now
+    }
+
     var liveDocuments: [DocumentItem] {
         (documents ?? []).filter { $0.deletedAt == nil }.sorted { $0.sortWeight < $1.sortWeight }
     }
@@ -430,7 +456,6 @@ final class RequirementTask {
 @Model
 final class DocumentItem {
     var id: UUID = UUID()
-    var groupID: UUID?
     var task: RequirementTask?
     /// Stable key within the task, so a catalog update re-finds the row the
     /// family has already ticked off.
@@ -443,7 +468,6 @@ final class DocumentItem {
 
     var updatedAt: Date = Date()
     var deletedAt: Date?
-    var isDirty: Bool = true
 
     init(title: String = "") {
         self.id = UUID()
@@ -474,13 +498,12 @@ enum ReceiptKind: String, Codable, CaseIterable, Sendable {
 
 /// Proof that something was filed, and what came back.
 ///
-/// An event, not a state: two parents recording the same submission is two
-/// records of two moments, so these never coalesce in the outbox and never
-/// merge on pull.
+/// An event, not a state. A task carries a list of the moments something
+/// happened to it, which is what the follow-up tracker reads to decide whether
+/// a thing that was posted three weeks ago should have arrived by now.
 @Model
 final class Receipt {
     var id: UUID = UUID()
-    var groupID: UUID?
     var task: RequirementTask?
     var kindRaw: String = ReceiptKind.note.rawValue
     var value: String = ""
@@ -489,7 +512,6 @@ final class Receipt {
 
     var updatedAt: Date = Date()
     var deletedAt: Date?
-    var isDirty: Bool = true
 
     init(kind: ReceiptKind = .note, value: String = "", recordedAt: Date = Date()) {
         self.id = UUID()
@@ -510,13 +532,12 @@ final class Receipt {
 /// A deliberately unstructured note against one child.
 ///
 /// It is **not** a credential store and must never become one by drift. No field
-/// is typed as a password, no copy invites one, and the body is plaintext under
-/// the same row-level security as everything else. The editor says so at the
-/// point of entry, which is the only place the boundary is any use.
+/// is typed as a password, no copy invites one, and the body is plaintext on
+/// disk. The editor says so at the point of entry, which is the only place the
+/// boundary is any use.
 @Model
 final class ChildNote {
     var id: UUID = UUID()
-    var groupID: UUID?
     var child: Child?
     var title: String = ""
     var body: String = ""
@@ -525,7 +546,6 @@ final class ChildNote {
 
     var updatedAt: Date = Date()
     var deletedAt: Date?
-    var isDirty: Bool = true
 
     init(title: String = "", body: String = "") {
         self.id = UUID()
@@ -533,4 +553,120 @@ final class ChildNote {
         self.body = body
         self.updatedAt = Date()
     }
+}
+
+// MARK: - Document vault
+
+/// What a vault entry is a copy of.
+///
+/// A fixed list rather than free text because the point of the vault is finding
+/// one thing quickly while a receptionist waits, and a list someone typed
+/// themselves at 3am sorts alphabetically into nonsense.
+enum VaultDocumentKind: String, Codable, CaseIterable, Sendable {
+    case birthCertificate = "birth_certificate"
+    case socialSecurityCard = "social_security_card"
+    case dischargePapers = "discharge_papers"
+    case insuranceCard = "insurance_card"
+    case immunizationRecord = "immunization_record"
+    case passport
+    case parentageForm = "parentage_form"
+    case other
+
+    var label: String {
+        switch self {
+        case .birthCertificate: return "Birth certificate"
+        case .socialSecurityCard: return "Social Security card"
+        case .dischargePapers: return "Hospital discharge papers"
+        case .insuranceCard: return "Insurance card"
+        case .immunizationRecord: return "Immunization record"
+        case .passport: return "Passport"
+        case .parentageForm: return "Parentage acknowledgment"
+        case .other: return "Something else"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .birthCertificate: return "doc.text.fill"
+        case .socialSecurityCard: return "person.text.rectangle.fill"
+        case .dischargePapers: return "cross.case.fill"
+        case .insuranceCard: return "creditcard.fill"
+        case .immunizationRecord: return "syringe.fill"
+        case .passport: return "airplane"
+        case .parentageForm: return "figure.2.and.child.holdinghands"
+        case .other: return "doc.fill"
+        }
+    }
+
+    /// Whether photographing this one warrants the one-time warning about what
+    /// the app does and does not do with it. True for the two documents whose
+    /// loss is expensive and whose contents are worth stealing.
+    var isSensitive: Bool {
+        self == .socialSecurityCard || self == .passport
+    }
+
+    var sortWeight: Int {
+        switch self {
+        case .birthCertificate: return 0
+        case .socialSecurityCard: return 10
+        case .insuranceCard: return 20
+        case .dischargePapers: return 30
+        case .immunizationRecord: return 40
+        case .parentageForm: return 50
+        case .passport: return 60
+        case .other: return 90
+        }
+    }
+}
+
+/// A photograph of a document the family already owns.
+///
+/// **The image files are never in this row.** Only their filenames are, and the
+/// files themselves live in the app container with complete file protection and
+/// an exclusion from every backup. That split is deliberate: it means no export,
+/// summary or share sheet in this app can reach an image by touching the model
+/// layer, because the model layer does not hold one.
+///
+/// A vault entry is a convenience copy, never the record. The certificate in the
+/// drawer is the record. The copy is what you show a receptionist so you do not
+/// have to go home.
+@Model
+final class VaultDocument {
+    var id: UUID = UUID()
+    var child: Child?
+    var kindRaw: String = VaultDocumentKind.other.rawValue
+    /// Only used when `kind` is `.other`.
+    var customTitle: String = ""
+    /// Filenames within the vault directory, in page order. Not paths: the
+    /// container URL changes between installs and an absolute path stored here
+    /// would break on every restore.
+    var pageFileNames: [String] = []
+    var addedAt: Date = Date()
+    var notes: String = ""
+
+    var updatedAt: Date = Date()
+    var deletedAt: Date?
+
+    init(kind: VaultDocumentKind = .other, child: Child? = nil) {
+        self.id = UUID()
+        self.kindRaw = kind.rawValue
+        self.child = child
+        self.addedAt = Date()
+        self.updatedAt = Date()
+    }
+
+    var kind: VaultDocumentKind {
+        get { VaultDocumentKind(rawValue: kindRaw) ?? .other }
+        set { kindRaw = newValue.rawValue }
+    }
+
+    var displayTitle: String {
+        if kind == .other {
+            let trimmed = customTitle.trimmingCharacters(in: .whitespaces)
+            return trimmed.isEmpty ? VaultDocumentKind.other.label : trimmed
+        }
+        return kind.label
+    }
+
+    var pageCount: Int { pageFileNames.count }
 }

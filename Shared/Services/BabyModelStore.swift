@@ -3,12 +3,14 @@ import SwiftData
 
 /// Owns the SwiftData container.
 ///
-/// This store is the app's source of truth for reading, and that is a deliberate
-/// architectural choice rather than a leftover from a local-only version. The
-/// scenario the app is built around is a parent standing at a records office
-/// counter with one bar of signal who needs to know which three documents the
-/// clerk is about to ask for. Cloud sync writes into this store; it never sits
-/// in front of it.
+/// This store is the app's only copy of anything, by design. The scenario the
+/// app is built around is a parent standing at a records office counter with one
+/// bar of signal who needs to know which three documents the clerk is about to
+/// ask for, and nothing in that scenario is improved by a round trip.
+///
+/// Vault images are the one thing that does **not** live here. They are files in
+/// the container under `VaultStore`, held to a stricter protection class than
+/// this store can use, and referenced from `VaultDocument` only by name.
 ///
 /// The file is explicitly marked `completeUntilFirstUserAuthentication`:
 /// encrypted at rest until the first unlock after boot, and readable thereafter
@@ -23,9 +25,7 @@ enum BabyModelStore {
         DocumentItem.self,
         Receipt.self,
         ChildNote.self,
-        Family.self,
-        OutboxEntry.self,
-        SyncCursor.self
+        VaultDocument.self
     ])
 
     /// Set when the store on disk could not be opened and was moved aside. The

@@ -9,21 +9,14 @@ ARCHIVE_PATH="$PROJECT_DIR/build/BabyDocs.xcarchive"
 
 cd "$PROJECT_DIR"
 
-# Before anything else, and before the build number moves: does the schema the
-# client sends still exist on the server? A DTO that grew a column the live
-# database never got answers every upsert with PGRST204, and nothing else in the
-# app notices. One round trip, and it is the difference between a working app
-# and a silent one.
+# The schema drift check went with the backend. There is no server, no database
+# and no DTO that can fall out of step with one, so there is nothing here to
+# verify before a build. See CLAUDE.md for why that is the architecture rather
+# than a gap.
 #
-# Skipped while there is no project. Sharing is config-gated (`SupabaseConfig`),
-# so a build with no backend is a complete local-only app rather than a broken
-# one, and there is no schema to drift from yet.
-if [[ -f ~/.babydocs_credentials ]]; then
-  echo "==> Checking for schema drift..."
-  "$DIR/check-schema-drift.py"
-else
-  echo "==> No ~/.babydocs_credentials; skipping the schema drift check."
-fi
+# One thing does need a human eye instead: docs/plan.html has to be published at
+# its exact path before any build whose share links are live, because those links
+# outlive the build that wrote them.
 
 # Auto-increment build number so TestFlight never rejects a duplicate
 echo "==> Bumping build number..."

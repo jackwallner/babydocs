@@ -10,6 +10,12 @@ import Foundation
 /// It prints every section even when empty ("Documents needed: none listed"),
 /// because a section that simply vanishes reads as a negative answer to whoever
 /// is holding the page.
+///
+/// **Nothing from the document vault ever appears here, and that is enforced
+/// rather than remembered.** This type is handed a `Child` and a `FamilyProfile`
+/// and reads neither `vaultDocuments` nor any filename, so there is no path from
+/// a share sheet to an image of a Social Security card. `SourceIntegrityTests`
+/// asserts it on every build.
 enum PlanExporter {
     static func summary(
         for child: Child,
@@ -66,6 +72,88 @@ enum PlanExporter {
         return lines.joined(separator: "\n")
     }
 
+    // MARK: - Employer packet
+
+    /// The page you hand to HR, or paste into the benefits portal's message box.
+    ///
+    /// Separate from the summary because it answers a different question. The
+    /// summary is "what is left to do"; this is "here is my qualifying life
+    /// event, here is the date, here is what I am enclosing", which is the exact
+    /// shape a benefits administrator needs and the exact thing a parent has
+    /// never written before. The 30-day window is the hardest deadline in the
+    /// app, and the commonest way it is missed is not forgetting: it is sending
+    /// something that gets bounced back for missing a date.
+    static func employerPacket(
+        for child: Child,
+        profile: FamilyProfile,
+        now: Date = Date()
+    ) -> String {
+        var lines: [String] = []
+        let insurance = child.liveTasks.first { $0.catalogKey == "insurance_employer" }
+
+        lines.append("QUALIFYING LIFE EVENT: BIRTH OF A CHILD")
+        lines.append("")
+        lines.append("Event: birth")
+        lines.append("Date of event: \(dateString(child.birthDate))")
+        if !child.name.trimmingCharacters(in: .whitespaces).isEmpty {
+            lines.append("Dependent: \(child.name)")
+        }
+        lines.append("Dependent's date of birth: \(dateString(child.birthDate))")
+        lines.append("Relationship: child")
+        if let due = insurance?.dueAt {
+            lines.append("Enrollment window closes: \(dateString(due))")
+        }
+        lines.append("")
+
+        lines.append("REQUESTING")
+        lines.append("  Add this dependent to my medical coverage, effective the date of birth.")
+        if profile.hasDependentCareFSA {
+            lines.append("  Change my dependent care FSA election for this qualifying event.")
+        }
+        lines.append("")
+
+        lines.append("ENCLOSED")
+        let documents = insurance?.liveDocuments ?? []
+        if documents.isEmpty {
+            lines.append("  (see the plan's own document list)")
+        } else {
+            for document in documents {
+                lines.append("  \(document.isOnHand ? "[x]" : "[ ]") \(document.title)")
+            }
+        }
+        lines.append("")
+
+        lines.append("SOCIAL SECURITY NUMBER")
+        switch child.ssnStatus {
+        case .cardReceived:
+            lines.append("  Issued. I will provide it directly on your form, not in this message.")
+        case .requestedAtHospital, .appliedDirectly:
+            lines.append("  Applied for, not yet issued. Most plans accept an enrollment marked")
+            lines.append("  \"SSN applied for\" and take the number when it arrives. Please confirm")
+            lines.append("  the enrollment is not held up waiting for it.")
+        case .unknown:
+            lines.append("  Status not yet confirmed.")
+        }
+        // The number itself is never printed here, on the same rule as the
+        // summary, and for a sharper reason: this page is written to be emailed
+        // to a third party and forwarded inside a company.
+        lines.append("")
+
+        if let basis = insurance?.deadlineBasis, !basis.isEmpty {
+            lines.append("WHY THIS WINDOW")
+            lines.append("  \(basis)")
+            lines.append("")
+        }
+        if let url = insurance?.officialURLString, !url.isEmpty {
+            lines.append("  \(url)")
+            lines.append("")
+        }
+
+        lines.append("Prepared \(dateString(now)) with Baby Docs. Your plan's own rules and")
+        lines.append("deadlines override anything on this page.")
+        return lines.joined(separator: "\n")
+    }
+
     // MARK: - Sections
 
     private static func identitySection(_ child: Child) -> [String] {
@@ -93,6 +181,15 @@ enum PlanExporter {
 
         if !task.assigneeName.isEmpty {
             lines.append("      with \(task.assigneeName)")
+        }
+        if let sent = task.submittedAt {
+            var line = "      sent \(dateString(sent))"
+            if let expected = task.expectedByAt {
+                line += task.isLate(from: now)
+                    ? ", was due back \(dateString(expected)) — chase this"
+                    : ", expected back \(dateString(expected))"
+            }
+            lines.append(line)
         }
         let outstanding = task.liveDocuments.filter { !$0.isOnHand }
         if outstanding.isEmpty {

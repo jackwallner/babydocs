@@ -11,14 +11,15 @@ import SwiftData
 ///    assignee, the receipts, the ticked documents and anything typed by a
 ///    parent are never touched. A catalog update must be able to fix a wrong
 ///    deadline without unticking a box someone drove to an office for.
-/// 2. **Row ids are derived, not random.** Both parents' phones generate the
-///    same plan offline and then meet on the server, so a random id would
-///    produce two rows for one task and an argument about which is real.
-///    `DeterministicID` makes the second device's write an idempotent upsert.
+/// 2. **Row ids are derived, not random.** A generated task's id is a hash of
+///    (child, catalog key), so one logical task is one row forever. It is what
+///    lets a rule that stops applying be *retired* and later restored with the
+///    family's ticked documents still attached, rather than reinserted as a
+///    duplicate under an id the store already holds.
 /// 3. **A pass that changes nothing writes nothing.** Reconciliation runs on
-///    every launch and every profile edit. Bumping `updatedAt` unconditionally
-///    would put the whole plan in the outbox each time, and sync would spend
-///    its life pushing rows nobody edited.
+///    every launch and every profile edit, so an unconditional `updatedAt` bump
+///    would rewrite the entire plan each time and destroy the ordering that the
+///    follow-up tracker and the notes list read.
 @MainActor
 enum RequirementEngine {
     private static let log = Logger(subsystem: "com.jackwallner.babydocs", category: "rules")
@@ -80,7 +81,7 @@ enum RequirementEngine {
 
             case (false, .some(let task)):
                 // Already retired: leave it exactly as it is. Tombstoning a
-                // tombstone would queue the same delete on every launch.
+                // tombstone would rewrite the row on every launch.
                 if task.deletedAt != nil { continue }
                 // Only retire what the family has not touched. Someone who
                 // ticked a document and then corrected an intake answer has
@@ -138,7 +139,7 @@ enum RequirementEngine {
             hasDependentCareFSA: profile.hasDependentCareFSA,
             wantsPassport: profile.wantsPassport,
             wants529: profile.wants529,
-            wantsTrumpAccount: profile.wantsTrumpAccount,
+            wantsNewbornAccount: profile.wantsNewbornAccount,
             takingParentalLeave: profile.takingParentalLeave
         )
     }
@@ -163,7 +164,6 @@ enum RequirementEngine {
         task.id = taskID(childID: child.id, catalogKey: rule.key)
         task.catalogKey = rule.key
         task.child = child
-        task.groupID = child.groupID
         task.isCustom = false
         applyRule(rule, input: input, to: task)
         return task
@@ -200,6 +200,7 @@ enum RequirementEngine {
         task.deadlineBasis = deadline.basis
         task.officialURLString = link?.urlString ?? ""
         task.officialLinkLabel = link?.label ?? ""
+        task.isPostedAway = rule.isPostedAway
         // Empty for a rule that deliberately cites nothing. The task screen says
         // why rather than showing a footnote that quietly is not there.
         task.sourceURLString = rule.source?.urlString ?? ""
@@ -239,6 +240,7 @@ enum RequirementEngine {
             task.deadlineBasis,
             task.officialURLString,
             task.officialLinkLabel,
+            String(task.isPostedAway),
             task.sourceURLString
         ].joined(separator: "\u{1F}")
     }
@@ -281,7 +283,6 @@ enum RequirementEngine {
             item.detail = spec.detail
             item.sortWeight = index
             item.task = task
-            item.groupID = task.groupID
             context.insert(item)
             item.recordLocalChange(in: context)
             changed = true

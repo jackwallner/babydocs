@@ -7,8 +7,6 @@ struct RootView: View {
     @Query(filter: #Predicate<Child> { $0.deletedAt == nil }) private var children: [Child]
 
     @State private var navigator = AppNavigator.shared
-    @State private var store = StoreService.shared
-    @State private var sync = SyncCoordinator.shared
 
     var body: some View {
         Group {
@@ -29,18 +27,33 @@ struct RootView: View {
                         .tabItem { Label("Children", systemImage: "figure.and.child.holdinghands") }
                         .tag(AppNavigator.Tab.children)
 
-                    FamilyView()
-                        .tabItem { Label("Family", systemImage: "person.2.fill") }
-                        .tag(AppNavigator.Tab.family)
+                    DocumentsView()
+                        .tabItem { Label("Documents", systemImage: "folder") }
+                        .tag(AppNavigator.Tab.documents)
 
                     SettingsView()
                         .tabItem { Label("Settings", systemImage: "gearshape") }
                         .tag(AppNavigator.Tab.settings)
                 }
+                // Lets the plan scroll under the floating tab bar instead of
+                // stopping at a hard edge with black either side of the glass.
+                // Paired with `planPageBackground()` on each tab, which gives
+                // the blur something to actually blur.
+                .toolbarBackground(.hidden, for: .tabBar)
             }
         }
         .sheet(isPresented: $navigator.isShowingPaywall) {
             PaywallView()
+        }
+        .sheet(item: $navigator.pendingSeed) { seed in
+            ImportPlanSheet(seed: seed) {
+                navigator.selectedTab = .plan
+            }
+        }
+        .alert("That link did not work", isPresented: $navigator.seedFailed) {
+            Button("OK", role: .cancel) { navigator.seedFailed = false }
+        } message: {
+            Text("Some message apps break long links. Ask the other parent to send it again, or answer the questions yourself: it takes about a minute.")
         }
         .task(id: children.count) {
             // Runs the catalog against whatever is in the store, at launch and
@@ -50,19 +63,17 @@ struct RootView: View {
             await rescheduleReminders()
         }
         .onChange(of: scenePhase) { _, phase in
-            guard phase == .active else { return }
-            Task {
-                await SyncCoordinator.shared.syncNow()
+            switch phase {
+            case .active:
                 RequirementEngine.reconcileAll(in: context)
-                await rescheduleReminders()
+                Task { await rescheduleReminders() }
+            case .background:
+                // Handing the phone to someone between two appointments should
+                // not hand them the document vault as well.
+                VaultStore.shared.lock()
+            default:
+                break
             }
-        }
-        .onChange(of: navigator.pendingInviteCode) { _, code in
-            // An invitation can land at any moment, including mid-intake. It
-            // always wins the Family tab rather than interrupting whatever is
-            // on screen.
-            guard code != nil, !children.isEmpty else { return }
-            navigator.selectedTab = .family
         }
     }
 
@@ -70,6 +81,13 @@ struct RootView: View {
         let tasks = children.flatMap(\.liveTasks)
         await DeadlineReminderScheduler.reschedule(for: tasks)
     }
+}
+
+/// `sheet(item:)` needs an identity, and a seed's identity is its contents: two
+/// taps on the same link are the same sheet, and a different link is a different
+/// one.
+extension PlanSeed: Identifiable {
+    var id: String { encoded() ?? "\(birthDate.timeIntervalSince1970)" }
 }
 
 #Preview {
