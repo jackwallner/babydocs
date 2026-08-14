@@ -4,6 +4,8 @@ Reads credentials from ~/.baseball_credentials (ASC_API_KEY_ID, ASC_ISSUER_ID,
 ASC_KEY_PATH), which is shared across the fleet.
 """
 
+from __future__ import annotations
+
 import json
 import os
 import re

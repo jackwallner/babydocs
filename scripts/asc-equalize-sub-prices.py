@@ -6,8 +6,11 @@ subscription stays at MISSING_METADATA (and so is never served to StoreKit)
 until every available territory has a price row. Apple exposes the equivalent
 price point per territory as the USA point's `equalizations`.
 
-Idempotent; skips territories that already have a price.
+Idempotent; skips territories that already have a price. Takes the same optional
+product-id arguments as the other two scripts.
 """
+
+from __future__ import annotations
 
 import os
 import sys
@@ -17,10 +20,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from asc_lib import ASC  # noqa: E402
 
-APP_ID = "6796916172"
+APP_ID = "6799785786"
+# Empty means every product below.
+ONLY = set(sys.argv[1:])
 USA_PRICES = {
-    "com.jackwallner.babydocs.pro.monthly": "4.99",
-    "com.jackwallner.babydocs.pro.yearly": "14.99",
+    "com.jackwallner.babydocs.pro.weekly": "4.99",
+    "com.jackwallner.babydocs.pro.yearly": "29.99",
 }
 
 
@@ -45,7 +50,7 @@ def main() -> None:
         for sub in asc.get(f"/subscriptionGroups/{group['id']}/subscriptions", limit=20).get("data", []):
             product_id = sub["attributes"]["productId"]
             target = USA_PRICES.get(product_id)
-            if not target:
+            if not target or (ONLY and product_id not in ONLY):
                 continue
 
             priced = priced_territories(asc, sub["id"])

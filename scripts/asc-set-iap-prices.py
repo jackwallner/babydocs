@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
-"""Set USD prices and 1-week free trials for the Baby Docs products.
+"""Set USD prices and the free trial for the Baby Docs products.
 
 Base territory is USA; Apple's automatic equalization covers everything else.
 PPP overrides are applied later by the fleet-wide pricing tooling in ~/ios/pricing.
 
-Idempotent. Run after asc-setup-iap.py.
+Idempotent. Run after asc-setup-iap.py, and take the same optional product-id
+arguments to work on part of the lineup:
+
+    ./scripts/asc-set-iap-prices.py com.jackwallner.babydocs.pro.weekly
 """
+
+from __future__ import annotations
 
 import os
 import sys
@@ -14,18 +19,28 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from asc_lib import ASC  # noqa: E402
 
-APP_ID = "6796916172"
+APP_ID = "6799785786"
 BASE_TERRITORY = "USA"
 DRY_RUN = os.environ.get("DRY_RUN") == "1"
 
-# Fleet default (ios-dev skill): monthly 4.99, yearly 14.99, lifetime 29.99.
+# Empty means every product below.
+ONLY = set(sys.argv[1:])
+
+# Weekly leads, lifetime keeps: see the pricing note in CLAUDE.md.
 SUB_PRICES = {
-    "com.jackwallner.babydocs.pro.monthly": "4.99",
-    "com.jackwallner.babydocs.pro.yearly": "14.99",
+    "com.jackwallner.babydocs.pro.weekly": "4.99",
+    "com.jackwallner.babydocs.pro.yearly": "29.99",
 }
-LIFETIME_PRICE = "29.99"
+# Only the weekly carries a trial. The yearly is the legibility price, not the
+# entry point, and a trial on it would just discount the entry it never wins.
+TRIALS = {"com.jackwallner.babydocs.pro.weekly": "THREE_DAYS"}
+LIFETIME_PRICE = "59.99"
 LIFETIME_PRODUCT = "com.jackwallner.babydocs.pro.lifetime"
 V2 = "https://api.appstoreconnect.apple.com/v2"
+
+
+def wanted(product_id: str) -> bool:
+    return not ONLY or product_id in ONLY
 
 
 def log(message: str) -> None:
@@ -79,7 +94,7 @@ def set_subscription_prices(asc: ASC) -> None:
         for sub in subs:
             product_id = sub["attributes"].get("productId")
             target = SUB_PRICES.get(product_id)
-            if not target:
+            if not target or not wanted(product_id):
                 continue
 
             ensure_availability(asc, sub["id"], product_id)
@@ -123,17 +138,19 @@ def set_subscription_prices(asc: ASC) -> None:
 
 
 def set_intro_offers(asc: ASC) -> None:
-    """1-week FREE_TRIAL on both subscriptions.
+    """FREE_TRIAL on whichever subscriptions `TRIALS` names.
 
-    Monthly gets one too: Jack optimizes for trial starts, not yearly mix, and
-    monthly trials are explicitly not to be stripped.
+    The trial length is a deliberate bet, not the fleet default: see the SOSA
+    benchmark note in CLAUDE.md before changing it, and measure
+    conversions / (conversions + expirations) rather than RC's headline.
     """
     groups = asc.get(f"/apps/{APP_ID}/subscriptionGroups", limit=20).get("data", [])
     for group in groups:
         subs = asc.get(f"/subscriptionGroups/{group['id']}/subscriptions", limit=20).get("data", [])
         for sub in subs:
             product_id = sub["attributes"].get("productId")
-            if product_id not in SUB_PRICES:
+            duration = TRIALS.get(product_id)
+            if not duration or not wanted(product_id):
                 continue
 
             # Intro offers are per-territory, not global. One POST per territory.
@@ -156,7 +173,7 @@ def set_intro_offers(asc: ASC) -> None:
                 log(f"intro offer exists in all territories: {product_id}")
                 continue
 
-            log(f"creating 1-week free trial in {len(missing)} territories: {product_id}")
+            log(f"creating {duration} free trial in {len(missing)} territories: {product_id}")
             if DRY_RUN:
                 continue
 
@@ -167,7 +184,7 @@ def set_intro_offers(asc: ASC) -> None:
                         "data": {
                             "type": "subscriptionIntroductoryOffers",
                             "attributes": {
-                                "duration": "ONE_WEEK",
+                                "duration": duration,
                                 "offerMode": "FREE_TRIAL",
                                 "numberOfPeriods": 1,
                             },
@@ -183,6 +200,9 @@ def set_intro_offers(asc: ASC) -> None:
 
 
 def set_lifetime_price(asc: ASC) -> None:
+    if not wanted(LIFETIME_PRODUCT):
+        return
+
     iaps = asc.get(f"/apps/{APP_ID}/inAppPurchasesV2", limit=20).get("data", [])
     iap = next((i for i in iaps if i["attributes"].get("productId") == LIFETIME_PRODUCT), None)
     if not iap:

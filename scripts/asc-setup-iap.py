@@ -3,9 +3,16 @@
 
 Idempotent: re-running skips anything that already exists.
 
-    ./scripts/asc-setup-iap.py            # create
-    DRY_RUN=1 ./scripts/asc-setup-iap.py  # show what would be created
+    ./scripts/asc-setup-iap.py                          # every product
+    ./scripts/asc-setup-iap.py <productId> [<productId>] # only these
+    DRY_RUN=1 ./scripts/asc-setup-iap.py                # show what would be created
+
+Products here must match `ProProduct` in Shared/Services/StoreService.swift.
+A product id can never be reused once created, so run the filtered form when
+only part of the lineup is wanted.
 """
+
+from __future__ import annotations
 
 import os
 import sys
@@ -14,10 +21,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from asc_lib import ASC  # noqa: E402
 
-APP_ID = "6796916172"
-GROUP_REFERENCE_NAME = "Med List Pro"
+APP_ID = "6799785786"
+GROUP_REFERENCE_NAME = "Baby Docs Plus"
 GROUP_DISPLAY_NAME = "Baby Docs Plus"
 DRY_RUN = os.environ.get("DRY_RUN") == "1"
+
+# Empty means every product below.
+ONLY = set(sys.argv[1:])
 
 # ASC caps localization descriptions at 55 characters. Keep them under it.
 MAX_DESCRIPTION = 55
@@ -25,27 +35,31 @@ MAX_DESCRIPTION = 55
 # (productId, referenceName, period, customer-facing name, description)
 SUBSCRIPTIONS = [
     (
-        "com.jackwallner.babydocs.pro.monthly",
-        "Pro Monthly",
-        "ONE_MONTH",
-        "Monthly",
-        "Additional people in one care circle.",
+        "com.jackwallner.babydocs.pro.weekly",
+        "Pro Weekly",
+        "ONE_WEEK",
+        "Weekly",
+        "For the weeks the paperwork is happening.",
     ),
     (
         "com.jackwallner.babydocs.pro.yearly",
         "Pro Yearly",
         "ONE_YEAR",
         "Yearly",
-        "Additional people in one care circle.",
+        "A year of the vault, packet and summary.",
     ),
 ]
 
 LIFETIME = (
     "com.jackwallner.babydocs.pro.lifetime",
     "Pro Lifetime",
-    "Lifetime",
-    "Additional people, with one purchase.",
+    "Keep it forever",
+    "Keeps the document vault for good.",
 )
+
+
+def wanted(product_id: str) -> bool:
+    return not ONLY or product_id in ONLY
 
 
 def log(message: str) -> None:
@@ -100,6 +114,8 @@ def ensure_subscriptions(asc: ASC, group_id: str) -> None:
             existing[sub["attributes"].get("productId")] = sub["id"]
 
     for product_id, reference, period, name, description in SUBSCRIPTIONS:
+        if not wanted(product_id):
+            continue
         assert len(description) <= MAX_DESCRIPTION, f"{product_id} description too long"
 
         sub_id = existing.get(product_id)
@@ -154,6 +170,8 @@ def ensure_subscriptions(asc: ASC, group_id: str) -> None:
 
 def ensure_lifetime(asc: ASC) -> None:
     product_id, reference, name, description = LIFETIME
+    if not wanted(product_id):
+        return
     assert len(description) <= MAX_DESCRIPTION, f"{product_id} description too long"
 
     iap_id = None
