@@ -199,6 +199,40 @@ def set_intro_offers(asc: ASC) -> None:
                 )
 
 
+def ensure_iap_availability(asc: ASC, iap_id: str) -> None:
+    """The IAP equivalent of `ensure_availability`.
+
+    A priced, localized, screenshotted non-consumable still sits at
+    MISSING_METADATA without this, and MISSING_METADATA products are never
+    served to StoreKit.
+    """
+    existing = asc.get_optional(f"{V2}/inAppPurchases/{iap_id}/inAppPurchaseAvailability")
+    if existing.get("data"):
+        log(f"  availability exists: {LIFETIME_PRODUCT}")
+        return
+
+    log(f"  setting availability (all territories): {LIFETIME_PRODUCT}")
+    if DRY_RUN:
+        return
+
+    territories = [t["id"] for t in asc.get_all("/territories", limit=200)]
+    asc.post(
+        "/inAppPurchaseAvailabilities",
+        {
+            "data": {
+                "type": "inAppPurchaseAvailabilities",
+                "attributes": {"availableInNewTerritories": True},
+                "relationships": {
+                    "inAppPurchase": {"data": {"type": "inAppPurchases", "id": iap_id}},
+                    "availableTerritories": {
+                        "data": [{"type": "territories", "id": t} for t in territories]
+                    },
+                },
+            }
+        },
+    )
+
+
 def set_lifetime_price(asc: ASC) -> None:
     if not wanted(LIFETIME_PRODUCT):
         return
@@ -207,6 +241,8 @@ def set_lifetime_price(asc: ASC) -> None:
     iap = next((i for i in iaps if i["attributes"].get("productId") == LIFETIME_PRODUCT), None)
     if not iap:
         raise SystemExit(f"{LIFETIME_PRODUCT} not found; run asc-setup-iap.py first")
+
+    ensure_iap_availability(asc, iap["id"])
 
     schedule = asc.get_optional(f"{V2}/inAppPurchases/{iap['id']}/iapPriceSchedule")
     if schedule.get("data"):

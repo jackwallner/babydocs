@@ -135,8 +135,13 @@ def ensure_subscriptions(asc: ASC, group_id: str) -> None:
                             "name": reference,
                             "productId": product_id,
                             "subscriptionPeriod": period,
-                            # Family Sharing off: this is a personal record keeper.
-                            "familySharable": False,
+                            # Family Sharing on, matching Products.storekit: the
+                            # paperwork for one baby is two parents' work, and
+                            # billing the second one again for the same vault is
+                            # the kind of thing that gets refunded rather than
+                            # renewed. Apple does not let this be turned back off
+                            # cleanly once there are customers, so it goes on now.
+                            "familySharable": True,
                         },
                         "relationships": {
                             "group": {"data": {"type": "subscriptionGroups", "id": group_id}}
@@ -205,7 +210,7 @@ def ensure_lifetime(asc: ASC) -> None:
                     "name": reference,
                     "productId": product_id,
                     "inAppPurchaseType": "NON_CONSUMABLE",
-                    "familySharable": False,
+                    "familySharable": True,
                 },
                 "relationships": {"app": {"data": {"type": "apps", "id": APP_ID}}},
             }

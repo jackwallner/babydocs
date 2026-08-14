@@ -35,6 +35,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from asc_lib import ASC  # noqa: E402
 
 APP_ID = "6799785786"
+V2 = "https://api.appstoreconnect.apple.com/v2"
 
 
 def find_product(asc: ASC, product_id: str) -> tuple[str, str]:
@@ -53,10 +54,12 @@ def find_product(asc: ASC, product_id: str) -> tuple[str, str]:
 
 
 def existing_screenshot(asc: ASC, kind: str, product: str) -> dict:
+    # The v1 IAP path answers 200 with an empty body for a screenshot that is
+    # actually attached, so an upload run twice would silently upload twice.
     path = (
         f"/subscriptions/{product}/appStoreReviewScreenshot"
         if kind == "subscriptions"
-        else f"/inAppPurchases/{product}/appStoreReviewScreenshot"
+        else f"{V2}/inAppPurchases/{product}/appStoreReviewScreenshot"
     )
     return asc.get_optional(path).get("data") or {}
 
@@ -133,7 +136,14 @@ def main() -> None:
 
     upload(asc, kind, product, path)
 
-    state = asc.get(f"/{kind}/{product}")["data"]["attributes"].get("state")
+    # /v1/inAppPurchases is the retired read-only collection and 404s on an id
+    # created through v2; subscriptions still read off v1.
+    path_for_state = (
+        f"/subscriptions/{product}"
+        if kind == "subscriptions"
+        else f"{V2}/inAppPurchases/{product}"
+    )
+    state = asc.get(path_for_state)["data"]["attributes"].get("state")
     print(f"{product_id} state: {state}")
     print(json.dumps({"kind": kind, "id": product}, indent=1))
 
