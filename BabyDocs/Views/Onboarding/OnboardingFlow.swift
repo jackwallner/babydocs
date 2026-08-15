@@ -112,7 +112,7 @@ struct OnboardingFlow: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
 
-                Text("Nothing you enter leaves this phone. Baby Docs has no account and no server.")
+                Text("Nothing you enter leaves this phone. Baby Docs has no account, and nowhere to keep a copy of your answers.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

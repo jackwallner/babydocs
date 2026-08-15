@@ -42,6 +42,7 @@ Baby Docs Plus is a weekly or yearly auto-renewable subscription, the weekly wit
 Payment is charged to your Apple ID at confirmation of purchase. A subscription renews automatically unless it is cancelled at least 24 hours before the end of the current period, and the renewal is charged within 24 hours of that end. Any unused portion of a free trial is forfeited when a subscription is purchased. Manage or cancel in Settings > Apple ID > Subscriptions.
 
 Privacy Policy: https://jackwallner.com/ios/babydocs/privacy-policy.html
-Terms of Use (Apple Standard EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+Terms of Use: https://jackwallner.com/ios/babydocs/terms.html
+Apple Standard EULA: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 Baby Docs gives no legal, tax, medical or insurance advice. Deadlines set by your own plan, employer or state override anything shown in the app. Check the linked source before you rely on a date.

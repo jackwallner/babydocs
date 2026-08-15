@@ -232,13 +232,23 @@ struct PaywallView: View {
         return plan.isLifetime ? "Buy it once" : "Continue"
     }
 
+    /// Both terms, not one.
+    ///
+    /// The App Store listing names Apple's Standard EULA and the app has terms
+    /// of its own, and a buyer who taps "Terms" on the paywall should reach the
+    /// same pair either way. Naming only one of them is the kind of mismatch
+    /// between metadata and binary that a subscription review is looking for.
     private var footerLinks: some View {
-        HStack(spacing: 14) {
-            Link("Terms", destination: URL(string: "https://jackwallner.com/ios/babydocs/terms.html")!)
-            Link("Privacy", destination: URL(string: "https://jackwallner.com/ios/babydocs/privacy-policy.html")!)
+        VStack(spacing: 6) {
+            HStack(spacing: 14) {
+                Link("Terms of Use", destination: URL(string: "https://jackwallner.com/ios/babydocs/terms.html")!)
+                Link("Privacy Policy", destination: URL(string: "https://jackwallner.com/ios/babydocs/privacy-policy.html")!)
+            }
+            Link("Apple Standard EULA", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
         }
         .font(.caption)
         .foregroundStyle(.secondary)
+        .frame(maxWidth: .infinity)
     }
 
     private var errorBinding: Binding<Bool> {

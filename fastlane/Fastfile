@@ -59,10 +59,17 @@ platform :ios do
           transmit any government, tax, insurance or legal form, and it does not
           ask for a Social Security number.
 
-          The app works with no account and no network. Every task, deadline,
-          document checklist and official link is generated on device from the
-          answers given during setup. There is no sign-in step and nothing to
-          create an account for.
+          The app works with no account. Every task, deadline, document
+          checklist and official link is generated on device from the answers
+          given during setup, so the whole plan is usable with no network at
+          all. There is no sign-in step and nothing to create an account for.
+
+          Two things do need a connection, and only these two: loading the
+          prices on the Baby Docs Plus paywall, and making or restoring a
+          purchase. Both go through RevenueCat and StoreKit. If the paywall is
+          opened offline the prices will not load and the buy button stays
+          disabled; reconnect and reopen it. The government links open in Safari
+          and need a connection like any other link.
 
           Core flow:
           1. Launch and answer the setup questions (state, coverage, situation)
@@ -76,8 +83,16 @@ platform :ios do
           Sharing works and needs no account. "Send the plan" builds a link that
           carries the household answers in the URL fragment, which browsers
           never transmit to a server, and the other parent's copy of the app
-          regenerates the same plan from them. There is no backend of any kind
-          in this app, so nothing is uploaded and no request is made.
+          regenerates the same plan from them. There is no backend for household
+          data anywhere in this app: nothing about a child, a plan or a document
+          is uploaded, and the only network requests the app makes at all are the
+          RevenueCat purchase calls described above.
+
+          There is no rating prompt of our own. The app calls SKStoreReviewController
+          through SwiftUI's requestReview environment action and nothing stands in
+          front of it. "Send feedback" in Settings is a separate support action
+          that opens a mail draft; it is available to everyone, at any time, and
+          it does not lead to the App Store.
 
           The Documents tab stores photographs in the app container under
           complete file protection, excluded from backup. They never leave the

@@ -257,14 +257,7 @@ struct AddVaultDocumentSheet: View {
                 }
 
                 Section {
-                    PhotosPicker(
-                        selection: $picked,
-                        maxSelectionCount: 8,
-                        matching: .images,
-                        photoLibrary: .shared()
-                    ) {
-                        Label(images.isEmpty ? "Choose photos" : "Choose different photos", systemImage: "photo.on.rectangle")
-                    }
+                    photoPicker
                     if !images.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
@@ -312,6 +305,22 @@ struct AddVaultDocumentSheet: View {
             } message: {
                 Text(errorMessage ?? "")
             }
+        }
+    }
+
+    /// The title is read out into a local before the picker is built, because
+    /// `PhotosPicker`'s label closure is `Sendable` and reaching into
+    /// main-actor state from inside it is a strict-concurrency warning. A
+    /// captured `String` is not.
+    private var photoPicker: some View {
+        let title = images.isEmpty ? "Choose photos" : "Choose different photos"
+        return PhotosPicker(
+            selection: $picked,
+            maxSelectionCount: 8,
+            matching: .images,
+            photoLibrary: .shared()
+        ) {
+            Label(title, systemImage: "photo.on.rectangle")
         }
     }
 

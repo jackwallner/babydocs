@@ -178,6 +178,16 @@ def main() -> int:
 
     check("copyright", version["attributes"].get("copyright"))
 
+    # Required app information, and null by default rather than defaulted, so a
+    # first submission blocks on it with nothing in the repo to say why. The
+    # answer is "no": every rule in the catalog is original writing about public
+    # government requirements, and a link to an official page is not third-party
+    # content shown inside the app. The Fastfile's submission_information says
+    # the same thing, and these two are the pair that must not drift.
+    rights = app["attributes"].get("contentRightsDeclaration")
+    check("content rights declaration", rights or "UNSET",
+          rights == "DOES_NOT_USE_THIRD_PARTY_CONTENT")
+
     urls: list[str] = []
     for localization in client.get_all(f"/appInfos/{info['id']}/appInfoLocalizations"):
         attributes = localization["attributes"]

@@ -37,9 +37,15 @@
 			<false/>
 			<key>NSPrivacyCollectedDataTypeTracking</key>
 			<false/>
+			<!-- App functionality is the unlock. Analytics is the RevenueCat
+			     dashboard: the charts are built from these same purchase events,
+			     and RevenueCat's own App Privacy guidance says to declare the
+			     purpose if you look at them, which we do. Declaring only
+			     functionality would be understating it. -->
 			<key>NSPrivacyCollectedDataTypePurposes</key>
 			<array>
 				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
 			</array>
 		</dict>
 	</array>
