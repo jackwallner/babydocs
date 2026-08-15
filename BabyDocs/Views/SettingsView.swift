@@ -123,6 +123,18 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    Button("Rate or send feedback") {
+                        // Asking to be asked qualifies you, so this goes straight
+                        // to the gate rather than through passive eligibility.
+                        // Anyone who came looking for it already knows whether
+                        // the app is working for them.
+                        ReviewPromptCoordinator.shared.requestEnjoymentPrompt()
+                    }
+                } footer: {
+                    Text("A rule that was wrong for your state or a link that went nowhere is worth more to us than a rating. Both start in the same place.")
+                }
+
+                Section {
                     Link("Privacy policy", destination: URL(string: "https://jackwallner.com/ios/babydocs/privacy-policy.html")!)
                     Link("Terms", destination: URL(string: "https://jackwallner.com/ios/babydocs/terms.html")!)
                     Link("Support", destination: URL(string: "https://jackwallner.com/ios/babydocs/support.html")!)

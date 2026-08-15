@@ -301,7 +301,11 @@ struct TaskDetailView: View {
     // MARK: - Actions
 
     private func toggleDone() {
-        task.completedAt = task.isDone ? nil : Date()
+        let wasDone = task.isDone
+        task.completedAt = wasDone ? nil : Date()
+        if !wasDone {
+            ReviewPromptTracker.recordCompletion(of: task)
+        }
         task.recordLocalChange(in: context)
     }
 

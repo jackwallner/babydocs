@@ -39,6 +39,7 @@ struct BabyDocsApp: App {
                 .task {
                     StoreService.shared.start()
                     NotificationService.shared.start()
+                    ReviewPromptTracker.recordAppLaunch()
                 }
                 .onOpenURL { url in
                     AppNavigator.shared.open(url)

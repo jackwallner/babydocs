@@ -215,6 +215,7 @@ struct PlanView: View {
             task.completedAt = nil
         } else {
             task.completedAt = Date()
+            ReviewPromptTracker.recordCompletion(of: task)
         }
         task.recordLocalChange(in: context)
         Task {
