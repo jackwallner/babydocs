@@ -143,7 +143,20 @@ final class StoreService: NSObject {
             apply(info)
             let offerings = try await Purchases.shared.offerings()
             self.offerings = offerings
-            plans = (offerings.current?.availablePackages ?? []).map { package in
+            // RevenueCat returns packages in the order they were created in the
+            // dashboard, and there is no reorder endpoint in either the v2 or
+            // the internal API. That put annual first and weekly last, which
+            // inverts the whole pricing argument: weekly leads because the need
+            // ends. `ProProduct.all` already declares the intended order, so
+            // sort against it and let the dashboard hold whatever order it likes.
+            let ordered = (offerings.current?.availablePackages ?? []).sorted {
+                let left = ProProduct.all.firstIndex(of: $0.storeProduct.productIdentifier)
+                    ?? ProProduct.all.count
+                let right = ProProduct.all.firstIndex(of: $1.storeProduct.productIdentifier)
+                    ?? ProProduct.all.count
+                return left < right
+            }
+            plans = ordered.map { package in
                 let product = package.storeProduct
                 return PlanOption(
                     id: product.productIdentifier,
