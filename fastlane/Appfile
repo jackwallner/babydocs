@@ -2,4 +2,8 @@ app_identifier "com.jackwallner.babydocs"
 apple_id "jackwallner@gmail.com"
 team_id "YXG4MP6W39"
 itc_team_id "YXG4MP6W39"
-opt_out_usage
+
+# No opt_out_usage here. It is not an Appfile directive, and CredentialsManager
+# aborts parsing the whole file on the unknown method, which silently drops
+# app_identifier and makes deliver ask for a bundle id it cannot get in a
+# non-interactive shell. The Fastfile calls opt_out_usage as its first step.
