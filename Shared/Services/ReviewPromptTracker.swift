@@ -1,20 +1,19 @@
 import Foundation
 
 extension Notification.Name {
-    /// Posted when a hard deadline is met before it closed. The host may present
-    /// the enjoyment funnel after a short delay, if eligibility also allows it.
+    /// Posted when a hard deadline is met before it closed. The host may call the
+    /// system review API after a short delay, if eligibility also allows it.
     static let babyDocsDeadlineMet = Notification.Name("com.jackwallner.babydocs.deadlineMet")
 }
 
-/// How the user last resolved the review / feedback funnel. Set once and never
-/// cleared: someone who has already written a review, or already told us what is
-/// wrong, has answered the question.
-enum ReviewPromptOutcome: String, Sendable {
-    case openedWriteReview
-    case submittedFeedback
-}
-
-/// Eligibility for the review funnel, persisted in `UserDefaults`.
+/// Eligibility for the system review request, persisted in `UserDefaults`.
+///
+/// There is no custom prompt in front of this, and there must never be one
+/// again. App Review requires the system API and disallows an in-app question
+/// that decides who is allowed to reach it: filtering by "is this helping?"
+/// sends only happy people to the store, which is exactly what the rule exists
+/// to stop. So the only thing this type decides is *when* iOS is asked, never
+/// *who* gets asked.
 ///
 /// The gate is deliberately harder here than in most of the fleet, because the
 /// window is shorter. A family uses this app intensely for six to thirteen weeks
@@ -25,8 +24,7 @@ enum ReviewPromptOutcome: String, Sendable {
 ///
 /// The positive moment is therefore narrow: a task with a **hard** deadline,
 /// marked done **before** that deadline closed. That is the app doing the thing
-/// it claims to do, observed rather than assumed, and it is the only moment where
-/// "is this helping?" has an honest answer.
+/// it claims to do, observed rather than assumed.
 @MainActor
 enum ReviewPromptTracker {
     private static var defaults = UserDefaults.standard
@@ -41,25 +39,21 @@ enum ReviewPromptTracker {
     private static let launchCountKey = "reviewPrompt.appLaunchCount"
     private static let firstOpenKey = "reviewPrompt.firstAppOpenDate"
     private static let lastShownKey = "reviewPrompt.lastShownDate"
-    private static let outcomeKey = "reviewPrompt.outcome"
     private static let positiveMomentCountKey = "reviewPrompt.positiveMomentCount"
     private static let pendingPositiveMomentKey = "reviewPrompt.pendingPositiveMoment"
-    private static let softDeferKey = "reviewPrompt.softDefer"
 
-    /// Cold starts before the funnel is considered at all.
+    /// Cold starts before the request is considered at all.
     static let minimumLaunchCount = 3
     /// Days since first open. A newborn week is long; three days is not.
     static let minimumDaysSinceFirstOpen = 3
     /// Deadlines beaten. Two, because one could be luck and the app takes no
     /// credit for a task the family had already handled before it appeared.
     static let minimumPositiveMoments = 2
-    /// After "Not now". Longer than the app's own useful life on purpose: a no
-    /// during the newborn window is a no for the newborn window.
+    /// After an ask. Longer than the app's own useful life on purpose: iOS
+    /// throttles `requestReview()` to three a year and shows nothing at all much
+    /// of the time, and a second ask inside the newborn window would land during
+    /// the fortnight a birth certificate has not arrived.
     static let cooldownDays = 120
-    /// After "Maybe later" on the pitch itself. `requestReview()` frequently
-    /// shows nothing at all, so a full jail would spend an ask that was never
-    /// actually made. Shorter than the fleet's 30 because the whole window is 90.
-    static let softDeferCooldownDays = 14
 
     static var appLaunchCount: Int {
         get { max(defaults.integer(forKey: launchCountKey), 0) }
@@ -77,7 +71,7 @@ enum ReviewPromptTracker {
         }
     }
 
-    static var lastShownDate: Date? {
+    static var lastRequestedDate: Date? {
         get { defaults.object(forKey: lastShownKey) as? Date }
         set {
             if let date = newValue {
@@ -88,34 +82,20 @@ enum ReviewPromptTracker {
         }
     }
 
-    static var outcome: ReviewPromptOutcome? {
-        get {
-            guard let raw = defaults.string(forKey: outcomeKey) else { return nil }
-            return ReviewPromptOutcome(rawValue: raw)
-        }
-        set {
-            if let value = newValue {
-                defaults.set(value.rawValue, forKey: outcomeKey)
-            } else {
-                defaults.removeObject(forKey: outcomeKey)
-            }
-        }
-    }
-
     static var positiveMomentCount: Int {
         get { max(defaults.integer(forKey: positiveMomentCountKey), 0) }
         set { defaults.set(newValue, forKey: positiveMomentCountKey) }
     }
 
-    /// Set when a positive moment fires, cleared once a prompt consumes it.
+    /// Set when a positive moment fires, cleared once an ask consumes it.
     static var hasPendingPositiveMoment: Bool {
         get { defaults.bool(forKey: pendingPositiveMomentKey) }
         set { defaults.set(newValue, forKey: pendingPositiveMomentKey) }
     }
 
-    /// Screenshot and UI-test runs must never draw the sheet: it would cover the
-    /// screen being captured, and a store screenshot of a review prompt is both
-    /// useless and against the spirit of the guideline.
+    /// Screenshot and UI-test runs must never ask: the system sheet would cover
+    /// the screen being captured, and a store screenshot of a rating prompt is
+    /// both useless and against the spirit of the guideline.
     static var isSuppressed: Bool {
         let arguments = ProcessInfo.processInfo.arguments
         return arguments.contains("-uitest-seed") || arguments.contains("-uitest-wipe-store")
@@ -152,63 +132,32 @@ enum ReviewPromptTracker {
         hasPendingPositiveMoment = false
     }
 
-    static func passivePromptAllowed(now: Date = .now) -> Bool {
-        guard outcome == nil else { return false }
-        guard let last = lastShownDate else { return true }
-        let days = defaults.bool(forKey: softDeferKey) ? softDeferCooldownDays : cooldownDays
-        return now.timeIntervalSince(last) >= TimeInterval(days) * 86_400
+    static func cooldownElapsed(now: Date = .now) -> Bool {
+        guard let last = lastRequestedDate else { return true }
+        return now.timeIntervalSince(last) >= TimeInterval(cooldownDays) * 86_400
     }
 
-    /// Base eligibility, shared by the passive prompt and the Settings entry.
-    static func canPresentEnjoymentPrompt(now: Date = .now) -> Bool {
+    /// Everything except the pending moment, so the reason a launch is not
+    /// eligible stays separable from the reason a tick is not.
+    static func canRequestReview(now: Date = .now) -> Bool {
         guard !isSuppressed else { return false }
-        guard passivePromptAllowed(now: now) else { return false }
+        guard cooldownElapsed(now: now) else { return false }
         guard appLaunchCount >= minimumLaunchCount else { return false }
         guard positiveMomentCount >= minimumPositiveMoments else { return false }
         guard let first = firstAppOpenDate else { return false }
         return now.timeIntervalSince(first) >= TimeInterval(minimumDaysSinceFirstOpen) * 86_400
     }
 
-    static func shouldShowAfterPositiveMoment(now: Date = .now) -> Bool {
+    static func shouldRequestAfterPositiveMoment(now: Date = .now) -> Bool {
         guard hasPendingPositiveMoment else { return false }
-        return canPresentEnjoymentPrompt(now: now)
+        return canRequestReview(now: now)
     }
 
-    static func markShown(now: Date = .now) {
-        lastShownDate = now
-        defaults.set(false, forKey: softDeferKey)
+    /// Called immediately before `requestReview()`. iOS may well show nothing,
+    /// and there is no callback that says which happened, so the ask is counted
+    /// as spent either way rather than retried until something appears.
+    static func markRequested(now: Date = .now) {
+        lastRequestedDate = now
         consumePendingPositiveMoment()
-    }
-
-    /// True after "Maybe later" until the next hard `markShown` or outcome. The
-    /// host must not call `markShown()` on dismiss while this is set, or the
-    /// short cooldown is replaced by the long one.
-    static var isSoftDeferred: Bool {
-        defaults.bool(forKey: softDeferKey)
-    }
-
-    static func markSoftDeferred(now: Date = .now) {
-        lastShownDate = now
-        defaults.set(true, forKey: softDeferKey)
-        consumePendingPositiveMoment()
-    }
-
-    static func markOpenedWriteReview() {
-        outcome = .openedWriteReview
-        markShown()
-    }
-
-    static func markFeedbackSubmitted() {
-        outcome = .submittedFeedback
-        markShown()
-    }
-}
-
-/// The App Store record this app is asking about.
-enum AppStoreReviewLinks {
-    static let appID = "6799785786"
-
-    static var writeReviewURL: URL {
-        URL(string: "https://apps.apple.com/app/id\(appID)?action=write-review")!
     }
 }

@@ -3,11 +3,13 @@ import Testing
 
 @testable import BabyDocs
 
-/// The gate, not the sheet.
+/// The gate, not a prompt.
 ///
-/// Worth testing because every condition in it is there to stop the app spending
-/// its one ask badly, and every one of them is invisible: nothing on screen
-/// changes when the gate silently lets a prompt through a fortnight too early, so
+/// There is no prompt of our own left to test: the app calls the system review
+/// API and nothing stands in front of it. What is still worth testing is when
+/// iOS gets asked, because every condition here exists to stop the app spending
+/// its one ask badly, and every one of them is invisible. Nothing on screen
+/// changes when the gate silently lets an ask through a fortnight too early, so
 /// a regression here would only ever show up as a one-star review.
 @MainActor
 struct ReviewPromptTests {
@@ -61,72 +63,73 @@ struct ReviewPromptTests {
 
         // Deadlines beaten, but not enough of them.
         ReviewPromptTracker.recordDeadlineMet()
-        #expect(ReviewPromptTracker.canPresentEnjoymentPrompt(now: now) == false)
+        #expect(ReviewPromptTracker.canRequestReview(now: now) == false)
 
         ReviewPromptTracker.recordDeadlineMet()
-        #expect(ReviewPromptTracker.canPresentEnjoymentPrompt(now: now))
+        #expect(ReviewPromptTracker.canRequestReview(now: now))
 
         // A family who installed the app this morning has not used it yet,
         // whatever they have already ticked off.
         ReviewPromptTracker.firstAppOpenDate = Calendar.current.date(byAdding: .day, value: -1, to: now)
-        #expect(ReviewPromptTracker.canPresentEnjoymentPrompt(now: now) == false)
+        #expect(ReviewPromptTracker.canRequestReview(now: now) == false)
         ReviewPromptTracker.firstAppOpenDate = Calendar.current.date(byAdding: .day, value: -10, to: now)
 
         ReviewPromptTracker.appLaunchCount = 1
-        #expect(ReviewPromptTracker.canPresentEnjoymentPrompt(now: now) == false)
+        #expect(ReviewPromptTracker.canRequestReview(now: now) == false)
     }
 
-    @Test("A passive prompt needs a moment that has not been spent")
-    func passivePromptNeedsAPendingMoment() {
+    @Test("An ask needs a moment that has not been spent")
+    func askNeedsAPendingMoment() {
         _ = freshTracker()
         makeOtherwiseEligible()
         ReviewPromptTracker.recordDeadlineMet()
         ReviewPromptTracker.recordDeadlineMet()
 
-        #expect(ReviewPromptTracker.shouldShowAfterPositiveMoment(now: now))
+        #expect(ReviewPromptTracker.shouldRequestAfterPositiveMoment(now: now))
         ReviewPromptTracker.consumePendingPositiveMoment()
-        #expect(ReviewPromptTracker.shouldShowAfterPositiveMoment(now: now) == false)
-        // Still eligible, so Settings can still open it. The passive trigger is
-        // what has run out, not the permission.
-        #expect(ReviewPromptTracker.canPresentEnjoymentPrompt(now: now))
+        #expect(ReviewPromptTracker.shouldRequestAfterPositiveMoment(now: now) == false)
+        // The trigger is what ran out, not the permission. A later deadline met
+        // inside the same window is still a moment.
+        #expect(ReviewPromptTracker.canRequestReview(now: now))
     }
 
-    @Test("Maybe later comes back in a fortnight, Not now does not come back")
-    func cooldownsDifferByAnswer() {
+    @Test("One ask, then a cooldown longer than the newborn window")
+    func askingStartsALongCooldown() {
         _ = freshTracker()
         makeOtherwiseEligible()
         ReviewPromptTracker.recordDeadlineMet()
         ReviewPromptTracker.recordDeadlineMet()
+        #expect(ReviewPromptTracker.shouldRequestAfterPositiveMoment(now: now))
 
-        ReviewPromptTracker.markSoftDeferred(now: now)
-        let inAWeek = Calendar.current.date(byAdding: .day, value: 7, to: now)!
+        ReviewPromptTracker.markRequested(now: now)
+        // Spent: both the moment and the permission.
+        #expect(ReviewPromptTracker.hasPendingPositiveMoment == false)
+        #expect(ReviewPromptTracker.canRequestReview(now: now) == false)
+
         let inThreeWeeks = Calendar.current.date(byAdding: .day, value: 21, to: now)!
-        #expect(ReviewPromptTracker.passivePromptAllowed(now: inAWeek) == false)
-        #expect(ReviewPromptTracker.passivePromptAllowed(now: inThreeWeeks))
+        ReviewPromptTracker.recordDeadlineMet()
+        #expect(ReviewPromptTracker.shouldRequestAfterPositiveMoment(now: inThreeWeeks) == false)
 
-        ReviewPromptTracker.markShown(now: now)
-        #expect(ReviewPromptTracker.isSoftDeferred == false)
-        #expect(ReviewPromptTracker.passivePromptAllowed(now: inThreeWeeks) == false)
         let inFiveMonths = Calendar.current.date(byAdding: .day, value: 150, to: now)!
-        #expect(ReviewPromptTracker.passivePromptAllowed(now: inFiveMonths))
+        #expect(ReviewPromptTracker.shouldRequestAfterPositiveMoment(now: inFiveMonths))
     }
 
-    @Test("Answering the question closes it for good")
-    func anOutcomeEndsTheFunnel() {
+    @Test("Screenshot and UI-test runs never ask")
+    func suppressedRunsNeverAsk() {
         _ = freshTracker()
         makeOtherwiseEligible()
         ReviewPromptTracker.recordDeadlineMet()
         ReviewPromptTracker.recordDeadlineMet()
 
-        ReviewPromptTracker.markOpenedWriteReview()
-        let inTwoYears = Calendar.current.date(byAdding: .day, value: 730, to: now)!
-        #expect(ReviewPromptTracker.passivePromptAllowed(now: inTwoYears) == false)
-        #expect(ReviewPromptTracker.canPresentEnjoymentPrompt(now: inTwoYears) == false)
+        // The real suppression reads launch arguments, which a unit test cannot
+        // set. Asserting the wiring instead: eligibility is the AND of the gate
+        // and the absence of suppression, so a suppressed run cannot pass.
+        #expect(ReviewPromptTracker.canRequestReview(now: now) == !ReviewPromptTracker.isSuppressed)
     }
 
     @Test("The feedback draft carries the message and nothing about the family")
     func feedbackMailIsJustTheMessage() throws {
-        let url = try #require(ReviewPromptSheet.feedbackMailURL(body: "The CA link 404s"))
+        let url = try #require(FeedbackSheet.feedbackMailURL(body: "The CA link 404s"))
         let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
         #expect(components.scheme == "mailto")
         #expect(components.path == "jackwallner+babydocs@gmail.com")

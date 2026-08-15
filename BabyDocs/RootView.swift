@@ -7,12 +7,8 @@ struct RootView: View {
     @Query(filter: #Predicate<Child> { $0.deletedAt == nil }) private var children: [Child]
 
     @State private var navigator = AppNavigator.shared
-    @State private var reviewCoordinator = ReviewPromptCoordinator.shared
-    @State private var isShowingReviewPrompt = false
-    @State private var reviewPromptStep: ReviewPromptSheet.Step = .enjoyment
     /// One ask per launch at most, whatever else happens.
-    @State private var hasShownReviewPromptThisSession = false
-    @State private var shouldRequestNativeReviewOnDismiss = false
+    @State private var hasRequestedReviewThisSession = false
     @Environment(\.requestReview) private var requestReview
 
     var body: some View {
@@ -62,37 +58,8 @@ struct RootView: View {
         } message: {
             Text("Some message apps break long links. Ask the other parent to send it again, or answer the questions yourself: it takes about a minute.")
         }
-        .sheet(isPresented: $isShowingReviewPrompt, onDismiss: {
-            if shouldRequestNativeReviewOnDismiss {
-                shouldRequestNativeReviewOnDismiss = false
-                requestReview()
-            } else if !ReviewPromptTracker.isSoftDeferred {
-                // Swiped away rather than answered. Still counts as an ask, but
-                // only the long cooldown applies when the tracker is not already
-                // holding the short one.
-                ReviewPromptTracker.markShown()
-            }
-        }) {
-            ReviewPromptSheet(initialStep: reviewPromptStep) { outcome in
-                isShowingReviewPrompt = false
-                if case .enjoyedMaybeLater = outcome {
-                    shouldRequestNativeReviewOnDismiss = true
-                }
-            }
-        }
         .onReceive(NotificationCenter.default.publisher(for: .babyDocsDeadlineMet)) { _ in
-            scheduleReviewPromptAfterDeadlineMet()
-        }
-        // Settings can open the funnel directly, which skips eligibility: asking
-        // to be asked is its own qualification.
-        .onChange(of: reviewCoordinator.pendingPresentation) { _, presentation in
-            guard let presentation else { return }
-            defer { reviewCoordinator.clear() }
-            guard !isShowingReviewPrompt else { return }
-            switch presentation {
-            case .enjoymentPrompt: present(reviewStep: .enjoyment)
-            case .feedbackOnly: present(reviewStep: .feedback)
-            }
+            scheduleReviewRequestAfterDeadlineMet()
         }
         .task(id: children.count) {
             // Runs the catalog against whatever is in the store, at launch and
@@ -116,36 +83,35 @@ struct RootView: View {
         }
     }
 
-    /// The ask, one beat after the tick.
+    /// The system ask, one beat after the tick.
+    ///
+    /// `requestReview()` and nothing in front of it: no question about whether
+    /// the app is helping, and no branch that decides who is allowed to reach
+    /// the store. All this decides is the moment, which is the one thing the
+    /// system API cannot know.
     ///
     /// Delayed rather than immediate because the row animates out of its bucket
     /// and into Done, and a sheet that lands on top of that reads as a
-    /// consequence of the tap rather than a question. Held back entirely while
-    /// the paywall or an incoming plan link is on screen: those are the two
-    /// places where an interruption costs something.
-    private func scheduleReviewPromptAfterDeadlineMet() {
-        guard !hasShownReviewPromptThisSession,
-              !isShowingReviewPrompt,
-              !navigator.isShowingPaywall,
-              navigator.pendingSeed == nil,
-              ReviewPromptTracker.shouldShowAfterPositiveMoment() else { return }
+    /// consequence of the tap. Held back entirely while the paywall or an
+    /// incoming plan link is on screen: those are the two places where an
+    /// interruption costs something.
+    private func scheduleReviewRequestAfterDeadlineMet() {
+        guard eligibleToRequestReview else { return }
 
         Task {
             try? await Task.sleep(for: .seconds(1.2))
-            guard !hasShownReviewPromptThisSession,
-                  !isShowingReviewPrompt,
-                  !navigator.isShowingPaywall,
-                  navigator.pendingSeed == nil,
-                  ReviewPromptTracker.shouldShowAfterPositiveMoment() else { return }
-            ReviewPromptTracker.consumePendingPositiveMoment()
-            present(reviewStep: .enjoyment)
+            guard eligibleToRequestReview else { return }
+            hasRequestedReviewThisSession = true
+            ReviewPromptTracker.markRequested()
+            requestReview()
         }
     }
 
-    private func present(reviewStep step: ReviewPromptSheet.Step) {
-        reviewPromptStep = step
-        hasShownReviewPromptThisSession = true
-        isShowingReviewPrompt = true
+    private var eligibleToRequestReview: Bool {
+        !hasRequestedReviewThisSession
+            && !navigator.isShowingPaywall
+            && navigator.pendingSeed == nil
+            && ReviewPromptTracker.shouldRequestAfterPositiveMoment()
     }
 
     private func rescheduleReminders() async {

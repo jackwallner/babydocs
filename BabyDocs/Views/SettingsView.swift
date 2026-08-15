@@ -9,6 +9,7 @@ struct SettingsView: View {
     @State private var navigator = AppNavigator.shared
 
     @State private var errorMessage: String?
+    @State private var isShowingFeedback = false
 
     var body: some View {
         NavigationStack {
@@ -110,7 +111,7 @@ struct SettingsView: View {
 
                 Section {
                     Label {
-                        Text("Baby Docs has no account and no server. Everything you enter, and every photograph you add, is on this phone and nowhere else. There is nothing for us to delete on your behalf, and nothing for anyone to breach.")
+                        Text("Baby Docs has no account. Everything you enter, and every photograph you add, is on this phone and nowhere else, so there is nothing for us to delete on your behalf and nothing for anyone to breach. If you buy Plus, Apple and RevenueCat hold the purchase itself; that record carries nothing about your family. The privacy policy sets out exactly what it contains.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -123,15 +124,9 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    Button("Rate or send feedback") {
-                        // Asking to be asked qualifies you, so this goes straight
-                        // to the gate rather than through passive eligibility.
-                        // Anyone who came looking for it already knows whether
-                        // the app is working for them.
-                        ReviewPromptCoordinator.shared.requestEnjoymentPrompt()
-                    }
+                    Button("Send feedback") { isShowingFeedback = true }
                 } footer: {
-                    Text("A rule that was wrong for your state or a link that went nowhere is worth more to us than a rating. Both start in the same place.")
+                    Text("A rule that was wrong for your state or a link that went nowhere is worth more to us than a rating. This opens a mail draft and nothing else.")
                 }
 
                 Section {
@@ -145,6 +140,9 @@ struct SettingsView: View {
             .listStyle(.insetGrouped)
             .planPageBackground()
             .navigationTitle("Settings")
+            .sheet(isPresented: $isShowingFeedback) {
+                FeedbackSheet()
+            }
             .alert("Baby Docs", isPresented: errorBinding) {
                 Button("OK", role: .cancel) { errorMessage = nil }
             } message: {
