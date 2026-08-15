@@ -70,16 +70,27 @@ platform :ios do
           3. Tap a task for why it applies, what documents to bring, and a link
              to the official government page for that task
           4. Children tab holds each child and the household answers
-          5. Family tab explains that sharing is not switched on in this build
+          5. Documents tab holds photographs of the paperwork itself
+          6. Settings shows the date the whole rule set was last reviewed
 
-          Every feature is free for one child. Baby Docs Plus (IAP via
-          RevenueCat, one-time purchase or subscription) adds further children
-          and the printable one-page summary.
+          Sharing works and needs no account. "Send the plan" builds a link that
+          carries the household answers in the URL fragment, which browsers
+          never transmit to a server, and the other parent's copy of the app
+          regenerates the same plan from them. There is no backend of any kind
+          in this app, so nothing is uploaded and no request is made.
 
-          The Family tab contains an optional sharing feature that is not
-          enabled in this build: with no backend configured it shows an
-          explanatory empty state and makes no network requests. No metadata,
-          screenshot or in-app copy advertises sharing.
+          The Documents tab stores photographs in the app container under
+          complete file protection, excluded from backup. They never leave the
+          device: no share sheet or export path can reach them, and the exported
+          summaries print the status of a Social Security number, never a number.
+
+          Baby Docs Plus (IAP via RevenueCat, one-time purchase or subscription)
+          gates exactly two things: additional children beyond the first, and
+          adding new photographs to the Documents tab after a child is twelve
+          weeks old. Every task, deadline, document checklist, official link,
+          the shared plan link, the printable summary and the employer packet
+          are free. If Plus lapses, existing photographs remain and remain
+          viewable; only adding new ones stops.
 
           The app gives no legal, tax, medical or insurance advice, and carries
           a disclaimer to that effect in Settings and on every exported summary.
