@@ -137,10 +137,25 @@ thing sent and overdue back) rather than one that triggers nothing.
   there is not going to be one, so no paywall bullet, App Store description or
   landing-page card may imply two phones staying in step. Sending the plan is
   real, and it is free, so it is not sold either.
-- Free keyword-field notes and the acquisition plan are in `aso-plan.md` once
-  that exists. Assume App Store search is not the channel until proven
-  otherwise: the audience is reachable through employers, hospitals, OB
-  practices and benefits platforms, and that is what the research says.
+- Keyword-field notes and the acquisition plan are in `aso-plan.md`. App Store
+  search is not the channel, and the numbers now say so rather than the brief:
+  every tracked term with popularity at or above 25 has difficulty at or above
+  62 and resolves to somebody else's field, while every right-intent term sits
+  at Astro's floor. The audience is reachable through employers, hospitals, OB
+  practices and benefits platforms, and through the free shared plan link.
+- **The review funnel asks once, and only after a deadline was actually met.**
+  A positive moment is a task with a **hard** deadline ticked **before** that
+  deadline closed (`ReviewPromptTracker.recordCompletion`), and it takes two of
+  them plus three launches and three days. The window is six to thirteen weeks,
+  so there is time for about one ask, and spending it during the fortnight a
+  birth certificate has not arrived buys a one-star review. App Store ID
+  `6799785786`. Nothing reaches `requestReview()` without saying yes first.
+- **What Plus gates lives in three places that drift apart.** The binary
+  (`SummaryShareControl` and `DocumentsView.addButton`) charges for further
+  children, the vault after twelve weeks, the printable summary and the employer
+  packet. The description and the App Review notes have to say the same thing,
+  and both once said the summary and the packet were free. `asc-readiness.py`
+  now asserts it, because nothing recompiles when a `.txt` file changes.
 - **Every local write goes through `LocalRecord`.** After a create or an edit,
   call `recordLocalChange()`; to delete, call `tombstone()`. Reads go through
   `child.liveTasks` and friends rather than the raw relationship. With sync gone
