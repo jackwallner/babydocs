@@ -35,11 +35,11 @@ Every task, deadline, document checklist and official link is free, for one chil
 
 Plus adds the work around the deadlines: any further children, so a second baby inherits your household answers instead of asking again; the document vault after the first twelve weeks; the printable one-page summary; and the employer packet HR asks for.
 
-If Plus lapses you stop being able to add new photographs. The ones already there stay, and stay openable.
+If Plus lapses you stop adding new photographs. The ones already there stay, and stay openable.
 
-Baby Docs Plus is a weekly or yearly auto-renewable subscription, the weekly with a 3-day free trial for eligible new subscribers, or a one-time lifetime purchase with no subscription. Prices are shown in the app before you buy and vary by region.
+Baby Docs Plus is a weekly or yearly auto-renewable subscription, the weekly with a 3-day free trial for eligible new subscribers, or a one-time lifetime purchase with no subscription. Prices are shown in the app and vary by region.
 
-Payment is charged to your Apple ID at confirmation of purchase. A subscription renews automatically unless it is cancelled at least 24 hours before the end of the current period, and the renewal is charged within 24 hours of that end. Any unused portion of a free trial is forfeited when a subscription is purchased. Manage or cancel in Settings > Apple ID > Subscriptions.
+Payment is charged to your Apple ID at confirmation. A subscription renews automatically unless it is cancelled at least 24 hours before the end of the current period, and the renewal is charged within 24 hours of that end. Any unused portion of a free trial is forfeited when a subscription is purchased. Manage or cancel in Settings > Apple ID > Subscriptions.
 
 Privacy Policy: https://jackwallner.com/ios/babydocs/privacy-policy.html
 Terms of Use: https://jackwallner.com/ios/babydocs/terms.html
