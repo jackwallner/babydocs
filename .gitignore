@@ -24,6 +24,9 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/test_output
 fastlane/metadata.bak.*
+# Regenerated from the Fastfile on every lane run, so it is churn rather than
+# content. Matches protein and mahj; baseball and vitals still track theirs.
+fastlane/README.md
 
 # macOS
 .DS_Store
