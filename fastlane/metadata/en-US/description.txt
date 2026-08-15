@@ -8,8 +8,15 @@ WHAT YOU GET
 - The real deadlines, marked as such. A job-based plan must allow at least 30 days after a birth to add the baby. The Marketplace is generally 60. Most of the rest of the list has no deadline at all, and the app says so instead of pretending otherwise.
 - What to bring. Every task carries its own document list, so you find out about the certified copy before you are standing at the counter, not after.
 - Where to actually go. Birth certificates are issued by state and county offices with their own forms and fees. You get sent to the right one.
-- Somewhere to put the confirmation number. Whatever came back lives on the task it belongs to.
+- Somewhere to put the confirmation number. Whatever came back lives on the task it belongs to, and the app nudges you from what the office told you, not from a turnaround time it guessed.
+- A place for the paperwork itself. Photograph the certified copy and the enrollment form and they stay on this phone, not backed up and not uploaded.
 - Reminders that fire only for deadlines that genuinely close, so you do not end up muting the app.
+
+SEND IT TO THE OTHER PARENT
+
+One link. They tap it, and their phone builds the same plan from the same answers, with their own reminders. There is no account to make and nothing is uploaded, because the answers travel in the link itself. It is free, and it is the fastest way to stop being the only person in the house who knows what is due.
+
+There is also a plain-text summary you can print or paste into a message, and a one-page employer packet with the qualifying life event, the date and the enrollment window written the way HR asks for it.
 
 IT SHOWS ITS WORKING
 
@@ -19,18 +26,20 @@ WHAT IT DOES NOT DO
 
 It never files anything for you. No government, tax, insurance or legal form is submitted, signed or transmitted on your behalf, and it never logs in to any account of yours. It takes you to the official page and gets out of the way.
 
-It never asks for a Social Security number. It tracks whether the number has been requested and whether the card has arrived, and there is no field for the number itself. The shareable one-page summary never prints one.
+It never asks for a Social Security number. It tracks whether the number has been requested and whether the card has arrived, and there is no field for the number itself. The summary and the employer packet never print one.
 
 It is not a baby tracker. No feeds, no weights, no growth charts.
 
 WORKS WITH NO SIGNAL
 
-Everything renders from a copy on your phone. No account is needed to start.
+Everything renders from a copy on your phone. No account is needed, and no server to be down.
 
 BABY DOCS PLUS
 
-Every task, deadline, document checklist and official link is free, for one child, on one device. Nothing with a date on it is ever behind a paywall.
+Every task, deadline, document checklist and official link is free, for one child. So is sending the plan to the other parent, the printable summary, the employer packet and the follow-up tracking. Nothing with a date on it is ever behind a paywall.
 
-Plus adds any further children, so a second baby inherits your household answers instead of asking again, and the printable one-page summary you can hand to someone else. Available as a one-time purchase or as a subscription.
+Plus adds two things. Any further children, so a second baby inherits your household answers instead of asking again. And the document vault after the first twelve weeks, for the years when the newborn paperwork is finished but the documents still have to live somewhere.
+
+If Plus lapses, you stop being able to add new photographs. The ones already there stay, and stay openable. Available as a one-time purchase or as a subscription.
 
 Baby Docs gives no legal, tax, medical or insurance advice. Deadlines set by your own plan, employer or state override anything shown in the app. Check the linked source before you rely on a date.
