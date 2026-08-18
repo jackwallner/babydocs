@@ -75,20 +75,20 @@ TAB_BAR_CROP = 270
 FRAMES = [
     ("01-plan.png", "01-deadlines.png", "blue",
      "Every deadline,\nsoonest first",
-     "Built from six questions about your household, not a generic list.",
-     TAB_BAR_CROP),
+     "Built from seven questions about your household, not a generic list.",
+     720),
     ("02-task-detail.png", "02-why-and-where.png", "mint",
      "Why it applies, and\nwhere to do it",
      "Each task carries the rule behind its date and a link to the office that issues it.",
      TAB_BAR_CROP),
     ("03-task-documents.png", "03-documents.png", "sand",
      "What to bring,\nbefore you go",
-     "The document list for each task, and somewhere to record what you sent.",
-     TAB_BAR_CROP),
+     "The document list stays beside the official link, so you know what to gather.",
+     850),
     ("06-documents.png", "04-still-to-find.png", "lilac",
-     "Everything still to find,\ngathered up",
-     "Collected across every task, so two people cannot chase the same paper twice.",
-     TAB_BAR_CROP),
+     "Everything still to find,\nin one place",
+     "Every outstanding document, gathered in one place.",
+     650),
     ("07-settings.png", "05-sources.png", "slate",
      "Every rule shows\nits working",
      "The government page each date came from, and the day a person last read it.",
@@ -96,8 +96,8 @@ FRAMES = [
     # A sheet, so there is no tab bar to crop.
     ("05-paywall.png", "06-free.png", "blue",
      "Every deadline is free,\nand stays free",
-     "Plus adds the document vault, follow-up tracking and the employer packet.",
-     0),
+     "Plus adds the vault, follow-ups, employer paperwork and more children.",
+     650),
 ]
 
 
