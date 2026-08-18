@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import SwiftData
 
 /// The two columns every editable row carries, and the two calls that keep them
@@ -28,12 +29,55 @@ extension Receipt: LocalRecord {}
 extension ChildNote: LocalRecord {}
 extension VaultDocument: LocalRecord {}
 
+/// What a failed write is allowed to do, which is not "nothing".
+///
+/// Every save in this app was `try? context.save()`. On a local-only app that is
+/// not a cache miss, it is the only copy: a parent ticks the birth certificate
+/// off, watches the row move to Done, closes the app, and finds out weeks later
+/// that the disk was full and the tick was never written. The UI had already
+/// told them otherwise, which is the part that makes it a trust failure rather
+/// than a bug.
+///
+/// One reporter, read by `RootView`, so the message arrives wherever the write
+/// happened rather than needing an error path threaded through forty call sites.
+@MainActor
+@Observable
+final class SaveFailureReporter {
+    static let shared = SaveFailureReporter()
+
+    /// The last write that did not land, phrased for a person. Nil when the
+    /// store is behaving.
+    private(set) var message: String?
+
+    private let log = Logger(subsystem: "com.jackwallner.babydocs", category: "store")
+
+    private init() {}
+
+    /// Deliberately does not name the record. The message is shown in an alert,
+    /// an alert can be screenshotted into a support email, and a child's name in
+    /// a diagnostic is a small leak this app has no reason to take.
+    func report(_ error: Error) {
+        log.error("Local save failed: \(error.localizedDescription, privacy: .public)")
+        message = """
+        Your last change could not be saved to this phone, so what you are \
+        looking at may not survive closing the app. This is usually storage \
+        being full. Free some space and make the change again.
+        """
+    }
+
+    func clear() { message = nil }
+}
+
 @MainActor
 extension LocalRecord {
     /// Call after any local create or edit.
     func recordLocalChange(in context: ModelContext) {
         updatedAt = Date()
-        try? context.save()
+        do {
+            try context.save()
+        } catch {
+            SaveFailureReporter.shared.report(error)
+        }
     }
 
     /// Deletes by tombstone, never by removing the row.

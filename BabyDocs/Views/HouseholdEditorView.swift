@@ -72,7 +72,7 @@ struct HouseholdEditorView: View {
                     get: { profile.parentage },
                     set: { profile.parentage = $0 }
                 )) {
-                    ForEach(ParentageSituation.allCases.filter { $0 != .unknown }, id: \.self) { value in
+                    ForEach(ParentageSituation.allCases, id: \.self) { value in
                         Text(value.label).tag(value)
                     }
                 }
@@ -86,8 +86,18 @@ struct HouseholdEditorView: View {
                     get: { profile.insuranceKind },
                     set: { profile.insuranceKind = $0 }
                 )) {
-                    ForEach(InsuranceKind.allCases.filter { $0 != .unknown }, id: \.self) { value in
+                    ForEach(InsuranceKind.allCases, id: \.self) { value in
                         Text(value.label).tag(value)
+                    }
+                }
+                if profile.insuranceKind == .marketplace {
+                    Picker("Marketplace", selection: Binding(
+                        get: { profile.marketplaceKind },
+                        set: { profile.marketplaceKind = $0 }
+                    )) {
+                        ForEach(MarketplaceKind.allCases, id: \.self) { value in
+                            Text(value.label).tag(value)
+                        }
                     }
                 }
                 TextField("Plan name (optional)", text: $profile.employerPlanName)
@@ -95,7 +105,7 @@ struct HouseholdEditorView: View {
             } header: {
                 Text("Health coverage")
             } footer: {
-                Text("If you are covered both through a job and through the Marketplace, pick the job-based plan: it is the shorter window, and it is the one that closes first.")
+                Text("If you are covered both through a job and through the Marketplace, pick the job-based plan: it is the shorter window, and it is the one that closes first. \"Not sure yet\" is a real answer: it puts a task at the top of your plan about finding out, rather than a deadline the app guessed at.")
             }
 
             // Bare toggles are fine *here* and were not fine in the intake.

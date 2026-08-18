@@ -20,6 +20,9 @@ struct DocumentsView: View {
     @State private var navigator = AppNavigator.shared
     @State private var addingFor: Child?
     @State private var viewing: VaultDocument?
+    /// A vault entry a swipe has proposed deleting, held until it is confirmed.
+    /// See `confirmDelete`.
+    @State private var pendingDeletion: VaultDocument?
 
     var body: some View {
         NavigationStack {
@@ -39,6 +42,20 @@ struct DocumentsView: View {
             .sheet(item: $viewing) { document in
                 VaultDocumentViewer(document: document)
             }
+            // The one hard delete in the app, so it is the one that asks. A
+            // swipe on a moving list is easy to do by accident, and the photos
+            // go from disk immediately: there is no tombstone behind this and
+            // nothing to swipe back.
+            .confirmationDialog(
+                pendingDeletion.map { "Delete \($0.displayTitle)?" } ?? "Delete this?",
+                isPresented: deletionBinding,
+                titleVisibility: .visible
+            ) {
+                Button("Delete the photos", role: .destructive) { confirmDelete() }
+                Button("Keep them", role: .cancel) { pendingDeletion = nil }
+            } message: {
+                Text("The photos are removed from this phone now and cannot be recovered: they are not backed up anywhere. The document itself is unaffected.")
+            }
         }
     }
 
@@ -52,12 +69,24 @@ struct DocumentsView: View {
             .filter { !$0.isOnHand }
     }
 
-    /// Deduplicated by title, because the same certified copy appears on four
-    /// different tasks and a list that says "birth certificate" four times reads
-    /// as four errands.
+    /// Deduplicated by title **within one child**, because the same certified
+    /// copy appears on four different tasks and a list that says "birth
+    /// certificate" four times reads as four errands.
+    ///
+    /// The child is half the identity, and leaving it out was a bug with real
+    /// consequences: with two children the list collapsed to one "Birth
+    /// certificate" row, ticking it marked the second baby's certificate as on
+    /// hand too, and both the task detail and this screen then stopped asking
+    /// for a document that did not exist. Twins are the worst case and also the
+    /// likeliest one.
+    private func identity(_ item: DocumentItem) -> String {
+        let childID = item.task?.child?.id.uuidString ?? "unattached"
+        return "\(childID)|\(item.title.lowercased())"
+    }
+
     private var uniqueOutstanding: [DocumentItem] {
         var seen = Set<String>()
-        return outstanding.filter { seen.insert($0.title.lowercased()).inserted }
+        return outstanding.filter { seen.insert(identity($0)).inserted }
     }
 
     @ViewBuilder
@@ -82,9 +111,17 @@ struct DocumentsView: View {
                                     .foregroundStyle(.primary)
                                     .fixedSize(horizontal: false, vertical: true)
                                 if let task = item.task {
-                                    Text(task.title)
+                                    // The child's name leads once there is more
+                                    // than one, because with twins the two rows
+                                    // are otherwise the same words twice and the
+                                    // parent cannot tell which one they just
+                                    // found.
+                                    Text(children.count > 1
+                                         ? "\(task.child?.displayName ?? "Your baby") \u{00B7} \(task.title)"
+                                         : task.title)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
                         }
@@ -95,16 +132,23 @@ struct DocumentsView: View {
         } header: {
             Text("Still to find")
         } footer: {
-            Text("Every open task's list in one place, with the duplicates collapsed. Ticking one here ticks it wherever else it appears.")
+            Text(children.count > 1
+                 ? "Every open task's list in one place, with the duplicates collapsed. Ticking one here ticks it wherever else it appears for that child, and never for the other."
+                 : "Every open task's list in one place, with the duplicates collapsed. Ticking one here ticks it wherever else it appears.")
         }
     }
 
-    /// A document title appears on several tasks, so ticking it has to tick all
-    /// of them. Anything else means a parent finds the certificate, ticks it, and
-    /// the app keeps asking for it on three other screens.
+    /// A document title appears on several of one child's tasks, so ticking it
+    /// has to tick all of them. Anything else means a parent finds the
+    /// certificate, ticks it, and the app keeps asking for it on three other
+    /// screens.
+    ///
+    /// It stops at that child. One family's two birth certificates are two
+    /// pieces of paper from two different orders, and one of them arriving tells
+    /// you nothing about the other.
     private func markGathered(_ item: DocumentItem) {
-        let title = item.title.lowercased()
-        for match in outstanding where match.title.lowercased() == title {
+        let key = identity(item)
+        for match in outstanding where identity(match) == key {
             match.isOnHand = true
             match.markedOnHandAt = Date()
             match.recordLocalChange(in: context)
@@ -169,14 +213,14 @@ struct DocumentsView: View {
             Button {
                 addingFor = child
             } label: {
-                Label("Add a document", systemImage: "camera")
+                Label("Add a document", systemImage: "photo.badge.plus")
             }
         } else {
             Button {
                 navigator.requestUpgrade()
             } label: {
                 HStack {
-                    Label("Add a document", systemImage: "camera")
+                    Label("Add a document", systemImage: "photo.badge.plus")
                     Spacer(minLength: 8)
                     PlusBadge()
                 }
@@ -209,18 +253,26 @@ struct DocumentsView: View {
         }
     }
 
+    private var deletionBinding: Binding<Bool> {
+        Binding(get: { pendingDeletion != nil }, set: { if !$0 { pendingDeletion = nil } })
+    }
+
+    /// A swipe proposes; the dialog decides. Nothing is removed here.
     private func delete(_ offsets: IndexSet, from documents: [VaultDocument]) {
-        for index in offsets where documents.indices.contains(index) {
-            let document = documents[index]
-            // The images go now, the row goes to a tombstone. A tombstone is
-            // what makes an accidental swipe recoverable everywhere else in this
-            // app, but leaving orphaned photographs of a Social Security card on
-            // disk after someone asked for them to be gone is not a trade worth
-            // making.
-            VaultStore.shared.removePages(named: document.pageFileNames)
-            document.pageFileNames = []
-            document.tombstone(in: context)
-        }
+        guard let index = offsets.first, documents.indices.contains(index) else { return }
+        pendingDeletion = documents[index]
+    }
+
+    private func confirmDelete() {
+        guard let document = pendingDeletion else { return }
+        pendingDeletion = nil
+        // The images go now, the row goes to a tombstone. A tombstone is what
+        // makes an accidental swipe recoverable everywhere else in this app, but
+        // leaving orphaned photographs of a Social Security card on disk after
+        // someone asked for them to be gone is not a trade worth making.
+        VaultStore.shared.removePages(named: document.pageFileNames)
+        document.pageFileNames = []
+        document.tombstone(in: context)
     }
 }
 

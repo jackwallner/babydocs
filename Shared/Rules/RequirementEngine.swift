@@ -136,6 +136,7 @@ enum RequirementEngine {
             parentage: profile.parentage,
             secondParentOnRecord: profile.secondParentOnRecord,
             insuranceKind: profile.insuranceKind,
+            marketplaceKind: profile.marketplaceKind,
             hasDependentCareFSA: profile.hasDependentCareFSA,
             wantsPassport: profile.wantsPassport,
             wants529: profile.wants529,
@@ -319,7 +320,11 @@ enum FamilyProfileStore {
         }
         let profile = FamilyProfile()
         context.insert(profile)
-        try? context.save()
+        do {
+            try context.save()
+        } catch {
+            SaveFailureReporter.shared.report(error)
+        }
         return profile
     }
 }

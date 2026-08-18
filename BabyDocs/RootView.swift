@@ -7,6 +7,7 @@ struct RootView: View {
     @Query(filter: #Predicate<Child> { $0.deletedAt == nil }) private var children: [Child]
 
     @State private var navigator = AppNavigator.shared
+    @State private var saveFailures = SaveFailureReporter.shared
     /// One ask per launch at most, whatever else happens.
     @State private var hasRequestedReviewThisSession = false
     @Environment(\.requestReview) private var requestReview
@@ -52,6 +53,14 @@ struct RootView: View {
             ImportPlanSheet(seed: seed) {
                 navigator.selectedTab = .plan
             }
+        }
+        // A local-only app that swallows a failed write is telling the parent
+        // their work is safe when it is not. This is the one place that says so,
+        // wherever the write happened.
+        .alert("That did not save", isPresented: saveFailureBinding) {
+            Button("OK", role: .cancel) { saveFailures.clear() }
+        } message: {
+            Text(saveFailures.message ?? "")
         }
         .alert("That link did not work", isPresented: $navigator.seedFailed) {
             Button("OK", role: .cancel) { navigator.seedFailed = false }
@@ -105,6 +114,13 @@ struct RootView: View {
             ReviewPromptTracker.markRequested()
             requestReview()
         }
+    }
+
+    private var saveFailureBinding: Binding<Bool> {
+        Binding(
+            get: { saveFailures.message != nil },
+            set: { if !$0 { saveFailures.clear() } }
+        )
     }
 
     private var eligibleToRequestReview: Bool {

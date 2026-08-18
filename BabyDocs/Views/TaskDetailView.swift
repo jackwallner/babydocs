@@ -52,7 +52,7 @@ struct TaskDetailView: View {
             ownerSection
             receiptsSection
 
-            Section("Your notes") {
+            Section {
                 TextField(
                     "Anything you want to remember",
                     text: $task.parentNotes,
@@ -60,6 +60,14 @@ struct TaskDetailView: View {
                 )
                 .lineLimit(2...6)
                 .onSubmit { task.recordLocalChange(in: context) }
+            } header: {
+                Text("Your notes")
+            } footer: {
+                // The warning belongs beside the box, not in a privacy policy.
+                // This is a free-text field on a task about a Social Security
+                // card, which is the one place someone would helpfully type the
+                // number in.
+                Text("Plain text, on this phone. Not the place for the Social Security number: nothing in Baby Docs needs it.")
             }
 
             Section {
@@ -195,11 +203,27 @@ struct TaskDetailView: View {
 
             if task.submittedAt != nil {
                 DatePicker("Sent on", selection: submittedDateBinding, displayedComponents: .date)
-                DatePicker(
-                    "They said by",
-                    selection: expectedBinding,
-                    displayedComponents: .date
-                )
+
+                // The expected date exists only once a parent has typed one in.
+                // A picker preloaded with "two weeks from today" is a figure the
+                // app made up wearing the label "they said by", and a fortnight
+                // later it tells a tired parent that a fictional date has
+                // passed. There is no date here until an office gave one.
+                if task.expectedByAt == nil {
+                    Button("They gave me a date") { setExpectedDate() }
+                    Text("No date given yet. Nothing here will go late until you put one in.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    DatePicker(
+                        "They said by",
+                        selection: expectedBinding,
+                        displayedComponents: .date
+                    )
+                    Button("They did not give me a date", role: .destructive) { clearExpectedDate() }
+                        .font(.footnote)
+                }
+
                 if task.isLate() {
                     Label {
                         Text("This is past the date you were given. That is usually worth a phone call rather than more waiting.")
@@ -216,7 +240,7 @@ struct TaskDetailView: View {
         } footer: {
             Text(task.submittedAt == nil
                  ? "Once this is posted or filed, record when it went and what the office told you to expect. The plan will say something when that date passes."
-                 : "No turnaround is guessed here. Whatever the office told you is the only figure worth acting on, because it differs by county and changes constantly.")
+                 : "No turnaround is guessed here, not even as a starting value. Whatever the office told you is the only figure worth acting on, because it differs by county and changes constantly.")
         }
     }
 
@@ -259,7 +283,7 @@ struct TaskDetailView: View {
         } header: {
             Text("Confirmations")
         } footer: {
-            Text("Confirmation and tracking numbers only. Do not put the Social Security number here: it is stored as ordinary text.")
+            Text("Confirmation numbers, tracking numbers and short notes about what came back. Everything here is stored as ordinary text on this phone, so do not put the Social Security number in it: nothing in Baby Docs needs the number, only whether the card has arrived.")
         }
     }
 
@@ -271,10 +295,6 @@ struct TaskDetailView: View {
             set: { isSent in
                 if isSent {
                     task.submittedAt = Date()
-                    // Two weeks is a placeholder for the picker to open on, not
-                    // a claim about any office. The footer says so, and the
-                    // parent replaces it with what they were told.
-                    task.expectedByAt = Calendar.current.date(byAdding: .day, value: 14, to: Date())
                 } else {
                     task.submittedAt = nil
                     task.expectedByAt = nil
@@ -299,6 +319,18 @@ struct TaskDetailView: View {
     }
 
     // MARK: - Actions
+
+    /// Opens the picker on today, which is the one date that is not a guess
+    /// about an office: it is where the parent starts scrolling from.
+    private func setExpectedDate() {
+        task.expectedByAt = Date()
+        task.recordLocalChange(in: context)
+    }
+
+    private func clearExpectedDate() {
+        task.expectedByAt = nil
+        task.recordLocalChange(in: context)
+    }
 
     private func toggleDone() {
         let wasDone = task.isDone

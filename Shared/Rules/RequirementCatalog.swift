@@ -21,6 +21,7 @@ struct RuleInput: Sendable, Equatable {
     var parentage: ParentageSituation = .unknown
     var secondParentOnRecord: Bool = false
     var insuranceKind: InsuranceKind = .unknown
+    var marketplaceKind: MarketplaceKind = .unknown
     var hasDependentCareFSA: Bool = false
     var wantsPassport: Bool = false
     var wants529: Bool = false
@@ -148,6 +149,7 @@ enum RequirementCatalog {
         employerInsurance,
         marketplaceInsurance,
         medicaidCHIP,
+        coverageUnknown,
         dependentCareFSA,
         parentageAcknowledgment,
         birthRecordNameCheck,
@@ -369,21 +371,47 @@ enum RequirementCatalog {
         ],
         isPostedAway: true,
         applies: { $0.insuranceKind == .marketplace },
-        detail: { _ in
-            "Reporting the birth is also what re-runs your savings: a larger household usually changes the premium tax credit, and the change does not happen on its own. Marketplace coverage for a new baby is generally backdated to the date of birth, and it is not in force until the first premium is paid."
+        detail: { input in
+            let base = "Reporting the birth is also what re-runs your savings: a larger household usually changes the premium tax credit, and the change does not happen on its own. Marketplace coverage for a new baby is generally backdated to the date of birth, and it is not in force until the first premium is paid."
+            switch input.marketplaceKind {
+            case .federal:
+                return base
+            case .state:
+                return base + " Your state runs its own marketplace, so all of this happens on your state's site and in your state's account, not on HealthCare.gov."
+            case .unknown:
+                return base + " You have not said which marketplace you use. About a third of states run their own site rather than HealthCare.gov, and signing in to the wrong one costs days inside a window that does not stop for it, so start from the state picker below."
+            }
         },
         deadline: { input in
             Deadline(
                 date: addDays(60, to: input.birthDate),
                 kind: .hard,
-                basis: "Marketplace special enrollment after a birth is generally 60 days. Some state-run marketplaces differ, so confirm on your own state's site."
+                basis: input.marketplaceKind == .federal
+                    ? "HealthCare.gov gives 60 days from the birth to enroll the baby, and the coverage then starts on the day of the birth."
+                    : "Marketplace special enrollment after a birth is 60 days. If your state runs its own marketplace, that window is the same but the site, the account and the documents are your state's, so do this there rather than on HealthCare.gov and confirm the date while you are in it."
             )
         },
-        link: { _ in
-            OfficialLink(
-                label: "HealthCare.gov: report a life change",
-                urlString: "https://www.healthcare.gov/coverage-outside-open-enrollment/special-enrollment-period/"
-            )
+        // **The link is the part the state answer changes, not the date.**
+        //
+        // A family on a state exchange sent to HealthCare.gov signs in, is told
+        // it does not serve their state, and loses days inside a window that
+        // does not stop for it. HealthCare.gov's own state page is the honest
+        // middle: federal, read, and it carries a state picker, which is the
+        // same trade `StateVitalRecords` makes rather than guessing twenty-one
+        // state URLs.
+        link: { input in
+            switch input.marketplaceKind {
+            case .federal:
+                return OfficialLink(
+                    label: "HealthCare.gov: report a life change",
+                    urlString: "https://www.healthcare.gov/coverage-outside-open-enrollment/special-enrollment-period/"
+                )
+            case .state, .unknown:
+                return OfficialLink(
+                    label: "Find your state's Marketplace",
+                    urlString: "https://www.healthcare.gov/marketplace-in-your-state/"
+                )
+            }
         }
     )
 
@@ -444,11 +472,20 @@ enum RequirementCatalog {
         detail: { _ in
             "A birth is a qualifying life event for the dependent care FSA, and it is a separate election from the medical plan. This is the one people miss: they add the baby to the health plan and never touch the FSA, and the election is then locked until the next open enrollment."
         },
+        // **Not a hard deadline, because the app does not know the date.**
+        //
+        // It shipped as one: 30 days after the birth, drawn in red, and
+        // scheduled a notification, while the basis directly underneath said
+        // the number belongs to the employer's plan document rather than to the
+        // law. A red date the app invented is worse than no date, and it also
+        // broke the promise in Settings that only the two insurance windows ever
+        // notify. Thirty days is the common case and it is offered as one; the
+        // parent's own plan window is the thing they are being sent to find.
         deadline: { input in
             Deadline(
                 date: addDays(30, to: input.birthDate),
-                kind: .hard,
-                basis: "Cafeteria-plan election changes after a qualifying life event are limited by the plan, commonly to 30 days. The number is your plan's, not the law's, so confirm it in the plan documents and work to that date."
+                kind: .recommended,
+                basis: "Your plan sets this window, not the IRS, and 30 days is only the commonest version of it. Ask your benefits administrator or read the plan document for your own date, and work to that. This app will not put a red date on a number it cannot check."
             )
         },
         link: { _ in
@@ -457,6 +494,49 @@ enum RequirementCatalog {
                 urlString: "https://www.irs.gov/publications/p503"
             )
         }
+    )
+
+    /// What "Not sure yet" produces instead of silence.
+    ///
+    /// The intake used to refuse to continue until a coverage category was
+    /// picked, which sounds like rigour and is the opposite: a parent who is
+    /// between jobs, mid-COBRA, or simply does not know what their partner's
+    /// plan is guesses, and a guess here turns on the wrong hard deadline or
+    /// turns off the right one. Letting them say so is only honest if the app
+    /// then does something about it, so the unanswered question becomes the task.
+    static let coverageUnknown = RequirementRule(
+        key: "coverage_unknown",
+        title: "Find out which enrollment window applies to you",
+        shortTitle: "Which window",
+        category: .insurance,
+        sortWeight: 0,
+        // Deliberately uncited. There is no page that answers this, because the
+        // answer is a fact about this household rather than about the law.
+        sourcing: .none(reason: """
+        No page can answer this one: which window applies depends on where your \
+        coverage comes from, and only you can find that out. Once you tell Baby \
+        Docs, this turns into the real task, with the real date and the office \
+        that runs it.
+        """),
+        documents: [
+            DocumentSpec(
+                key: "who_covers_us",
+                title: "Whose plan the family is on, and the number on the card",
+                detail: "A partner's employer, a Marketplace account, Medicaid or CHIP, or nothing yet."
+            )
+        ],
+        applies: { $0.insuranceKind == .unknown },
+        detail: { _ in
+            "This is the only unanswered question in your plan that costs money. A job-based plan has to give at least 30 days from the birth and the Marketplace gives 60, and both start the coverage on the day of the birth, which is what gets the hospital bill paid. Medicaid and CHIP take applications all year, so if that is the answer there is nothing to miss. Find out which one it is, then set it in your household answers and the real deadline appears here."
+        },
+        deadline: { input in
+            Deadline(
+                date: addDays(14, to: input.birthDate),
+                kind: .recommended,
+                basis: "Not a deadline anyone set: the shortest real window is 30 days, so answering this inside a fortnight leaves room to actually use it. Baby Docs will not put a red date or a reminder on a window it cannot name."
+            )
+        },
+        link: { _ in nil }
     )
 
     static let hospitalBillCheck = RequirementRule(
@@ -506,9 +586,18 @@ enum RequirementCatalog {
         sortWeight: 15,
         sourcing: .cite(key: "acf_new_parent_checklist", subject: .parentageEstablishment),
         documents: [
-            DocumentSpec(key: "vap_form", title: "Your state's voluntary acknowledgment form"),
+            DocumentSpec(
+                key: "vap_form",
+                title: "Your state's voluntary acknowledgment form",
+                detail: "Before discharge, ask the hospital's birth registrar for it by name. They are usually the office that holds it, and they are on the ward."
+            ),
             DocumentSpec(key: "both_ids", title: "Photo ID for both parents"),
-            DocumentSpec(key: "witness", title: "A notary or witness, if your state requires one")
+            DocumentSpec(key: "witness", title: "A notary or witness, if your state requires one"),
+            DocumentSpec(
+                key: "rescission_window",
+                title: "How long a signature can be withdrawn, in writing",
+                detail: "Ask before signing, not after. It is a fixed period in every state and it is short, and after it closes the acknowledgment is usually as hard to undo as a court order."
+            )
         ],
         isPostedAway: true,
         applies: { $0.parentage == .unmarriedBothParents && !$0.secondParentOnRecord },
@@ -516,7 +605,11 @@ enum RequirementCatalog {
             let state = input.birthStateCode.isEmpty
                 ? "your state"
                 : USState.displayName(for: input.birthStateCode)
-            return "This is legally significant and it is state law, so \(state) sets the form, the witnessing and the window in which a signature can be withdrawn. It affects the birth record, inheritance, benefits and custody. This app will not prepare or file it for you: read your state's own form, and talk to a lawyer if anything about the situation is contested."
+            // The link below is a federal directory of child support agencies,
+            // which is the right federal door and is not the same as the form.
+            // Saying which office actually holds it is the part that saves a
+            // fortnight, so it is in the first screenful rather than implied.
+            return "This is legally significant and it is state law, so \(state) sets the form, the witnessing and the window in which a signature can be withdrawn. It affects the birth record, inheritance, benefits and custody.\n\nThe fastest door is the hospital's birth registrar before discharge; after that it is usually the state vital records office or the child support agency, and the directory below is how to find the one for \(state). Ask how long a signature can be withdrawn before you sign, not after.\n\nThis app will not prepare or file it for you, and if anything about the situation is contested or either parent is unsure, that is a conversation with a lawyer rather than a form to sign today."
         },
         deadline: { input in
             Deadline(
@@ -608,6 +701,11 @@ enum RequirementCatalog {
                 detail: "The election cannot be made until SSA has issued a number valid for employment. Baby Docs tracks whether it exists and nothing else. \(ssnWarning)"
             ),
             DocumentSpec(key: "form_4547", title: "Form 4547, Trump Account Election, and its current instructions"),
+            DocumentSpec(
+                key: "eligibility_check",
+                title: "The instructions' own eligibility list, read once",
+                detail: "Citizenship and a birth year are not the whole test. It also turns on nobody having made this election for the child already, on your relationship to the child, and on your expecting to claim them for the tax year."
+            ),
             DocumentSpec(key: "account_details", title: "The account the contribution should go to")
         ],
         applies: { input in
@@ -623,9 +721,17 @@ enum RequirementCatalog {
             // the term here would arrive somewhere that looks like the wrong
             // page and turn around. Naming it once is what makes the link work.
             let official = "The IRS calls these Trump Accounts, which is the name on the form and on irs.gov."
+            // Deliberately "may qualify" rather than "gets". This task is on the
+            // list because of two answers, citizenship and a birth year, and the
+            // IRS test has more in it than that: an SSN issued to the child, no
+            // election already made for them, and the person electing expecting
+            // to claim the child. Promising a thousand dollars from two toggles
+            // and letting the form disagree later is how a helpful task becomes
+            // a broken one.
+            let conditions = "Two other conditions sit behind it and only the instructions can settle them: no election having been made for this child already, and the person electing expecting to claim them for the tax year."
             return input.hasSSN
-                ? "\(input.shortName) has an SSN, so the election can be made. Eligible US citizen children born from 2025 through 2028 can receive a one-time $1,000 federal contribution. \(official)"
-                : "Eligible US citizen children born from 2025 through 2028 can receive a one-time $1,000 federal contribution, but the election needs a Social Security number issued to the child first, so this one is waiting on the SSN card. \(official)"
+                ? "\(input.shortName) has an SSN, so the election can be made. US citizen children born from 2025 through 2028 may qualify for a one-time $1,000 federal contribution. \(conditions) \(official)"
+                : "US citizen children born from 2025 through 2028 may qualify for a one-time $1,000 federal contribution. The election needs a Social Security number issued to the child first, so this one is waiting on the SSN card. \(conditions) \(official)"
         },
         deadline: { _ in
             Deadline(
@@ -753,14 +859,20 @@ enum RequirementCatalog {
         sortWeight: 40,
         // Previously cited the federal birth-certificate page, which has nothing
         // to do with newborn screening.
-        sourcing: .cite(key: "hrsa_newborn_screening_results", subject: .newbornScreening),
+        sourcing: .cite(key: "medlineplus_newborn_screening", subject: .newbornScreening),
         documents: [
             DocumentSpec(key: "screening_letter", title: "The screening result letter or portal printout"),
             DocumentSpec(key: "hearing_result", title: "The hearing screening result")
         ],
         applies: { _ in true },
+        // **A records errand, and it says where it stops.**
+        //
+        // The one thing a parent must not take from this task is that silence
+        // from the app means the results were fine, so the boundary is in the
+        // first screenful rather than in a disclaimer: an out-of-range result is
+        // a phone call from a person, and it does not wait for a checklist.
         detail: { _ in
-            "Every state screens newborns and the results go to the pediatrician, not usually to you. Ask the practice for a copy for your own file. This is a records task, not medical advice: anything about what a result means is a conversation with the pediatrician."
+            "Every state screens newborns for a panel of conditions, plus hearing and a heart-oxygen check, and the results go to the pediatrician rather than to you. Ask the practice for a copy for your own file, because the passport, some daycare enrollments and any specialist referral will want it. If anything is out of range, the practice or the state health department phones you and it is urgent: this task is not how you would find out, and Baby Docs does not read, hold or interpret a result."
         },
         deadline: { input in
             Deadline(

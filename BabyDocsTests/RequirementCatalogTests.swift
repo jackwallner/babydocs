@@ -12,11 +12,13 @@ struct RequirementCatalogTests {
     private func input(
         birthDaysAgo: Int = 3,
         insurance: InsuranceKind = .employer,
+        marketplace: MarketplaceKind = .unknown,
         parentage: ParentageSituation = .married,
         secondParentOnRecord: Bool = true,
         hasSSN: Bool = false,
         hasBirthCertificate: Bool = false,
         citizen: Bool = true,
+        hasFSA: Bool = false,
         birthYear: Int? = nil
     ) -> RuleInput {
         var birthDate = Calendar.current.date(byAdding: .day, value: -birthDaysAgo, to: Date())!
@@ -37,7 +39,8 @@ struct RequirementCatalogTests {
             parentage: parentage,
             secondParentOnRecord: secondParentOnRecord,
             insuranceKind: insurance,
-            hasDependentCareFSA: false,
+            marketplaceKind: marketplace,
+            hasDependentCareFSA: hasFSA,
             wantsPassport: true,
             wants529: true,
             wantsNewbornAccount: true,
@@ -76,16 +79,64 @@ struct RequirementCatalogTests {
         #expect(daysFromBirth(deadline, family) == 60)
     }
 
-    @Test("The two insurance rules are mutually exclusive")
+    @Test("Exactly one coverage rule fires, for every answer including no answer")
     func onlyOneInsuranceRuleFires() {
-        for kind in [InsuranceKind.employer, .marketplace, .medicaidCHIP, .none] {
+        // `.unknown` is in this list on purpose. The intake used to refuse to
+        // continue without a coverage answer, which pushed anyone who did not
+        // know into guessing, and a guess here turns on the wrong hard deadline.
+        for kind in InsuranceKind.allCases {
             let family = input(insurance: kind)
             let firing = [
                 RequirementCatalog.employerInsurance,
                 RequirementCatalog.marketplaceInsurance,
-                RequirementCatalog.medicaidCHIP
+                RequirementCatalog.medicaidCHIP,
+                RequirementCatalog.coverageUnknown
             ].filter { $0.applies(family) }
-            #expect(firing.count == 1, "\(kind) produced \(firing.count) insurance tasks")
+            #expect(firing.count == 1, "\(kind) produced \(firing.count) coverage tasks")
+        }
+    }
+
+    @Test("An unanswered coverage question never becomes a hard date")
+    func unknownCoverageIsNeverAHardDeadline() {
+        let family = input(insurance: .unknown)
+        let rule = RequirementCatalog.coverageUnknown
+        #expect(rule.applies(family))
+        #expect(rule.deadline(family).kind != .hard)
+        // Nothing to cite, and it says so rather than borrowing a plausible page.
+        #expect(rule.source == nil)
+        #expect(!rule.noSourceReason.isEmpty)
+    }
+
+    /// The rule's own basis says the number belongs to the employer's plan
+    /// document rather than to the IRS. It shipped as a hard 30-day deadline
+    /// anyway, which drew a red date and scheduled a notification from a window
+    /// the app cannot see, and broke the promise in Settings that only the two
+    /// insurance windows ever notify.
+    @Test("The dependent care FSA window is a suggestion, not a hard date")
+    func fsaWindowIsNotHard() {
+        let family = input(hasFSA: true)
+        let rule = RequirementCatalog.dependentCareFSA
+        #expect(rule.applies(family))
+        #expect(rule.deadline(family).kind == .recommended)
+    }
+
+    /// The 60 days is the same either way; the site is not. A family on a
+    /// state-run exchange sent to HealthCare.gov signs in, is told it does not
+    /// serve their state, and loses days inside a window that does not stop.
+    @Test("A state marketplace family is routed to their own state, not HealthCare.gov")
+    func stateMarketplaceIsRoutedToTheState() {
+        let rule = RequirementCatalog.marketplaceInsurance
+        let federal = input(insurance: .marketplace, marketplace: .federal)
+        let state = input(insurance: .marketplace, marketplace: .state)
+        let unsure = input(insurance: .marketplace, marketplace: .unknown)
+
+        #expect(rule.link(federal)?.urlString.contains("special-enrollment-period") == true)
+        for family in [state, unsure] {
+            #expect(rule.link(family)?.urlString.contains("marketplace-in-your-state") == true)
+            // The window itself does not move: it is 60 days for every
+            // Marketplace, and softening it would cost the family the window.
+            #expect(rule.deadline(family).kind == .hard)
+            #expect(daysFromBirth(rule.deadline(family), family) == 60)
         }
     }
 

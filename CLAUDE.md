@@ -102,10 +102,34 @@ thing sent and overdue back) rather than one that triggers nothing.
   accident. `PlanExporter` (summary *and* employer packet) prints the status and
   never a number, and `SourceIntegrityTests` asserts it.
 - **Two dates are hard, the rest are not.** Job-based health plans must allow at
-  least 30 days after a birth; the Marketplace is generally 60. Those are the
+  least 30 days after a birth; the Marketplace is 60. Those are the
   only deadlines `DeadlineReminderScheduler` will schedule a notification for. A
   suggestion that fires at 9am is what teaches someone to switch the whole
   category off, and then they miss the one that mattered.
+  - The rule is enforced at the catalog, not at the scheduler, because the
+    scheduler schedules everything marked `hard`. The dependent care FSA broke
+    it once: 30 days after the birth, drawn red, with a notification, while its
+    own `basis` said the number belongs to the employer's plan document. A date
+    is only `hard` if the app can name the authority that set it. `fsaWindowIsNotHard`
+    holds the line.
+  - **Where** the Marketplace family goes is a separate question from **when**,
+    and it is asked (`MarketplaceKind`). The 60 days is the same for a state-run
+    exchange; the site, the account and the documents are not, and HealthCare.gov
+    tells a Californian it does not serve them. Unknown and state both route to
+    HealthCare.gov's own state picker, which is the `StateVitalRecords` trade
+    again: federal, read, and correct, over specific and guessed.
+- **"Not sure" is an answer, everywhere it is offered.** Coverage and parentage
+  both filtered their `.unknown` case out of the intake and blocked Continue
+  until something was picked. That does not produce knowledge, it produces a
+  guess, and a guess turns on the wrong hard deadline or turns off the
+  legally significant parentage task. Unknown coverage generates
+  `coverageUnknown` at the top of the plan instead: a real task about finding
+  out, with no date the app invented.
+- **A failed write is not allowed to look like a saved one.** Every save went
+  through `try? context.save()`, on an app whose store is the only copy that
+  will ever exist. `SaveFailureReporter` carries the error to a single alert in
+  `RootView`, so a parent who ticks a task and sees it move is not being told
+  something the disk disagreed with.
 - **Every rule shows its working.** Each task carries the government URL its
   rule came from and the date it was last checked, visible on the task itself
   rather than behind an info button. A rules app whose rules quietly go stale is
@@ -190,6 +214,14 @@ thing sent and overdue back) rather than one that triggers nothing.
   information. Cards use `planCard()`/`planCardRow()`; pages use
   `planPageBackground()`, which also reserves the bottom margin the floating tab
   bar needs.
+  - That margin is `AppTheme.floatingTabBarInset`, one number for the whole app,
+    and it was wrong: 44 is the bar's glyph height, not its footprint, so the
+    last interactive control was under glass on Plan, Documents, Settings, the
+    task detail and the child detail simultaneously, and at an accessibility
+    text size it reached the primary deadline card. A single-screen layout test
+    cannot catch a bad shared constant, which is why `TabBarClearanceUITests`
+    asserts it on the tabs as well. Sheets pass `underTabBar: false`: they are
+    presented over the bar, not behind it.
 - **`docs/plan.html` is part of the app, not the marketing site.** Every shared
   plan link points at it (`PlanSeed.webBase`), and those messages sit in inboxes
   longer than the build that wrote them, so the page has to stay published at

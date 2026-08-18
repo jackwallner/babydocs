@@ -7,6 +7,9 @@ struct ChildrenView: View {
     private var children: [Child]
 
     @State private var editingChild: Child?
+    /// The child "Add another child" just made, until Done confirms it. See
+    /// `addChild()`.
+    @State private var draftChildID: UUID?
     @State private var isEditingHousehold = false
     @State private var store = StoreService.shared
     @State private var navigator = AppNavigator.shared
@@ -54,8 +57,12 @@ struct ChildrenView: View {
                     ChildDetailView(child: child)
                 }
             }
-            .sheet(item: $editingChild) { child in
-                ChildEditorSheet(child: child)
+            .sheet(item: $editingChild, onDismiss: discardUnconfirmedDraft) { child in
+                ChildEditorSheet(
+                    child: child,
+                    isDraft: child.id == draftChildID,
+                    onConfirm: { draftChildID = nil }
+                )
             }
             .sheet(isPresented: $isEditingHousehold) {
                 HouseholdEditorView()
@@ -63,6 +70,22 @@ struct ChildrenView: View {
         }
     }
 
+    /// A draft, not a child, until Done says so.
+    ///
+    /// The sheet needs a real row to bind to, so one is inserted, but it is
+    /// inserted **tombstoned**: every list, every query and the requirement
+    /// engine skip `deletedAt != nil`, so nothing sees it and no plan is built
+    /// from it. Done clears the tombstone; anything else, including a swipe
+    /// down, removes the row outright.
+    ///
+    /// It shipped as a plain insert, which meant swiping the sheet away left a
+    /// child called nothing, born today, with a birth state inherited from the
+    /// household, and a full generated plan hanging off it. Every one of those
+    /// values was the app's guess presented as the family's answer.
+    ///
+    /// The birth state is deliberately not inherited any more either. It is
+    /// right most of the time and it is silent, and the times it is wrong are a
+    /// parent sent to the wrong state's vital records office for a fortnight.
     private func addChild() {
         guard store.isPro || children.isEmpty else {
             navigator.requestUpgrade()
@@ -70,12 +93,28 @@ struct ChildrenView: View {
         }
         let child = Child(birthDate: Date())
         child.colorIndex = children.count
-        // Inherit the household's state, which is right far more often than it
-        // is wrong, and is trivially corrected on the sheet that opens next.
-        child.birthStateCode = FamilyProfileStore.current(in: context).residenceStateCode
+        child.deletedAt = Date()
         context.insert(child)
+        draftChildID = child.id
         child.recordLocalChange(in: context)
         editingChild = child
+    }
+
+    /// Runs whenever the editor closes. A draft that was never confirmed is
+    /// removed for real: it is scaffolding the app put there, not work the
+    /// family did, so there is nothing a tombstone would be protecting.
+    private func discardUnconfirmedDraft() {
+        guard let id = draftChildID else { return }
+        draftChildID = nil
+        var descriptor = FetchDescriptor<Child>(predicate: #Predicate { $0.id == id })
+        descriptor.fetchLimit = 1
+        guard let draft = (try? context.fetch(descriptor))?.first else { return }
+        context.delete(draft)
+        do {
+            try context.save()
+        } catch {
+            SaveFailureReporter.shared.report(error)
+        }
     }
 }
 
@@ -236,6 +275,17 @@ struct ChildEditorSheet: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @Bindable var child: Child
+    /// True while this row is an unconfirmed draft from "Add another child".
+    /// See `ChildrenView.addChild()`.
+    var isDraft = false
+    var onConfirm: (() -> Void)?
+
+    /// The two answers every deadline in the app is derived from. A plan built
+    /// on today's date and a blank state is not a weaker plan, it is a wrong
+    /// one, so Done does not accept it.
+    private var canSave: Bool {
+        !child.birthStateCode.isEmpty
+    }
 
     var body: some View {
         NavigationStack {
@@ -261,36 +311,56 @@ struct ChildEditorSheet: View {
                     Toggle("US citizen", isOn: $child.isUSCitizen)
                 } footer: {
                     let office = StateVitalRecords.office(for: child.birthStateCode)
-                    if office.isVerified {
+                    if child.birthStateCode.isEmpty {
+                        Text("Where this birth was registered, which is not always where you live now. Every date and every office in this child's plan comes from it, so there is no sensible default and Baby Docs will not pick one for you.")
+                    } else if office.isVerified {
                         Text(office.orderingNote)
                     } else if !child.birthStateCode.isEmpty {
                         Text("We do not yet carry verified detail for this state, so the birth certificate task links to the federal directory, which has a state-by-state picker.")
                     }
                 }
 
-                Section {
-                    Button("Remove this child", role: .destructive) {
-                        child.tombstone(in: context)
-                        dismiss()
+                if !isDraft {
+                    Section {
+                        Button("Remove this child", role: .destructive) {
+                            child.tombstone(in: context)
+                            dismiss()
+                        }
                     }
                 }
             }
             .navigationTitle(child.name.isEmpty ? "New child" : child.displayName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        child.recordLocalChange(in: context)
-                        RequirementEngine.reconcile(
-                            child: child,
-                            profile: FamilyProfileStore.current(in: context),
-                            in: context
-                        )
-                        dismiss()
+                // A sheet that can create a child and cannot cancel one is a
+                // trap: the only ways out were Done and a swipe, and the swipe
+                // used to keep everything the app had guessed.
+                if isDraft {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { dismiss() }
                     }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(isDraft ? "Add" : "Done", action: confirm)
+                        .disabled(!canSave)
                 }
             }
         }
+    }
+
+    /// The only path that turns a draft into a child. Clearing the tombstone is
+    /// what makes it visible to every query and to the requirement engine, so a
+    /// plan is generated from confirmed answers rather than from defaults.
+    private func confirm() {
+        if isDraft { child.deletedAt = nil }
+        child.recordLocalChange(in: context)
+        RequirementEngine.reconcile(
+            child: child,
+            profile: FamilyProfileStore.current(in: context),
+            in: context
+        )
+        onConfirm?()
+        dismiss()
     }
 }
 

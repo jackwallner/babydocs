@@ -296,21 +296,28 @@ enum SourceManifest {
             Department and move.
             """
         ),
+        // Replaced an HRSA page that sat here as `awaitingReview` for a release,
+        // because HRSA's site refuses every automated request and nobody could
+        // read it. An unread citation under an active rule is the one thing this
+        // manifest exists to prevent, and the honest fix is to cite a page that
+        // has been read rather than to keep a placeholder wearing a warning
+        // label. HRSA's state finder is still the task's *link*, which is a
+        // different job: it routes, it does not support a claim.
         SourceEntry(
-            key: "hrsa_newborn_screening_results",
-            title: "Newborn Screening Results and Follow-Up",
-            agency: "Health Resources and Services Administration",
-            urlString: "https://newbornscreening.hrsa.gov/newborn-screening-process/newborn-screening-results-and-follow",
+            key: "medlineplus_newborn_screening",
+            title: "Newborn Screening",
+            agency: "MedlinePlus, National Library of Medicine (NIH)",
+            urlString: "https://medlineplus.gov/newbornscreening.html",
             subjects: [.newbornScreening],
-            reviewedOn: day(2026, 8, 11),
-            status: .awaitingReview,
+            reviewedOn: day(2026, 8, 17),
+            status: .verified,
             limitations: """
-            Added because the previous citation was a birth-certificate page, \
-            which had nothing to do with screening. HRSA's site blocks \
-            automated checks, so the address and subject are confirmed but \
-            nobody has read this page end to end yet. Which conditions are \
-            screened for, and who sends the result to whom, is set by each \
-            state's programme.
+            Confirms the three screens every newborn gets, that the panel \
+            differs by state, and that a provider or the state health \
+            department calls you if something is out of range. It does not list \
+            your own state's conditions, does not say who holds the result, and \
+            says nothing about how to obtain a copy: that comes from the \
+            practice and from your state's programme.
             """
         ),
         SourceEntry(

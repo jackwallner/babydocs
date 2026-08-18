@@ -111,7 +111,7 @@ struct SettingsView: View {
 
                 Section {
                     Label {
-                        Text("Baby Docs has no account. Everything you enter, and every photograph you add, is on this phone and nowhere else, so there is nothing for us to delete on your behalf and nothing for anyone to breach. If you buy Plus, Apple and RevenueCat hold the purchase itself; that record carries nothing about your family. The privacy policy sets out exactly what it contains.")
+                        Text("Baby Docs has no account. Everything you enter, and every photograph you add, stays on this phone unless you choose to send it: nothing is uploaded on its own, so there is nothing for us to delete on your behalf and nothing for anyone to breach. Sending a plan to the other parent puts your household answers and the baby's first name in that link, deliberately, and only when you tap it. Photographs never travel at all. If you buy Plus, Apple and RevenueCat hold the purchase itself; that record carries nothing about your family. The privacy policy sets out exactly what it contains.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)

@@ -16,7 +16,11 @@ enum TaskPlanner {
             switch self {
             case .overdue: return "Past due"
             case .thisWeek: return "Next 7 days"
-            case .thisMonth: return "This month"
+            // Not "This month". The window is 31 rolling days from today, so on
+            // the 20th it reaches well into the next calendar month, and a
+            // parent who reads it as "before the end of the month" has been
+            // told something the app did not mean.
+            case .thisMonth: return "Next 31 days"
             case .later: return "Later"
             case .whenever: return "No deadline"
             case .done: return "Done"
@@ -136,15 +140,25 @@ enum TaskPlanner {
         guard let days = task.daysRemaining(from: now) else {
             return task.deadlineKind == .none ? "No deadline" : "Date depends on your plan"
         }
+        let phrase: String
         switch days {
-        case ..<(-1): return "\(-days) days past due"
-        case -1: return "1 day past due"
-        case 0: return "Due today"
-        case 1: return "Due tomorrow"
-        case 2...13: return "\(days) days left"
+        case ..<(-1): phrase = "\(-days) days past due"
+        case -1: phrase = "1 day past due"
+        case 0: phrase = "Due today"
+        case 1: phrase = "Due tomorrow"
+        case 2...13: phrase = "\(days) days left"
         default:
-            return "Due \(task.dueAt.map { Self.dateFormatter.string(from: $0) } ?? "")"
+            phrase = "Due \(task.dueAt.map { Self.dateFormatter.string(from: $0) } ?? "")"
         }
+        // **The word, not just the colour.**
+        //
+        // "10 days left" said the same thing for a legal window and for a
+        // suggestion the app made up, and the only difference was an orange pill
+        // instead of a red one with an exclamation mark in it. The Plan screen
+        // is where a tired parent triages, colour is the first thing to go for
+        // anyone who cannot see it or is scanning at 3am, and the detail screen
+        // that finally says "Suggested by" is one tap too late.
+        return task.deadlineKind == .recommended ? "Suggested \u{00B7} \(phrase)" : phrase
     }
 
     private static let dateFormatter: DateFormatter = {

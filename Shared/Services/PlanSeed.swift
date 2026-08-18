@@ -12,8 +12,14 @@ import Foundation
 /// no assignments, no receipts, no ticked documents, and above all no vault
 /// filenames. Two phones then diverge on the work, which is correct and honest —
 /// they are two people doing separate errands — and the app never claims
-/// otherwise. It also means a link forwarded to a grandparent leaks a birth date
-/// and a state, not a record of a family's affairs.
+/// otherwise.
+///
+/// What **does** travel is worth naming exactly, because a link forwarded on to
+/// a grandparent carries all of it and anyone holding the link can read it: the
+/// baby's first name, the birth date, the state and county of the birth, the
+/// state you live in, and the household answers. That is a page of a form, not a
+/// record of a family's affairs, and every screen that offers to send it says so
+/// in those words rather than in a softer summary that leaves the name out.
 struct PlanSeed: Codable, Equatable, Sendable {
     /// Bumped only if a future version cannot read this shape. A link sits in an
     /// inbox for months, so a build that cannot recognise its own old format has
@@ -30,6 +36,11 @@ struct PlanSeed: Codable, Equatable, Sendable {
     var parentage: String
     var secondParentOnRecord: Bool
     var insuranceKind: String
+    /// Optional so that a link sent by an older build still decodes: a missing
+    /// value reads as "not sure which marketplace", which is exactly what an
+    /// older build knew. A link sits in an inbox for months and has to keep
+    /// working when it is finally tapped.
+    var marketplaceKind: String?
     var hasDependentCareFSA: Bool
     var wantsPassport: Bool
     var wants529: Bool
@@ -52,6 +63,7 @@ struct PlanSeed: Codable, Equatable, Sendable {
             parentage: profile.parentageRaw,
             secondParentOnRecord: profile.secondParentOnRecord,
             insuranceKind: profile.insuranceKindRaw,
+            marketplaceKind: profile.marketplaceKindRaw,
             hasDependentCareFSA: profile.hasDependentCareFSA,
             wantsPassport: profile.wantsPassport,
             wants529: profile.wants529,

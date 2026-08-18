@@ -29,9 +29,14 @@ struct OnboardingFlow: View {
 
     // Household
     @State private var residenceStateCode = ""
-    @State private var parentage: ParentageSituation = .married
-    @State private var secondParentOnRecord = true
+    // Neutral by default, all three of them. Each one changes which tasks are
+    // generated, so a value the parent never chose is a plan the parent never
+    // chose: "married" quietly decides a parentage question, and "already on the
+    // record" quietly removes the task about getting there.
+    @State private var parentage: ParentageSituation = .unknown
+    @State private var secondParentOnRecord = false
     @State private var insuranceKind: InsuranceKind = .unknown
+    @State private var marketplaceKind: MarketplaceKind = .unknown
     @State private var hasDependentCareFSA = false
 
     // The optional four
@@ -79,9 +84,16 @@ struct OnboardingFlow: View {
 
     // MARK: - Welcome
 
+    /// A scroll view rather than two `Spacer`s around a fixed block.
+    ///
+    /// The fixed version looked correct at every size somebody checked and
+    /// truncated the product's whole promise to an ellipsis at an accessibility
+    /// text size: the title, the explanation and the privacy line all clipped at
+    /// once, on the first screen, for exactly the readers who need large text.
+    /// Scrolling costs a well-sighted parent nothing here and is the difference
+    /// between readable and not for everyone else.
     private var welcomeStep: some View {
-        VStack(spacing: 0) {
-            Spacer()
+        ScrollView {
             VStack(spacing: AppTheme.spacing) {
                 Image(systemName: "folder.badge.person.crop")
                     .font(.system(size: 52))
@@ -89,15 +101,19 @@ struct OnboardingFlow: View {
                 Text("The paperwork, in order")
                     .font(.largeTitle.weight(.bold))
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text("Answer a few questions about your household and you get the tasks that actually apply to you, the dates that actually close, and a link to the office that actually issues each thing.")
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
+            .frame(maxWidth: .infinity)
             .padding(.horizontal, 28)
-
-            Spacer()
-
+            .padding(.top, 40)
+            .padding(.bottom, AppTheme.looseSpacing)
+        }
+        .safeAreaInset(edge: .bottom) {
             VStack(spacing: AppTheme.spacing) {
                 // The "two windows close fast" line used to live here as fine
                 // print under a button, which is the worst place for it: it is
@@ -112,13 +128,21 @@ struct OnboardingFlow: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
 
-                Text("Nothing you enter leaves this phone. Baby Docs has no account, and nowhere to keep a copy of your answers.")
+                // Not "nothing leaves this phone", which the app then goes on to
+                // contradict on purpose: sending the plan to the other parent is
+                // a link full of these answers, and it is one of the best things
+                // here. The claim worth making is the one that stays true, which
+                // is that nothing goes anywhere on its own.
+                Text("No account, and no copy of your answers anywhere but here. Nothing is uploaded unless you choose to send it.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 24)
+            .padding(.top, AppTheme.spacing)
             .padding(.bottom, 28)
+            .background(.bar)
         }
     }
 
@@ -173,9 +197,16 @@ struct OnboardingFlow: View {
                 Text("Decides the Medicaid and CHIP agency, and whether there is a state paid-leave programme to file with.")
             }
 
-            Section("Parents") {
+            // "Prefer not to say" is a real answer here, not a hidden case.
+            //
+            // It exists in the model and the intake used to filter it out, which
+            // left a parent who is separated, in a contested situation, or
+            // simply not willing to tell an app about it picking a value that
+            // was false. A false value is worse than no value: it is what turns
+            // the legally significant parentage task on or off.
+            Section {
                 Picker("Situation", selection: $parentage) {
-                    ForEach(ParentageSituation.allCases.filter { $0 != .unknown }, id: \.self) { value in
+                    ForEach(ParentageSituation.allCases, id: \.self) { value in
                         Text(value.label).tag(value)
                     }
                 }
@@ -185,6 +216,12 @@ struct OnboardingFlow: View {
                 if parentage == .unmarriedBothParents {
                     Toggle("Both parents already on the birth record", isOn: $secondParentOnRecord)
                 }
+            } header: {
+                Text("Parents")
+            } footer: {
+                Text(parentage == .unknown
+                     ? "Nothing on your plan needs this except one task: establishing a second parent who is not automatically on the record. Leave it here and that task stays off, and you can turn it on later in your household answers without redoing anything."
+                     : "This decides one task. In most states marriage puts the second parent on the record automatically and an unmarried second parent has to establish it deliberately.")
             }
 
             if parentage == .unmarriedBothParents && !secondParentOnRecord {
@@ -248,7 +285,7 @@ struct OnboardingFlow: View {
 
             Section {
                 Picker("Coverage", selection: $insuranceKind) {
-                    ForEach(InsuranceKind.allCases.filter { $0 != .unknown }, id: \.self) { value in
+                    ForEach(InsuranceKind.allCases, id: \.self) { value in
                         Text(value.label).tag(value)
                     }
                 }
@@ -257,16 +294,39 @@ struct OnboardingFlow: View {
             } header: {
                 Text("How is the family covered?")
             } footer: {
-                Text("A job-based plan must let you add the baby for at least 30 days after the birth. The Marketplace is generally 60. Miss the window and you usually wait for open enrollment, so this sets the hardest date in the app. If you are covered both ways, pick the job-based plan: it is the shorter one.")
+                Text(insuranceKind == .unknown
+                     ? "\"Not sure yet\" is a real answer and it does not block anything. Your plan gets one task at the top telling you what to find out and why it is worth doing this fortnight, and the moment you set the answer the real deadline appears in its place."
+                     : "A job-based plan must let you add the baby for at least 30 days after the birth. The Marketplace is 60. Miss the window and you usually wait for open enrollment, so this sets the hardest date in the app. If you are covered both ways, pick the job-based plan: it is the shorter one.")
+            }
+
+            // Asked because it changes where the family has to go, not how long
+            // they have. About a third of states run their own exchange, and a
+            // parent sent to HealthCare.gov from one of them signs in, is told
+            // it does not serve their state, and loses days inside a window that
+            // does not stop for it.
+            if insuranceKind == .marketplace {
+                Section {
+                    Picker("Marketplace", selection: $marketplaceKind) {
+                        ForEach(MarketplaceKind.allCases, id: \.self) { value in
+                            Text(value.label).tag(value)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
+                } header: {
+                    Text("Which marketplace?")
+                } footer: {
+                    Text("The 60 days is the same either way. The site is not: some states run their own, with their own account and their own documents. If you are not sure, leave it, and the task sends you to the federal page that picks your state for you.")
+                }
             }
 
             Section {
                 Toggle("We have a dependent care FSA", isOn: $hasDependentCareFSA)
             } footer: {
-                Text("A separate election from the health plan, with its own window, and the one people most often miss because they assume the two move together. They do not.")
+                Text("A separate election from the health plan, with its own window, and the one people most often miss because they assume the two move together. They do not. Your employer's plan document sets that window rather than the law, so Baby Docs shows it as a suggestion and asks you to confirm the real date.")
             }
 
-            continueButton(enabled: insuranceKind != .unknown) { step = .leave }
+            continueButton(enabled: true) { step = .leave }
         }
         .navigationTitle("Coverage")
     }
@@ -291,8 +351,8 @@ struct OnboardingFlow: View {
             symbol: "dollarsign.circle",
             title: "Claim the $1,000 newborn account?",
             what: "A one-time $1,000 federal contribution into an investment account for children born between 2025 and 2028. The IRS calls these Trump Accounts, which is the name you will see on irs.gov and on the form itself.",
-            why: "It is a thousand dollars, it applies to most US citizen newborns, and almost nobody has heard of it. It is claimed by election rather than automatically, so a family that does not know about it simply does not get it. The election needs the baby's Social Security number first, which is why that task sits at the top of your plan.",
-            adds: "A task that waits for the SSN, then points at the IRS page and the current form instructions.",
+            why: "It is a thousand dollars, most US citizen newborns can qualify, and almost nobody has heard of it. It is claimed by election rather than automatically, so a family that does not know about it simply does not get it. The election needs the baby's Social Security number first, which is why that task sits at the top of your plan.",
+            adds: "A task that waits for the SSN, then points at the IRS page and the current form instructions. Baby Docs cannot tell you whether you qualify: there are conditions beyond citizenship and a birth year, and the instructions are the only thing that settles them.",
             isOn: $wantsNewbornAccount,
             toggleLabel: "Add this to my plan",
             isAvailable: isUSCitizen,
@@ -330,8 +390,7 @@ struct OnboardingFlow: View {
     // MARK: - Done
 
     private var doneStep: some View {
-        VStack(spacing: 0) {
-            Spacer()
+        ScrollView {
             VStack(spacing: AppTheme.spacing) {
                 Image(systemName: "checkmark.seal.fill")
                     .font(.system(size: 48))
@@ -350,10 +409,12 @@ struct OnboardingFlow: View {
                     .padding(.top, AppTheme.tightSpacing)
             }
             .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
             .padding(.horizontal, 28)
-
-            Spacer()
-
+            .padding(.top, 40)
+            .padding(.bottom, AppTheme.looseSpacing)
+        }
+        .safeAreaInset(edge: .bottom) {
             VStack(spacing: AppTheme.spacing) {
                 Button {
                     Task {
@@ -375,7 +436,9 @@ struct OnboardingFlow: View {
                     .font(.subheadline)
             }
             .padding(.horizontal, 24)
+            .padding(.top, AppTheme.spacing)
             .padding(.bottom, 28)
+            .background(.bar)
         }
     }
 
@@ -444,6 +507,7 @@ struct OnboardingFlow: View {
         profile.parentage = parentage
         profile.secondParentOnRecord = parentage == .married || secondParentOnRecord
         profile.insuranceKind = insuranceKind
+        profile.marketplaceKind = insuranceKind == .marketplace ? marketplaceKind : .unknown
         profile.hasDependentCareFSA = hasDependentCareFSA
         profile.wantsPassport = wantsPassport
         profile.wants529 = wants529

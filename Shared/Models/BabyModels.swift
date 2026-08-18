@@ -41,7 +41,23 @@ struct USState: Hashable, Sendable, Codable, Identifiable {
         USState(code: "UT", name: "Utah"), USState(code: "VT", name: "Vermont"),
         USState(code: "VA", name: "Virginia"), USState(code: "WA", name: "Washington"),
         USState(code: "WV", name: "West Virginia"), USState(code: "WI", name: "Wisconsin"),
-        USState(code: "WY", name: "Wyoming"), USState(code: "PR", name: "Puerto Rico")
+        USState(code: "WY", name: "Wyoming"),
+        // The five territories. They were missing, and the type's own comment
+        // called it "a state or territory", so a family in Guam had no honest
+        // answer to the first question in the app and the only way forward was
+        // to pick a state they do not live in. That is worse than a federal
+        // fallback: every rule then routes to the wrong jurisdiction, silently.
+        //
+        // Nothing here is verified detail and nothing pretends to be.
+        // `StateVitalRecords` has no entry for any of them, so the birth
+        // certificate task links to the federal directory, which carries a
+        // picker that includes territories, and the task says the page is
+        // federal and the jurisdiction has the last word.
+        USState(code: "PR", name: "Puerto Rico"),
+        USState(code: "VI", name: "US Virgin Islands"),
+        USState(code: "GU", name: "Guam"),
+        USState(code: "MP", name: "Northern Mariana Islands"),
+        USState(code: "AS", name: "American Samoa")
     ]
 
     static func named(_ code: String) -> USState? {
@@ -98,6 +114,36 @@ enum InsuranceKind: String, Codable, CaseIterable, Sendable {
         case .marketplace: return "Marketplace (HealthCare.gov or a state site)"
         case .medicaidCHIP: return "Medicaid or CHIP"
         case .none: return "No coverage right now"
+        }
+    }
+}
+
+/// Which Marketplace a family actually uses, which decides where they have to
+/// go rather than how long they have.
+///
+/// Roughly a third of the country does not use HealthCare.gov: their state runs
+/// its own exchange, on its own site, with its own account and its own
+/// documents. Sending one of those families to HealthCare.gov inside a closing
+/// window is the single most expensive wrong link this app could hand out, and a
+/// caveat in small print under a red date does not undo it.
+///
+/// Deliberately asked rather than derived from the residence state. A generated
+/// list of which states run their own exchange is exactly the "specific but
+/// guessed" answer `StateVitalRecords` exists to refuse: the list moves, and
+/// being wrong about one state costs that family the window. The family knows
+/// which site they log in to, so the app asks.
+enum MarketplaceKind: String, Codable, CaseIterable, Sendable {
+    case unknown
+    /// HealthCare.gov, which serves most states.
+    case federal
+    /// A state-run exchange with its own site.
+    case state
+
+    var label: String {
+        switch self {
+        case .unknown: return "Not sure which"
+        case .federal: return "HealthCare.gov"
+        case .state: return "My state runs its own site"
         }
     }
 }
@@ -285,6 +331,9 @@ final class FamilyProfile {
     /// acknowledgment of parentage at the hospital.
     var secondParentOnRecord: Bool = false
     var insuranceKindRaw: String = InsuranceKind.unknown.rawValue
+    /// Only read when `insuranceKind` is `.marketplace`. Decides which page the
+    /// Marketplace task sends the family to.
+    var marketplaceKindRaw: String = MarketplaceKind.unknown.rawValue
     var employerPlanName: String = ""
     /// A dependent-care FSA election is a separate qualifying-life-event window
     /// from the medical plan, and is missed far more often.
@@ -310,6 +359,11 @@ final class FamilyProfile {
     var insuranceKind: InsuranceKind {
         get { InsuranceKind(rawValue: insuranceKindRaw) ?? .unknown }
         set { insuranceKindRaw = newValue.rawValue }
+    }
+
+    var marketplaceKind: MarketplaceKind {
+        get { MarketplaceKind(rawValue: marketplaceKindRaw) ?? .unknown }
+        set { marketplaceKindRaw = newValue.rawValue }
     }
 
     /// True once the intake has enough to generate a plan that is worth showing.

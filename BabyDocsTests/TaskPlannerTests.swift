@@ -87,11 +87,21 @@ struct TaskPlannerTests {
 
     @Test("Due phrasing reads the way a person would say it")
     func phrasing() {
-        #expect(TaskPlanner.duePhrase(for: task(dueInDays: 0), now: now) == "Due today")
-        #expect(TaskPlanner.duePhrase(for: task(dueInDays: 1), now: now) == "Due tomorrow")
-        #expect(TaskPlanner.duePhrase(for: task(dueInDays: 5), now: now) == "5 days left")
-        #expect(TaskPlanner.duePhrase(for: task(dueInDays: -1), now: now) == "1 day past due")
-        #expect(TaskPlanner.duePhrase(for: task(dueInDays: -4), now: now) == "4 days past due")
+        #expect(TaskPlanner.duePhrase(for: task(dueInDays: 0, kind: .hard), now: now) == "Due today")
+        #expect(TaskPlanner.duePhrase(for: task(dueInDays: 1, kind: .hard), now: now) == "Due tomorrow")
+        #expect(TaskPlanner.duePhrase(for: task(dueInDays: 5, kind: .hard), now: now) == "5 days left")
+        #expect(TaskPlanner.duePhrase(for: task(dueInDays: -1, kind: .hard), now: now) == "1 day past due")
+        #expect(TaskPlanner.duePhrase(for: task(dueInDays: -4, kind: .hard), now: now) == "4 days past due")
+    }
+
+    /// The failure this guards against is a screenshot, not a crash: a
+    /// suggestion and a legal window both saying "10 days left" in a list a
+    /// parent triages in four seconds, separated only by a colour.
+    @Test("A suggested date says so in words, not only in colour")
+    func suggestionsSayTheyAreSuggestions() {
+        let suggested = TaskPlanner.duePhrase(for: task(dueInDays: 10, kind: .recommended), now: now)
+        #expect(suggested == "Suggested \u{00B7} 10 days left")
+        #expect(TaskPlanner.duePhrase(for: task(dueInDays: 10, kind: .hard), now: now) == "10 days left")
     }
 
     @Test("An undated hard deadline says the date depends on the plan")

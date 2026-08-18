@@ -80,6 +80,20 @@ struct SourceIntegrityTests {
         }
     }
 
+    /// The gap that let a medically adjacent rule ship on a page nobody had
+    /// read. The footnote said so honestly, and honest is not the same as ready:
+    /// "nobody has read this page end to end yet" under an active task is a
+    /// confession, not a citation.
+    @Test("No rule in the catalog cites a page nobody has read")
+    func activeRulesDoNotCiteUnreadPages() {
+        for rule in RequirementCatalog.all {
+            #expect(
+                rule.source?.status != .awaitingReview,
+                "\(rule.key) cites \(rule.source?.key ?? "?"), which is still awaiting review"
+            )
+        }
+    }
+
     @Test("An uncited rule says why, and links nothing official it cannot back")
     func uncitedRulesExplainThemselves() {
         for rule in RequirementCatalog.all {

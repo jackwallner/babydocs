@@ -75,6 +75,20 @@ enum AppTheme {
     static let tightSpacing: CGFloat = 6
     static let spacing: CGFloat = 12
     static let looseSpacing: CGFloat = 20
+
+    /// How much room the floating tab bar needs above the last row of a list.
+    ///
+    /// This was 44, which is the bar's *glyph* height and not its footprint: the
+    /// capsule carries its own padding and floats clear of the home indicator,
+    /// so 44 left the last interactive control on Plan, Documents, Settings, the
+    /// task detail and the child detail sitting under glass. An audit found the
+    /// same failure on six screens at once, and at an accessibility text size it
+    /// reached the primary deadline card.
+    ///
+    /// One number, in one place, so the six screens cannot drift apart again.
+    /// Generous on purpose: dead space below the last row costs a parent
+    /// nothing, and a control they cannot reach costs them the errand.
+    static let floatingTabBarInset: CGFloat = 76
 }
 
 extension RequirementCategory {
@@ -145,11 +159,19 @@ extension View {
     /// unless something reserves the space, and on a task detail the last row is
     /// the source footnote: the one element that carries the app's whole claim
     /// to be checkable. `LayoutUITests` asserts it stays reachable.
-    func planPageBackground() -> some View {
+    ///
+    /// Pass `underTabBar: false` on a sheet. A sheet is presented over the tab
+    /// bar rather than behind it, so reserving the bar's height there is 76
+    /// points of empty page under the last row and nothing else.
+    func planPageBackground(underTabBar: Bool = true) -> some View {
         self
             .scrollContentBackground(.hidden)
             .background(AppTheme.pageBackground)
-            .contentMargins(.bottom, 44, for: .scrollContent)
+            .contentMargins(
+                .bottom,
+                underTabBar ? AppTheme.floatingTabBarInset : AppTheme.looseSpacing,
+                for: .scrollContent
+            )
     }
 }
 

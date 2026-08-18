@@ -194,13 +194,31 @@ struct PaywallView: View {
             Text("Payment is charged to your Apple Account at confirmation. A subscription renews within 24 hours of the end of the current period unless cancelled first, and is managed in Settings, Apple Account, Subscriptions. Buying the one-time purchase forfeits any unused part of a free trial.")
             Text("What you add to the vault stays readable even if a subscription lapses. Lapsing stops you adding new documents; it never takes back the ones you have.")
         }
-        .font(.caption2)
+        // `caption2` for terms someone is agreeing to is a decision about
+        // whether they read them. This is a purchase disclosure, not a footnote.
+        .font(.caption)
         .foregroundStyle(.secondary)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// The bar carries the selected plan's own price sentence, not just a verb.
+    ///
+    /// A sticky bar that says "Start my free trial" and nothing else puts the
+    /// one sentence that says what is actually charged, and when, somewhere off
+    /// screen: it sat in the terms block below the fold, in caption2, and on
+    /// first presentation the bar was drawn across the selected card's trial
+    /// line as well. Whatever is scrolled, the price, the period and the renewal
+    /// are now in the same glance as the button that agrees to them.
     private var buyBar: some View {
         VStack(spacing: 8) {
+            if let plan = store.plans.first(where: { $0.id == selection }) {
+                Text(StoreService.disclosure(for: plan))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity)
+            }
             Button {
                 purchase()
             } label: {
