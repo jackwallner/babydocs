@@ -1,10 +1,10 @@
-The paperwork after a baby is not hard. The problem is that nobody tells you what applies to you, and the two items with real deadlines look exactly like the eighteen that do not.
+The paperwork after a baby is not hard. The hard part is knowing what applies, and which dates actually close.
 
 Baby Docs asks six screens of questions, and every answer changes the list. Married or not. A job-based plan or the Marketplace. Born in one state, living in another. Then it gives you the tasks that apply to your family, in the order they close.
 
 WHAT YOU GET
 
-- A personalized plan, not a generic checklist. Every task says in one sentence why it applies to your household.
+- A personalized plan, not a generic checklist. Every task says why it applies.
 - The real deadlines, marked as such. A job-based plan must allow at least 30 days after a birth to add the baby; the Marketplace is generally 60. Most of the list has no deadline at all, and the app says so.
 - What to bring. Every task carries its own document list, so you find out about the certified copy before you are standing at the counter, not after.
 - Where to actually go. Birth certificates come from state and county offices with their own forms and fees.
@@ -15,7 +15,7 @@ WHAT YOU GET
 
 SEND IT TO THE OTHER PARENT
 
-One link. They tap it, and their phone builds the same plan from the same answers, with their own reminders. The answers travel in the link itself when you choose to send it, not through a background upload. It is free, and it stops you being the only person who knows what is due.
+One link. They tap it, and their phone builds the same plan from the same answers, with their own reminders. The answers travel in the link itself when you choose to send it, not through a background upload.
 
 IT SHOWS ITS WORKING
 
