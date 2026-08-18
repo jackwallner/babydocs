@@ -62,7 +62,7 @@ enum PlanExporter {
                 let by = task.completedByName.isEmpty ? "" : " by \(task.completedByName)"
                 lines.append("  \(task.title)\(by)")
                 for receipt in task.liveReceipts where !receipt.value.isEmpty {
-                    lines.append("    \(receipt.kind.label): \(receipt.value)")
+                    lines.append("    \(receipt.kind.label): \(safeReceiptValue(receipt.value))")
                 }
             }
         }
@@ -189,7 +189,7 @@ enum PlanExporter {
             var line = "      sent \(dateString(sent))"
             if let expected = task.expectedByAt {
                 line += task.isLate(from: now)
-                    ? ", was due back \(dateString(expected)) — chase this"
+                    ? ", was due back \(dateString(expected)) (chase this)"
                     : ", expected back \(dateString(expected))"
             }
             lines.append(line)
@@ -204,6 +204,18 @@ enum PlanExporter {
             lines.append("      \(task.officialURLString)")
         }
         return lines
+    }
+
+    /// Receipts are ordinary text and the family is warned not to type an SSN,
+    /// but a shareable export must still protect them when somebody does. Keep
+    /// useful confirmation and tracking values while removing the common SSN
+    /// shapes from every printable copy.
+    private static func safeReceiptValue(_ value: String) -> String {
+        let pattern = #"(?<![0-9])[0-9]{3}[- ]?[0-9]{2}[- ]?[0-9]{4}(?![0-9])"#
+        guard value.range(of: pattern, options: .regularExpression) != nil else {
+            return value
+        }
+        return "[redacted Social Security number]"
     }
 
     static let disclaimer = """

@@ -235,6 +235,16 @@ struct RequirementCatalogTests {
         #expect(blocked.contains("Blocked"))
     }
 
+    @Test("Office turnaround is never bundled as a task date")
+    func officeTurnaroundIsNeverInvented() {
+        let family = input()
+        for key in ["ssn_card", "birth_certificate", "newborn_screening_result"] {
+            let rule = RequirementCatalog.rule(key: key)!
+            #expect(rule.deadline(family).date == nil, "\(key) invented an office date")
+            #expect(rule.deadline(family).kind == .none, "\(key) presented an office date as a suggestion")
+        }
+    }
+
     // MARK: - Structural invariants
 
     @Test("Every rule has a unique key")

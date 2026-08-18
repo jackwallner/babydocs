@@ -163,10 +163,12 @@ struct PlanView: View {
                         } label: {
                             Label("Rebuild the plan", systemImage: "arrow.clockwise")
                         }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
                 }
+                .accessibilityLabel("Plan options")
+                .accessibilityHint("More actions for this plan")
+            }
             }
             .sheet(isPresented: $isEditingHousehold) {
                 HouseholdEditorView()
@@ -215,13 +217,16 @@ struct PlanView: View {
     }
 
     private func toggle(_ task: RequirementTask) {
+        let wasDone = task.isDone
         if task.isDone {
             task.completedAt = nil
         } else {
             task.completedAt = Date()
+        }
+        let saved = task.recordLocalChange(in: context)
+        if saved && !wasDone {
             ReviewPromptTracker.recordCompletion(of: task)
         }
-        task.recordLocalChange(in: context)
         Task {
             await DeadlineReminderScheduler.reschedule(for: children.flatMap(\.liveTasks))
         }

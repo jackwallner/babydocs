@@ -196,6 +196,24 @@ struct VaultAndSharingTests {
         #expect(PlanSeed.decode(payload: String(full.prefix(full.count / 2))) == nil)
     }
 
+    @Test("A semantically invalid seed is refused")
+    func invalidSeedIsRejected() throws {
+        let context = makeContext()
+        let (child, profile) = makeFamily(in: context)
+        var seed = PlanSeed.make(child: child, profile: profile)
+
+        seed.version = 0
+        #expect(PlanSeed.decode(payload: try #require(seed.encoded())) == nil)
+
+        seed = PlanSeed.make(child: child, profile: profile)
+        seed.birthStateCode = "XX"
+        #expect(PlanSeed.decode(payload: try #require(seed.encoded())) == nil)
+
+        seed = PlanSeed.make(child: child, profile: profile)
+        seed.insuranceKind = "not-an-insurance-kind"
+        #expect(PlanSeed.decode(payload: try #require(seed.encoded())) == nil)
+    }
+
     // MARK: - Follow-up tracking
 
     @Test("Only a task that was sent and is overdue back counts as late")

@@ -141,6 +141,25 @@ struct RemindersAndExportTests {
         #expect(!text.lowercased().contains("ssn:"))
     }
 
+    @Test("A receipt-shaped SSN is redacted from the one-pager")
+    func exportRedactsReceiptSSN() {
+        let context = makeContext()
+        let profile = FamilyProfileStore.current(in: context)
+        let child = Child(name: "Rosa", birthDate: now, birthStateCode: "CA")
+        context.insert(child)
+        let task = RequirementTask(title: "Call the office")
+        task.completedAt = now
+        task.child = child
+        context.insert(task)
+        let receipt = Receipt(kind: .note, value: "SSN 123-45-6789")
+        receipt.task = task
+        context.insert(receipt)
+
+        let text = PlanExporter.summary(for: child, profile: profile, now: now)
+        #expect(!text.contains("123-45-6789"))
+        #expect(text.contains("redacted Social Security number"))
+    }
+
     @Test("Empty sections print as empty rather than vanishing")
     func emptySectionsStillPrint() {
         // A section that simply disappears reads as a negative answer to

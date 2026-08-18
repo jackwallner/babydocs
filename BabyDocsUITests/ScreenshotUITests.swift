@@ -7,6 +7,7 @@ import XCTest
 /// are two taps in, and because a screenshot is only proof if the state behind
 /// it came from a real reconciliation pass rather than a hand-built fixture: if
 /// a rule is wrong, the picture has to be wrong too.
+@MainActor
 final class ScreenshotUITests: XCTestCase {
 
     override func setUp() {
@@ -37,7 +38,7 @@ final class ScreenshotUITests: XCTestCase {
         // is what proves the push actually happened rather than the nav bar,
         // which exists either way.
         XCTAssertTrue(
-            app.staticTexts["Suggested by"].waitForExistence(timeout: 5),
+            app.staticTexts["Timing"].waitForExistence(timeout: 5),
             "Tapping a task row did not open its detail screen"
         )
         capture(name: "02-task-detail")

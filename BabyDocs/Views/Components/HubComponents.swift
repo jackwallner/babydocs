@@ -273,18 +273,18 @@ struct SourceFootnote: View {
                 }
                 if let entry = rule?.source {
                     Text(entry.title)
-                        .font(.caption2)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 if let verifiedOn {
                     Text(checkedLine(verifiedOn))
-                        .font(.caption2)
+                        .font(.caption)
                         .foregroundStyle(rule?.source?.status == .awaitingReview ? .orange : .secondary)
                 }
                 if let limitations = rule?.source?.limitations, !limitations.isEmpty {
                     Text("What it does not tell you: \(limitations)")
-                        .font(.caption2)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -295,7 +295,7 @@ struct SourceFootnote: View {
             // limit the app knows about.
             Label {
                 Text(reason)
-                    .font(.caption2)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             } icon: {

@@ -78,6 +78,10 @@ extension LocalRecord {
             try context.save()
             return true
         } catch {
+            // SwiftData can leave the object graph mutated after a failed save.
+            // Roll back the unsaved graph before the alert appears, so the row
+            // cannot look completed, deleted or edited when disk rejected it.
+            context.rollback()
             SaveFailureReporter.shared.report(error)
             return false
         }

@@ -114,12 +114,32 @@ struct PlanSeed: Codable, Equatable, Sendable {
     }
 
     static func decode(payload: String) -> PlanSeed? {
+        guard payload.count <= 16_384 else { return nil }
         guard let data = Data(base64URLEncoded: payload) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         guard let seed = try? decoder.decode(PlanSeed.self, from: data) else { return nil }
-        guard seed.version <= currentVersion else { return nil }
+        guard seed.version >= 1, seed.version <= currentVersion else { return nil }
+        guard seed.isSemanticallyValid else { return nil }
         return seed
+    }
+
+    private var isSemanticallyValid: Bool {
+        let nameLength = name.trimmingCharacters(in: .whitespacesAndNewlines).count
+        let countyLength = birthCounty.trimmingCharacters(in: .whitespacesAndNewlines).count
+        let validParentage = ParentageSituation(rawValue: parentage) != nil
+        let validInsurance = InsuranceKind(rawValue: insuranceKind) != nil
+        let validMarketplace = marketplaceKind.map { MarketplaceKind(rawValue: $0) != nil } ?? true
+
+        return nameLength <= 120
+            && countyLength <= 120
+            && birthDate <= Date()
+            && birthDate >= Date(timeIntervalSince1970: 0)
+            && USState.named(birthStateCode) != nil
+            && USState.named(residenceStateCode) != nil
+            && validParentage
+            && validInsurance
+            && validMarketplace
     }
 }
 

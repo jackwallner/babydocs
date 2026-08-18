@@ -25,7 +25,7 @@ struct OnboardingFlow: View {
     @State private var birthDate = Date()
     @State private var birthStateCode = ""
     @State private var birthCounty = ""
-    @State private var isUSCitizen = true
+    @State private var isUSCitizen = false
 
     // Household
     @State private var residenceStateCode = ""
@@ -39,9 +39,10 @@ struct OnboardingFlow: View {
     @State private var marketplaceKind: MarketplaceKind = .unknown
     @State private var hasDependentCareFSA = false
 
-    // The optional four
-    @State private var takingParentalLeave = true
-    @State private var wantsNewbornAccount = true
+    // The optional four. A question is not an answer, so each starts off until
+    // the parent explicitly adds it to the plan.
+    @State private var takingParentalLeave = false
+    @State private var wantsNewbornAccount = false
     @State private var wants529 = false
     @State private var wantsPassport = false
 
@@ -176,7 +177,7 @@ struct OnboardingFlow: View {
             Section {
                 Toggle("US citizen", isOn: $isUSCitizen)
             } footer: {
-                Text("One task turns on this: a federal account for newborn citizens, explained in a moment.")
+                Text("If you are not sure, leave this off until you verify it. One task turns on this: a federal account for newborn citizens, explained in a moment.")
             }
 
             continueButton(enabled: !birthStateCode.isEmpty) { step = .household }
@@ -261,8 +262,6 @@ struct OnboardingFlow: View {
                     await location.find()
                     if case .done(let place) = location.status {
                         residenceStateCode = place.stateCode
-                        if birthStateCode.isEmpty { birthStateCode = place.stateCode }
-                        if birthCounty.isEmpty { birthCounty = place.county }
                     }
                 }
             } label: {

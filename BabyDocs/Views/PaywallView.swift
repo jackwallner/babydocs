@@ -26,8 +26,11 @@ struct PaywallView: View {
             ScrollView {
                 VStack(spacing: 22) {
                     header
-                    benefits
+                    // Put the decision in the first viewport. The fixed purchase
+                    // bar repeats the selected plan's terms, but it must never
+                    // be the thing covering the trial line a buyer is comparing.
                     plans
+                    benefits
                     subscriptionTerms
                     footerLinks
                 }

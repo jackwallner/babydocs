@@ -6,6 +6,7 @@ import XCTest
 /// is a real question rather than a pedantic one: the last thing on a task
 /// detail is the source footnote, and the whole promise of the app is that a
 /// parent can check where a date came from.
+@MainActor
 final class LayoutUITests: XCTestCase {
 
     override func setUp() {
@@ -22,7 +23,7 @@ final class LayoutUITests: XCTestCase {
         let row = app.staticTexts["Order certified copies of the birth certificate"]
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.tap()
-        XCTAssertTrue(app.staticTexts["Suggested by"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Timing"].waitForExistence(timeout: 5))
 
         let footnote = app.staticTexts["Where this comes from"]
         for _ in 0..<8 where !footnote.isHittable {
@@ -39,6 +40,43 @@ final class LayoutUITests: XCTestCase {
             "The last control on the task detail sits under the tab bar"
         )
     }
+
+    func testAccessibilityTextKeepsTaskSourceReachable() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-uitest-wipe-store",
+            "-uitest-seed",
+            "-UIPreferredContentSizeCategoryName",
+            "UICTContentSizeCategoryAccessibilityXXXL"
+        ]
+        app.launch()
+
+        XCTAssertTrue(app.navigationBars["Plan"].waitForExistence(timeout: 15))
+        let row = app.staticTexts.containing(
+            NSPredicate(format: "label CONTAINS[c] %@", "Order certified copies")
+        ).firstMatch
+        for _ in 0..<8 where !row.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+        XCTAssertTrue(app.navigationBars["Birth certificate"].waitForExistence(timeout: 10))
+
+        assertSourceClearsTabBar(app)
+    }
+
+    private func assertSourceClearsTabBar(_ app: XCUIApplication) {
+        let footnote = app.staticTexts["Where this comes from"]
+        for _ in 0..<12 where !footnote.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(footnote.isHittable, "The source footnote never became reachable at large text")
+        XCTAssertLessThanOrEqual(
+            footnote.frame.maxY,
+            app.tabBars.firstMatch.frame.minY,
+            "The source footnote sits under the floating tab bar at large text"
+        )
+    }
 }
 
 // MARK: - The rest of the app
@@ -52,6 +90,7 @@ final class LayoutUITests: XCTestCase {
 /// glyph rather than of the bar. A single-screen assertion cannot catch a
 /// mistake in a shared constant, because it passes the moment one screen
 /// happens to be short enough.
+@MainActor
 final class TabBarClearanceUITests: XCTestCase {
 
     override func setUp() {
@@ -124,6 +163,7 @@ final class TabBarClearanceUITests: XCTestCase {
     }
 }
 
+@MainActor
 final class ArchiveRecoveryUITests: XCTestCase {
 
     override func setUp() {

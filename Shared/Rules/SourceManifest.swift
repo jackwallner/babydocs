@@ -144,11 +144,12 @@ enum SourceManifest {
             urlString: "https://www.healthcare.gov/coverage-outside-open-enrollment/special-enrollment-period/",
             subjects: [.marketplaceCoverageEnrollment],
             reviewedOn: day(2026, 8, 11),
-            status: .verified,
+            status: .federalFallback,
             limitations: """
-            Written for the federal Marketplace. A state-run marketplace sets \
-            its own window and its own steps, so confirm on your state's site \
-            if you do not use HealthCare.gov.
+            Written for the federal Marketplace. State-run marketplaces use \
+            their own site, account and documents, so confirm the exact date \
+            and steps in the state's system even though the special-enrollment \
+            window after a birth is generally 60 days.
             """
         ),
         SourceEntry(

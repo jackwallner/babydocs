@@ -156,9 +156,11 @@ final class StoreService: NSObject {
                     ?? ProProduct.all.count
                 return left < right
             }
-            plans = ordered.map { package in
+            var loadedPlans: [PlanOption] = []
+            for package in ordered {
                 let product = package.storeProduct
-                return PlanOption(
+                let introOffer = await eligibleIntroLabel(for: product)
+                loadedPlans.append(PlanOption(
                     id: product.productIdentifier,
                     title: ProProduct.title(for: product.productIdentifier),
                     price: product.localizedPriceString,
@@ -167,16 +169,10 @@ final class StoreService: NSObject {
                         unit: product.subscriptionPeriod?.unit.calendarUnitLabel,
                         count: product.subscriptionPeriod?.value
                     ),
-                    introOffer: product.introductoryDiscount.map {
-                        Self.introLabel(
-                            isFree: $0.paymentMode == .freeTrial,
-                            price: $0.localizedPriceString,
-                            unit: $0.subscriptionPeriod.unit.calendarUnitLabel,
-                            count: $0.subscriptionPeriod.value
-                        )
-                    }
-                )
+                    introOffer: introOffer
+                ))
             }
+            plans = loadedPlans
             loadError = plans.isEmpty ? "No plans came back from the store." : nil
         } catch {
             log.error("refresh failed: \(error.localizedDescription, privacy: .public)")
@@ -270,6 +266,26 @@ final class StoreService: NSObject {
             loadError = nil
         }
         #endif
+    }
+
+    /// RevenueCat exposes the product's introductory discount even when the
+    /// current App Store account has already used it. Do not put a free-trial
+    /// promise beside the purchase button unless the SDK says this customer is
+    /// eligible; the store still makes the final decision at checkout.
+    private func eligibleIntroLabel(for product: StoreProduct) async -> String? {
+        guard let discount = product.introductoryDiscount else { return nil }
+        let eligibility = await withCheckedContinuation { continuation in
+            Purchases.shared.checkTrialOrIntroDiscountEligibility(product: product) { status in
+                continuation.resume(returning: status)
+            }
+        }
+        guard eligibility == .eligible else { return nil }
+        return Self.introLabel(
+            isFree: discount.paymentMode == .freeTrial,
+            price: discount.localizedPriceString,
+            unit: discount.subscriptionPeriod.unit.calendarUnitLabel,
+            count: discount.subscriptionPeriod.value
+        )
     }
 
     #if DEBUG

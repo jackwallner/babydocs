@@ -379,10 +379,10 @@ struct TaskDetailView: View {
     private func toggleDone() {
         let wasDone = task.isDone
         task.completedAt = wasDone ? nil : Date()
-        if !wasDone {
+        let saved = task.recordLocalChange(in: context)
+        if saved && !wasDone {
             ReviewPromptTracker.recordCompletion(of: task)
         }
-        task.recordLocalChange(in: context)
         rescheduleReminders()
     }
 

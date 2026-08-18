@@ -208,14 +208,10 @@ enum RequirementCatalog {
             }
         },
         deadline: { input in
-            // No statutory deadline. The date is a follow-up trigger: SSA
-            // reports roughly two weeks to process and up to two more for the
-            // card to arrive, so four weeks is the point at which silence stops
-            // being normal and starts being a problem worth chasing.
             Deadline(
-                date: addDays(28, to: input.birthDate),
-                kind: .recommended,
-                basis: "No legal deadline. SSA reports about two weeks to process the request and up to two more for the card to arrive, so chase it if nothing has come by then."
+                date: nil,
+                kind: .none,
+                basis: "No legal deadline. Ask SSA what to expect for this request and record that date in the follow-up section rather than relying on a bundled turnaround time."
             )
         },
         link: { _ in
@@ -253,9 +249,9 @@ enum RequirementCatalog {
         },
         deadline: { input in
             Deadline(
-                date: addDays(21, to: input.birthDate),
-                kind: .recommended,
-                basis: "No legal deadline. The record usually is not filed for one to three weeks after the birth, and the passport and several bank tasks are blocked until a certified copy is in hand."
+                date: nil,
+                kind: .none,
+                basis: "No legal deadline. Ask the issuing office when the record and certified copies will be ready, because filing and processing times differ by jurisdiction."
             )
         },
         link: { input in
@@ -876,9 +872,9 @@ enum RequirementCatalog {
         },
         deadline: { input in
             Deadline(
-                date: addDays(21, to: input.birthDate),
-                kind: .recommended,
-                basis: "No deadline. Results are typically back within a couple of weeks, and the paperwork is easiest to collect at the first well-baby visit."
+                date: nil,
+                kind: .none,
+                basis: "No deadline. Ask the pediatric practice when the results will be available and record that date in the follow-up section if you need to chase them."
             )
         },
         link: { _ in

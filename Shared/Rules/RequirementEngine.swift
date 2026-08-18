@@ -226,12 +226,9 @@ enum RequirementEngine {
     /// Only the engine-owned fields. Deliberately excludes everything a parent
     /// can edit, so a family's own note never counts as a rule change.
     ///
-    /// `sourceVerifiedOn` is excluded on purpose, and that is a decision rather
-    /// than an oversight. The review date is a property of the bundled catalog,
-    /// not of the family's row: every device recomputes it from its own build,
-    /// so syncing it would put twenty rows per child into the outbox on every
-    /// release for a value the other phone already knows. The source *URL* is in
-    /// the fingerprint, because that one genuinely changes what the task says.
+    /// The source review date is included because it is visible on the task. A
+    /// rules-only release must refresh that date on existing rows even when the
+    /// URL and the rule text stay the same.
     private static func fingerprint(_ task: RequirementTask) -> String {
         [
             task.title,
@@ -244,7 +241,8 @@ enum RequirementEngine {
             task.officialURLString,
             task.officialLinkLabel,
             String(task.isPostedAway),
-            task.sourceURLString
+            task.sourceURLString,
+            task.sourceVerifiedOn.map { String($0.timeIntervalSince1970) } ?? ""
         ].joined(separator: "\u{1F}")
     }
 

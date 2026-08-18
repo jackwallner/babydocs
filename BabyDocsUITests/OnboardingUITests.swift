@@ -6,6 +6,7 @@ import XCTest
 /// Kept deliberately thin. The rules are unit-tested; what a UI test adds is
 /// proof that the app launches at all on a clean store, which nothing else
 /// covers and which is the failure a shipped build would show every new user.
+@MainActor
 final class OnboardingUITests: XCTestCase {
 
     override func setUp() {
