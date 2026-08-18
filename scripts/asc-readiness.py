@@ -62,14 +62,16 @@ EXPECTED_TRIAL_TERRITORIES = 175
 EXPECTED_TRIAL_PRODUCT = "com.jackwallner.babydocs.pro.weekly"
 
 # What the binary actually charges for. Every one is a real gate in the shipping
-# code (`SummaryShareControl`, `DocumentsView.addButton`, `ChildrenView`), and
-# both the description and the review notes have to agree with all four.
+# code (`SummaryShareControl`, `TaskDetailView`, `DocumentsView.addButton`,
+# `ChildrenView`), and both the description and the review notes have to agree
+# with all five.
 #
 # Two vocabularies, because they are written for different readers: the store
 # copy sells "the document vault", the review notes tell a reviewer which tab to
 # tap. Matching on either is what keeps this a check on meaning rather than on
 # wording.
 PAID_FEATURES = {
+    "follow-up tracking": ("follow-up tracking", "follow-ups", "chasing", "Follow-up tracking"),
     "further children": ("further children", "additional children"),
     "the vault": ("vault", "Documents tab"),
     "the summary": ("summary",),

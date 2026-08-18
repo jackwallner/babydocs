@@ -133,7 +133,7 @@ struct OnboardingFlow: View {
                 // a link full of these answers, and it is one of the best things
                 // here. The claim worth making is the one that stays true, which
                 // is that nothing goes anywhere on its own.
-                Text("No account, and no copy of your answers anywhere but here. Nothing is uploaded unless you choose to send it.")
+                Text("No household-data account, and no copy of your answers anywhere but here. Your plan stays on this phone unless you choose to send it. Purchases are handled separately by Apple and RevenueCat.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -416,21 +416,23 @@ struct OnboardingFlow: View {
         }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: AppTheme.spacing) {
-                Button {
-                    Task {
-                        // Asked here, and only here, because this is the first
-                        // moment there is a real closing window to be reminded
-                        // about. Asked on launch it reads as noise and gets
-                        // refused permanently, and a refused prompt is the one
-                        // thing the app cannot undo.
-                        await NotificationService.shared.requestAuthorization()
-                        await DeadlineReminderScheduler.reschedule(for: allTasks())
+                if canOfferReminders {
+                    Button {
+                        Task {
+                            // Asked here, and only here, because this is the first
+                            // moment there is a real closing window to be reminded
+                            // about. Asked on launch it reads as noise and gets
+                            // refused permanently, and a refused prompt is the one
+                            // thing the app cannot undo.
+                            await NotificationService.shared.requestAuthorization()
+                            await DeadlineReminderScheduler.reschedule(for: allTasks())
+                        }
+                    } label: {
+                        Text("Remind me before deadlines").frame(maxWidth: .infinity)
                     }
-                } label: {
-                    Text("Remind me before deadlines").frame(maxWidth: .infinity)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
 
                 Button("Not now") { }
                     .font(.subheadline)
@@ -528,6 +530,10 @@ struct OnboardingFlow: View {
     private func allTasks() -> [RequirementTask] {
         ((try? context.fetch(FetchDescriptor<Child>())) ?? []).flatMap(\.liveTasks)
     }
+
+    private var canOfferReminders: Bool {
+        !DeadlineReminderScheduler.plans(for: allTasks()).isEmpty
+    }
 }
 
 // MARK: - One question, explained
@@ -613,16 +619,24 @@ struct StepDots: View {
         OnboardingFlow.Step.allCases.filter { $0 != .welcome && $0 != .done }
     }
 
+    private var currentIndex: Int {
+        (steps.firstIndex(of: current) ?? 0) + 1
+    }
+
     var body: some View {
         HStack(spacing: 5) {
             ForEach(steps, id: \.self) { step in
                 Circle()
-                    .fill(step.rawValue <= current.rawValue ? Color.accentColor : Color.secondary.opacity(0.3))
+                    .fill(stepIndex(for: step) <= currentIndex ? Color.accentColor : Color.secondary.opacity(0.3))
                     .frame(width: 6, height: 6)
             }
         }
         .accessibilityElement()
-        .accessibilityLabel("Question \(current.rawValue) of \(steps.count)")
+        .accessibilityLabel("Question \(currentIndex) of \(steps.count)")
+    }
+
+    private func stepIndex(for step: OnboardingFlow.Step) -> Int {
+        (steps.firstIndex(of: step) ?? 0) + 1
     }
 }
 

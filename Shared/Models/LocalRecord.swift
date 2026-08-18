@@ -71,12 +71,15 @@ final class SaveFailureReporter {
 @MainActor
 extension LocalRecord {
     /// Call after any local create or edit.
-    func recordLocalChange(in context: ModelContext) {
+    @discardableResult
+    func recordLocalChange(in context: ModelContext) -> Bool {
         updatedAt = Date()
         do {
             try context.save()
+            return true
         } catch {
             SaveFailureReporter.shared.report(error)
+            return false
         }
     }
 
@@ -89,5 +92,20 @@ extension LocalRecord {
     func tombstone(in context: ModelContext) {
         deletedAt = Date()
         recordLocalChange(in: context)
+    }
+}
+
+@MainActor
+extension Child {
+    /// Removes an unconfirmed draft that the app created as scaffolding. It is
+    /// not family work yet, so retaining it as an archived record would create
+    /// a false child the next time the app opened.
+    func discardEphemeral(in context: ModelContext) {
+        context.delete(self)
+        do {
+            try context.save()
+        } catch {
+            SaveFailureReporter.shared.report(error)
+        }
     }
 }

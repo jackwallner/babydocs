@@ -11,15 +11,15 @@ WHAT YOU GET
 - Somewhere to put the confirmation number, and a nudge based on what the office told you, not a turnaround time the app guessed.
 - A place for the paperwork itself. Photograph the certified copy and the enrollment form; they never leave this phone.
 - Reminders that fire only for deadlines that genuinely close, so you do not end up muting the app.
-- Works with no signal, no account and no server to be down.
+- Works with no signal, no household-data account and no household-data server to be down.
 
 SEND IT TO THE OTHER PARENT
 
-One link. They tap it, and their phone builds the same plan from the same answers, with their own reminders. Nothing is uploaded, because the answers travel in the link itself. It is free, and it stops you being the only person who knows what is due.
+One link. They tap it, and their phone builds the same plan from the same answers, with their own reminders. The answers travel in the link itself when you choose to send it, not through a background upload. It is free, and it stops you being the only person who knows what is due.
 
 IT SHOWS ITS WORKING
 
-Every rule links to the government page it came from, with the date that page was last read, right there on the task. An app that asks you to trust it about dates that cost money should show you where the date came from.
+Every sourced rule links to the government page it came from, with the date that page was last read, right there on the task. Where there is no honest source to cite, the task explains that limit. An app that asks you to trust it about dates that cost money should show you where the date came from.
 
 WHAT IT DOES NOT DO
 
@@ -31,9 +31,9 @@ It is not a baby tracker. No feeds, no weights, no growth charts.
 
 BABY DOCS PLUS
 
-Every task, deadline, document checklist and official link is free, for one child. So is sending the plan to the other parent, and chasing what has not come back. Nothing with a date on it is ever behind a paywall.
+Every task, deadline, document checklist and official link is free, for one child. So is sending the plan to the other parent. Nothing with a date on it is ever behind a paywall.
 
-Plus adds the work around the deadlines: any further children, so a second baby inherits your household answers instead of asking again; the document vault after the first twelve weeks; the printable one-page summary; and the employer packet HR asks for.
+Plus adds the work around the deadlines: follow-up tracking for things you sent and are waiting on; any further children, so a second baby inherits your household answers instead of asking again; the document vault after the first twelve weeks; the printable one-page summary; and the employer packet HR asks for.
 
 If Plus lapses you stop adding new photographs. The ones already there stay, and stay openable.
 

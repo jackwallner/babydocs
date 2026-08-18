@@ -13,6 +13,8 @@ struct TaskDetailView: View {
     @Environment(\.modelContext) private var context
     @Bindable var task: RequirementTask
 
+    @State private var store = StoreService.shared
+    @State private var navigator = AppNavigator.shared
     @State private var isAddingReceipt = false
     @State private var receiptKind: ReceiptKind = .confirmationNumber
     @State private var receiptValue = ""
@@ -48,7 +50,13 @@ struct TaskDetailView: View {
             }
 
             documentsSection
-            if task.isPostedAway { followUpSection }
+            if task.isPostedAway {
+                if store.isPro {
+                    followUpSection
+                } else {
+                    followUpUpgradeSection
+                }
+            }
             ownerSection
             receiptsSection
 
@@ -95,8 +103,10 @@ struct TaskDetailView: View {
         // whole thing, and so does VoiceOver.
         .navigationTitle(shortTitle)
         .navigationBarTitleDisplayMode(.inline)
-        .accessibilityLabel(task.title)
-        .onDisappear { task.recordLocalChange(in: context) }
+        .onDisappear {
+            task.recordLocalChange(in: context)
+            rescheduleReminders()
+        }
         .alert("Record a confirmation", isPresented: $isAddingReceipt) {
             TextField("Number or reference", text: $receiptValue)
             Button("Save", action: saveReceipt)
@@ -117,13 +127,23 @@ struct TaskDetailView: View {
     @ViewBuilder
     private var deadlineSection: some View {
         Section {
-            HStack {
-                DeadlinePill(task: task)
-                Spacer()
-                if let due = task.dueAt {
-                    Text(due, format: .dateTime.weekday().month().day().year())
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    DeadlinePill(task: task)
+                    Spacer()
+                    if let due = task.dueAt {
+                        Text(due, format: .dateTime.weekday().month().day().year())
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                VStack(alignment: .leading, spacing: AppTheme.tightSpacing) {
+                    DeadlinePill(task: task)
+                    if let due = task.dueAt {
+                        Text(due, format: .dateTime.weekday().month().day().year())
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             if !task.deadlineBasis.isEmpty {
@@ -173,6 +193,8 @@ struct TaskDetailView: View {
                         }
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(item.title)
+                    .accessibilityValue(item.isOnHand ? "Gathered" : "Still to find")
                 }
             } header: {
                 Text("Have these ready")
@@ -182,6 +204,25 @@ struct TaskDetailView: View {
                      ? "Everything on this list is gathered."
                      : "\(outstanding) still to find. They are collected with everything else on the Documents tab.")
             }
+        }
+    }
+
+    private var followUpUpgradeSection: some View {
+        Section {
+            Button {
+                navigator.requestUpgrade()
+            } label: {
+                HStack {
+                    Label("Track what comes back", systemImage: "clock.badge.exclamationmark")
+                    Spacer(minLength: 8)
+                    PlusBadge()
+                }
+            }
+            .accessibilityLabel("Track what comes back. Included with Plus.")
+        } header: {
+            Text("Sent and waiting")
+        } footer: {
+            Text("Follow-up tracking is part of Baby Docs Plus. Every deadline, official link and document list remains free.")
         }
     }
 
@@ -300,6 +341,7 @@ struct TaskDetailView: View {
                     task.expectedByAt = nil
                 }
                 task.recordLocalChange(in: context)
+                rescheduleReminders()
             }
         )
     }
@@ -307,14 +349,14 @@ struct TaskDetailView: View {
     private var submittedDateBinding: Binding<Date> {
         Binding(
             get: { task.submittedAt ?? Date() },
-            set: { task.submittedAt = $0; task.recordLocalChange(in: context) }
+            set: { task.submittedAt = $0; task.recordLocalChange(in: context); rescheduleReminders() }
         )
     }
 
     private var expectedBinding: Binding<Date> {
         Binding(
             get: { task.expectedByAt ?? Date() },
-            set: { task.expectedByAt = $0; task.recordLocalChange(in: context) }
+            set: { task.expectedByAt = $0; task.recordLocalChange(in: context); rescheduleReminders() }
         )
     }
 
@@ -325,11 +367,13 @@ struct TaskDetailView: View {
     private func setExpectedDate() {
         task.expectedByAt = Date()
         task.recordLocalChange(in: context)
+        rescheduleReminders()
     }
 
     private func clearExpectedDate() {
         task.expectedByAt = nil
         task.recordLocalChange(in: context)
+        rescheduleReminders()
     }
 
     private func toggleDone() {
@@ -339,11 +383,13 @@ struct TaskDetailView: View {
             ReviewPromptTracker.recordCompletion(of: task)
         }
         task.recordLocalChange(in: context)
+        rescheduleReminders()
     }
 
     private func toggleDismissed() {
         task.dismissedAt = task.isDismissed ? nil : Date()
         task.recordLocalChange(in: context)
+        rescheduleReminders()
     }
 
     private func saveReceipt() {
@@ -360,6 +406,12 @@ struct TaskDetailView: View {
         let receipts = task.liveReceipts
         for index in offsets where receipts.indices.contains(index) {
             receipts[index].tombstone(in: context)
+        }
+    }
+
+    private func rescheduleReminders() {
+        Task {
+            await DeadlineReminderScheduler.reschedule(in: context)
         }
     }
 }

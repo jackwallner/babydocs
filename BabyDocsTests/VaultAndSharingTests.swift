@@ -94,6 +94,18 @@ struct VaultAndSharingTests {
         )
     }
 
+    @Test("The employer packet refuses non-employer coverage")
+    func employerPacketDoesNotInventAJobPlan() {
+        let context = makeContext()
+        let (child, profile) = makeFamily(in: context)
+        profile.insuranceKind = .marketplace
+
+        let packet = PlanExporter.employerPacket(for: child, profile: profile)
+
+        #expect(packet.contains("NOT APPLICABLE"))
+        #expect(!packet.contains("Add this dependent to my medical coverage"))
+    }
+
     // MARK: - The link carries answers and nothing else
 
     @Test("A seed round-trips through its own link")

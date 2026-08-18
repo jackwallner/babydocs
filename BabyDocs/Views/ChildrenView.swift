@@ -5,6 +5,8 @@ struct ChildrenView: View {
     @Environment(\.modelContext) private var context
     @Query(filter: #Predicate<Child> { $0.deletedAt == nil }, sort: \Child.birthDate)
     private var children: [Child]
+    @Query(filter: #Predicate<Child> { $0.deletedAt != nil }, sort: \Child.birthDate)
+    private var archivedChildren: [Child]
 
     @State private var editingChild: Child?
     /// The child "Add another child" just made, until Done confirms it. See
@@ -25,6 +27,30 @@ struct ChildrenView: View {
                     }
                 } header: {
                     Text("Children")
+                }
+
+                if !restorableArchivedChildren.isEmpty {
+                    Section {
+                        ForEach(restorableArchivedChildren) { child in
+                            Button {
+                                restore(child)
+                            } label: {
+                                HStack {
+                                    ChildRow(child: child)
+                                    Spacer(minLength: 8)
+                                    Image(systemName: "arrow.uturn.backward")
+                                        .foregroundStyle(.tint)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Restore \(child.displayName)")
+                            .accessibilityHint("Puts this child back in the plan")
+                        }
+                    } header: {
+                        Text("Archived children")
+                    } footer: {
+                        Text("Archived children keep their plan and receipts. Restore one if it was removed by mistake.")
+                    }
                 }
 
                 Section {
@@ -109,12 +135,95 @@ struct ChildrenView: View {
         var descriptor = FetchDescriptor<Child>(predicate: #Predicate { $0.id == id })
         descriptor.fetchLimit = 1
         guard let draft = (try? context.fetch(descriptor))?.first else { return }
-        context.delete(draft)
-        do {
-            try context.save()
-        } catch {
-            SaveFailureReporter.shared.report(error)
+        draft.discardEphemeral(in: context)
+    }
+
+    private var restorableArchivedChildren: [Child] {
+        archivedChildren.filter { $0.id != draftChildID }
+    }
+
+    private func restore(_ child: Child) {
+        child.deletedAt = nil
+        child.recordLocalChange(in: context)
+        RequirementEngine.reconcile(
+            child: child,
+            profile: FamilyProfileStore.current(in: context),
+            in: context
+        )
+        Task {
+            await DeadlineReminderScheduler.reschedule(in: context)
         }
+        AppNavigator.shared.selectedTab = .plan
+    }
+}
+
+struct ArchivedChildrenRecoveryView: View {
+    @Environment(\.modelContext) private var context
+    let children: [Child]
+    @State private var isStartingOver = false
+
+    var body: some View {
+        if isStartingOver {
+            OnboardingFlow()
+        } else {
+            NavigationStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: AppTheme.looseSpacing) {
+                        Text("This child is archived")
+                            .font(.title2.weight(.semibold))
+
+                        Text("The plan and any receipts are still on this phone. Restore the child to reopen the plan, or start with a new child while keeping this archive.")
+                            .foregroundStyle(.secondary)
+
+                        ForEach(children) { child in
+                            Button {
+                                restore(child)
+                            } label: {
+                                HStack {
+                                    ChildRow(child: child)
+                                    Spacer(minLength: 8)
+                                    Image(systemName: "arrow.uturn.backward")
+                                        .foregroundStyle(.tint)
+                                }
+                                .padding(AppTheme.spacing)
+                                .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius))
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Restore \(child.displayName)")
+                            .accessibilityHint("Puts this child back in the plan")
+                        }
+
+                        Button("Start with a new child") {
+                            isStartingOver = true
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .frame(maxWidth: .infinity)
+                        .accessibilityHint("Keeps the archived child and opens the questions for a new plan")
+
+                        Text("Archiving changes only this phone. No household data is uploaded by archiving, and the child stays available until you restore them.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(AppTheme.margin)
+                }
+                .background(AppTheme.pageBackground)
+                .navigationTitle("Baby Docs")
+            }
+        }
+    }
+
+    private func restore(_ child: Child) {
+        child.deletedAt = nil
+        child.recordLocalChange(in: context)
+        RequirementEngine.reconcile(
+            child: child,
+            profile: FamilyProfileStore.current(in: context),
+            in: context
+        )
+        Task {
+            await DeadlineReminderScheduler.reschedule(in: context)
+        }
+        AppNavigator.shared.selectedTab = .plan
     }
 }
 
@@ -122,6 +231,7 @@ private struct ChildRow: View {
     let child: Child
 
     var body: some View {
+        let overview = TaskPlanner.overview(for: child.liveTasks)
         HStack(spacing: 12) {
             ZStack {
                 Circle().fill(child.color.opacity(0.18))
@@ -138,11 +248,16 @@ private struct ChildRow: View {
 
             Spacer()
 
-            let overview = TaskPlanner.overview(for: child.liveTasks)
             Text("\(overview.openCount)")
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(overview.overdueCount > 0 ? .red : .secondary)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(
+            overview.overdueCount > 0
+                ? "\(overview.openCount) open tasks, \(overview.overdueCount) overdue"
+                : "\(overview.openCount) open tasks"
+        )
     }
 
     private var summary: String {
@@ -266,6 +381,9 @@ struct ChildDetailView: View {
             profile: FamilyProfileStore.current(in: context),
             in: context
         )
+        Task {
+            await DeadlineReminderScheduler.reschedule(in: context)
+        }
     }
 }
 
@@ -279,6 +397,7 @@ struct ChildEditorSheet: View {
     /// See `ChildrenView.addChild()`.
     var isDraft = false
     var onConfirm: (() -> Void)?
+    @State private var originalBirthStateCode: String?
 
     /// The two answers every deadline in the app is derived from. A plan built
     /// on today's date and a blank state is not a weaker plan, it is a wrong
@@ -322,7 +441,7 @@ struct ChildEditorSheet: View {
 
                 if !isDraft {
                     Section {
-                        Button("Remove this child", role: .destructive) {
+                        Button("Archive this child", role: .destructive) {
                             child.tombstone(in: context)
                             dismiss()
                         }
@@ -331,6 +450,12 @@ struct ChildEditorSheet: View {
             }
             .navigationTitle(child.name.isEmpty ? "New child" : child.displayName)
             .navigationBarTitleDisplayMode(.inline)
+            .interactiveDismissDisabled()
+            .onAppear {
+                if originalBirthStateCode == nil {
+                    originalBirthStateCode = child.birthStateCode
+                }
+            }
             .toolbar {
                 // A sheet that can create a child and cannot cancel one is a
                 // trap: the only ways out were Done and a swipe, and the swipe
@@ -353,12 +478,18 @@ struct ChildEditorSheet: View {
     /// plan is generated from confirmed answers rather than from defaults.
     private func confirm() {
         if isDraft { child.deletedAt = nil }
+        if originalBirthStateCode != child.birthStateCode {
+            child.birthCounty = ""
+        }
         child.recordLocalChange(in: context)
         RequirementEngine.reconcile(
             child: child,
             profile: FamilyProfileStore.current(in: context),
             in: context
         )
+        Task {
+            await DeadlineReminderScheduler.reschedule(in: context)
+        }
         onConfirm?()
         dismiss()
     }

@@ -191,12 +191,13 @@ thing sent and overdue back) rather than one that triggers nothing.
     thing ratings are supposed to measure. `FeedbackSheet` is what survived, and
     it is support, open to everyone from Settings at any time, leading nowhere
     near the App Store.
-- **What Plus gates lives in three places that drift apart.** The binary
-  (`SummaryShareControl` and `DocumentsView.addButton`) charges for further
-  children, the vault after twelve weeks, the printable summary and the employer
-  packet. The description and the App Review notes have to say the same thing,
-  and both once said the summary and the packet were free. `asc-readiness.py`
-  now asserts it, because nothing recompiles when a `.txt` file changes.
+- **What Plus gates lives in four places that drift apart.** The binary
+  (`SummaryShareControl`, `TaskDetailView`, `DocumentsView.addButton` and
+  `ChildrenView`) charges for follow-up tracking, further children, the vault
+  after twelve weeks, the printable summary and the employer packet. The
+  description and the App Review notes have to say the same thing, and both
+  once said the summary and the packet were free. `asc-readiness.py` now asserts
+  it, because nothing recompiles when a `.txt` file changes.
 - **Every local write goes through `LocalRecord`.** After a create or an edit,
   call `recordLocalChange()`; to delete, call `tombstone()`. Reads go through
   `child.liveTasks` and friends rather than the raw relationship. With sync gone

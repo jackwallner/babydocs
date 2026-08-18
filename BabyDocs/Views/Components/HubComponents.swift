@@ -89,7 +89,7 @@ struct TaskRow: View {
             }
             .buttonStyle(.plain)
             .disabled(onToggle == nil)
-            .accessibilityLabel(task.isDone ? "Mark not done" : "Mark done")
+            .accessibilityLabel(task.isDone ? "Mark \(task.title) not done" : "Mark \(task.title) done")
 
             NavigationLink(value: task.id) {
                 content
@@ -336,6 +336,7 @@ struct SummaryShareControl: View {
     let summary: () -> String
     var title = "Share a one-page summary"
     var symbol = "square.and.arrow.up"
+    var onUpgrade: (() -> Void)?
 
     @State private var store = StoreService.shared
     @State private var navigator = AppNavigator.shared
@@ -347,7 +348,11 @@ struct SummaryShareControl: View {
             }
         } else {
             Button {
-                navigator.requestUpgrade()
+                if let onUpgrade {
+                    onUpgrade()
+                } else {
+                    navigator.requestUpgrade()
+                }
             } label: {
                 HStack {
                     Label(title, systemImage: symbol)

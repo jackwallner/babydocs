@@ -181,8 +181,7 @@ struct SettingsView: View {
     }
 
     private func rescheduleReminders() async {
-        let tasks = ((try? context.fetch(FetchDescriptor<Child>())) ?? []).flatMap(\.liveTasks)
-        await DeadlineReminderScheduler.reschedule(for: tasks)
+        await DeadlineReminderScheduler.reschedule(in: context)
     }
 }
 

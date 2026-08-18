@@ -174,6 +174,7 @@ struct PaywallView: View {
                 .accessibilityLabel(
                     "\(plan.title), \(plan.price) \(plan.period). \(plan.introOffer ?? "")"
                 )
+                .accessibilityValue(selection == plan.id ? "Selected" : "Not selected")
             }
         }
     }
@@ -234,7 +235,7 @@ struct PaywallView: View {
         }
         .padding(.horizontal, 22)
         .padding(.vertical, 12)
-        .background(.bar)
+        .background(Color(uiColor: .systemBackground))
     }
 
     /// "Continue" tells a buyer nothing about what is about to happen. When the

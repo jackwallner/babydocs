@@ -96,7 +96,7 @@ FRAMES = [
     # A sheet, so there is no tab bar to crop.
     ("05-paywall.png", "06-free.png", "blue",
      "Every deadline is free,\nand stays free",
-     "Plus adds the document vault, chasing what has not come back, and the employer packet.",
+     "Plus adds the document vault, follow-up tracking and the employer packet.",
      0),
 ]
 

@@ -100,13 +100,13 @@ platform :ios do
           summaries print the status of a Social Security number, never a number.
 
           Baby Docs Plus (IAP via RevenueCat, weekly or yearly subscription or a
-          one-time purchase) gates four things: additional children beyond the
-          first, adding new photographs to the Documents tab after a child is
-          twelve weeks old, the printable one-page summary, and the employer
-          packet. Every task, deadline, document checklist, official link, the
-          shared plan link and the follow-up tracking are free. If Plus lapses,
-          existing photographs remain and remain viewable; only adding new ones
-          stops.
+          one-time purchase) gates five things: follow-up tracking, additional
+          children beyond the first, adding new photographs to the Documents tab
+          after a child is twelve weeks old, the printable one-page summary, and
+          the employer packet. Every task, deadline, document checklist, official
+          link and the shared plan link is free. If Plus
+          lapses, existing photographs remain and remain viewable; only adding
+          new ones stops.
 
           The app gives no legal, tax, medical or insurance advice, and carries
           a disclaimer to that effect in Settings and on every exported summary.

@@ -79,7 +79,7 @@ struct PlanView: View {
                                 Text(child.displayName).tag(UUID?.some(child.id))
                             }
                         }
-                        .pickerStyle(.segmented)
+                        .pickerStyle(.menu)
                     }
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets(
@@ -157,6 +157,9 @@ struct PlanView: View {
                         Divider()
                         Button {
                             RequirementEngine.reconcileAll(in: context)
+                            Task {
+                                await DeadlineReminderScheduler.reschedule(in: context)
+                            }
                         } label: {
                             Label("Rebuild the plan", systemImage: "arrow.clockwise")
                         }
@@ -175,6 +178,7 @@ struct PlanView: View {
             }
             .refreshable {
                 RequirementEngine.reconcileAll(in: context)
+                await DeadlineReminderScheduler.reschedule(in: context)
             }
             // A reminder that opens the app on the plan list has spent the
             // parent's attention and given nothing back. The route is held until

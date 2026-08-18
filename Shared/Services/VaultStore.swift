@@ -89,6 +89,7 @@ final class VaultStore {
     /// excluded from backups is a way to fill a phone with something the user
     /// cannot find. The long edge is capped for the same reason.
     func addPage(_ image: UIImage) throws -> String {
+        guard isUnlocked else { throw VaultError.locked }
         let scaled = Self.downscaled(image, maxEdge: 2400)
         guard let data = scaled.jpegData(compressionQuality: 0.8) else {
             throw VaultError.couldNotEncode
@@ -100,21 +101,33 @@ final class VaultStore {
     }
 
     func image(named name: String) -> UIImage? {
+        guard isUnlocked else { return nil }
         guard let url = try? directory().appendingPathComponent(name),
               let data = try? Data(contentsOf: url) else { return nil }
         return UIImage(data: data)
     }
 
-    func removePage(named name: String) {
-        guard let url = try? directory().appendingPathComponent(name) else { return }
-        try? FileManager.default.removeItem(at: url)
+    @discardableResult
+    func removePage(named name: String) -> Bool {
+        guard let url = try? directory().appendingPathComponent(name) else { return false }
+        do {
+            if FileManager.default.fileExists(atPath: url.path) {
+                try FileManager.default.removeItem(at: url)
+            }
+            return true
+        } catch {
+            lastError = error.localizedDescription
+            log.error("Could not remove vault page: \(error.localizedDescription)")
+            return false
+        }
     }
 
     /// Deletes the files behind a tombstoned document. Called explicitly rather
     /// than on a schedule: a tombstone in this app is recoverable, and a sweeper
     /// that removed the images would make it recoverable in name only.
-    func removePages(named names: [String]) {
-        for name in names { removePage(named: name) }
+    @discardableResult
+    func removePages(named names: [String]) -> [String] {
+        names.filter { !removePage(named: $0) }
     }
 
     /// Total bytes on disk, for the line in Settings. A vault is the one part of
@@ -155,7 +168,11 @@ final class VaultStore {
         // untrue.
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
-        try? dir.setResourceValues(values)
+        do {
+            try dir.setResourceValues(values)
+        } catch {
+            throw VaultError.couldNotProtectStorage
+        }
         return dir
     }
 
@@ -174,10 +191,14 @@ final class VaultStore {
 
 enum VaultError: LocalizedError {
     case couldNotEncode
+    case couldNotProtectStorage
+    case locked
 
     var errorDescription: String? {
         switch self {
         case .couldNotEncode: return "That photo could not be saved."
+        case .couldNotProtectStorage: return "The document vault could not be protected on this phone. Nothing was saved."
+        case .locked: return "Unlock the document vault before saving a photo."
         }
     }
 }

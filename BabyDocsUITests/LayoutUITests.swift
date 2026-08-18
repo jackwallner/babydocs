@@ -123,3 +123,30 @@ final class TabBarClearanceUITests: XCTestCase {
         )
     }
 }
+
+final class ArchiveRecoveryUITests: XCTestCase {
+
+    override func setUp() {
+        continueAfterFailure = false
+    }
+
+    func testArchivingTheOnlyChildOffersRestore() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-uitest-wipe-store", "-uitest-seed"]
+        app.launch()
+
+        XCTAssertTrue(app.navigationBars["Plan"].waitForExistence(timeout: 15))
+        app.tabBars.buttons["Children"].tap()
+        XCTAssertTrue(app.navigationBars["Children"].waitForExistence(timeout: 10))
+
+        app.staticTexts["Rosa"].tap()
+        XCTAssertTrue(app.navigationBars["Rosa"].waitForExistence(timeout: 10))
+        app.buttons["Edit details"].tap()
+        XCTAssertTrue(app.buttons["Archive this child"].waitForExistence(timeout: 10))
+        app.buttons["Archive this child"].tap()
+
+        XCTAssertTrue(app.staticTexts["This child is archived"].waitForExistence(timeout: 10))
+        app.buttons["Restore Rosa"].tap()
+        XCTAssertTrue(app.navigationBars["Plan"].waitForExistence(timeout: 10))
+    }
+}

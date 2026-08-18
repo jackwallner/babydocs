@@ -13,7 +13,7 @@ struct SharePlanSheet: View {
     @Environment(\.dismiss) private var dismiss
     let child: Child
 
-    @State private var store = StoreService.shared
+    @State private var showingPaywall = false
 
     private var seed: PlanSeed {
         PlanSeed.make(child: child, profile: FamilyProfileStore.current(in: context))
@@ -21,6 +21,10 @@ struct SharePlanSheet: View {
 
     private var summary: String {
         PlanExporter.summary(for: child, profile: FamilyProfileStore.current(in: context))
+    }
+
+    private var isEmployerCoverage: Bool {
+        FamilyProfileStore.current(in: context).insuranceKind == .employer
     }
 
     var body: some View {
@@ -39,31 +43,36 @@ struct SharePlanSheet: View {
                 }
 
                 Section {
-                    SummaryShareControl(summary: { summary })
+                    SummaryShareControl(summary: { summary }) {
+                        showingPaywall = true
+                    }
                 } footer: {
                     Text("Plain text you can print, paste into a message or hand to whoever is driving to the appointment. It never includes the Social Security number.")
                 }
 
-                Section {
-                    SummaryShareControl(
-                        summary: {
-                            PlanExporter.employerPacket(
-                                for: child,
-                                profile: FamilyProfileStore.current(in: context)
-                            )
-                        },
-                        title: "Employer packet",
-                        symbol: "briefcase"
-                    )
-                } header: {
-                    Text("For work")
-                } footer: {
-                    Text("The qualifying-life-event page HR asks for: the event, the date, what you are enclosing and where the enrollment window comes from. The 30-day window is the hardest deadline in this app, and it is missed more often by sending something incomplete than by forgetting.")
+                if isEmployerCoverage {
+                    Section {
+                        SummaryShareControl(
+                            summary: {
+                                PlanExporter.employerPacket(
+                                    for: child,
+                                    profile: FamilyProfileStore.current(in: context)
+                                )
+                            },
+                            title: "Employer packet",
+                            symbol: "briefcase",
+                            onUpgrade: { showingPaywall = true }
+                        )
+                    } header: {
+                        Text("For work")
+                    } footer: {
+                        Text("The qualifying-life-event page HR asks for: the event, the date, what you are enclosing and where the enrollment window comes from. The 30-day window is the hardest deadline in this app, and it is missed more often by sending something incomplete than by forgetting.")
+                    }
                 }
 
                 Section {
                     Label {
-                        Text("Nothing here is uploaded. The link carries your answers between two phones, and Baby Docs has no server to keep a copy on: the payload rides in the part of the address a browser never sends anywhere.")
+                        Text("The link carries your answers between two phones. Baby Docs has no server to keep a copy on, and the payload rides in the part of the address a browser never sends anywhere.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -82,6 +91,9 @@ struct SharePlanSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
+            }
+            .sheet(isPresented: $showingPaywall) {
+                PaywallView()
             }
         }
     }
@@ -256,6 +268,15 @@ struct ImportPlanSheet: View {
         child.recordLocalChange(in: context)
 
         RequirementEngine.reconcileAll(in: context)
+        Task {
+            let tasks = ((try? context.fetch(FetchDescriptor<Child>())) ?? [])
+                .filter { $0.deletedAt == nil }
+                .flatMap(\.liveTasks)
+            if !DeadlineReminderScheduler.plans(for: tasks).isEmpty {
+                await NotificationService.shared.requestAuthorization()
+            }
+            await DeadlineReminderScheduler.reschedule(in: context)
+        }
         onImported?()
         dismiss()
     }

@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" sizes="256x256" href="icon_256.png" />
     <link rel="apple-touch-icon" href="icon_256.png" />
-    <title>Baby Docs - Newborn Paperwork, Deadlines and Documents for iPhone</title>
+    <title>
+      Baby Docs - Newborn Paperwork, Deadlines and Documents for iPhone
+    </title>
     <meta
       name="description"
       content="The newborn paperwork, in order: which tasks apply to your household, when each window closes, what documents to bring, and a link to the office that issues it."
@@ -48,10 +50,12 @@
         "operatingSystem": "iOS",
         "applicationCategory": "UtilitiesApplication",
         "offers": [
-          { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-          { "@type": "Offer", "price": "4.99", "priceCurrency": "USD", "name": "Baby Docs Plus, weekly" },
-          { "@type": "Offer", "price": "29.99", "priceCurrency": "USD", "name": "Baby Docs Plus, yearly" },
-          { "@type": "Offer", "price": "59.99", "priceCurrency": "USD", "name": "Baby Docs Plus, one-time" }
+          {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "name": "Baby Docs free plan"
+          }
         ],
         "description": "A personalized plan for the administrative paperwork after a birth in the United States: Social Security card, birth certificate, health plan enrollment, parental leave and more, with the deadline and the official link for each.",
         "url": "https://jackwallner.com/ios/babydocs/",
@@ -522,9 +526,9 @@
     <section class="hero">
       <h1>The newborn paperwork, <span>in the right order</span></h1>
       <p class="tagline">
-        Tell it where you live and how you are covered. It tells you which
-        tasks actually apply to your family, when each window closes, what
-        documents to bring, and which office issues it.
+        Tell it where you live and how you are covered. It tells you which tasks
+        actually apply to your family, when each window closes, what documents
+        to bring, and which office issues it.
       </p>
       <p class="platforms">
         iPhone &middot; Works with no signal &middot; No account needed
@@ -571,8 +575,8 @@
           <span class="label">Documents</span>
           <h3>What to bring</h3>
           <p>
-            Every task carries its own list, so you find out about the
-            certified copy before you are standing at the counter.
+            Every task carries its own list, so you find out about the certified
+            copy before you are standing at the counter.
           </p>
         </div>
         <div class="feature-card">
@@ -600,7 +604,9 @@
           </p>
         </div>
         <div class="feature-card">
-          <span class="label babydocs-plus">More children &middot; Baby Docs Plus</span>
+          <span class="label babydocs-plus"
+            >More children &middot; Baby Docs Plus</span
+          >
           <h3>The next one is easier</h3>
           <p>
             A second baby inherits your household answers instead of asking
@@ -631,11 +637,13 @@
           Baby Docs tracks whether the number has been requested and whether the
           card has arrived. It has no field for the number itself, and neither
           the one-page summary nor the employer packet ever prints one. There is
-          no account and no server: everything you enter, and every document you
-          photograph, stays on your iPhone. Photographs are held unreadable while
-          the phone is locked and are excluded from every backup. No advertising
-          SDK, no behavioural analytics, nothing sold, and nothing for anyone to
-          breach.
+          no household-data account and no household-data server: everything you
+          enter, and every document you photograph, stays on your iPhone unless
+          you choose to send a plan. The plan link carries the answers needed to
+          rebuild that plan. Photographs are held unreadable while the phone is
+          locked and are excluded from every backup. Purchases are handled by
+          Apple and RevenueCat, and those services receive no household data. No
+          advertising SDK and no behavioural advertising.
         </p>
         <a href="privacy-policy.html">Privacy Policy &rarr;</a>
       </div>
@@ -688,24 +696,41 @@
               Plus is the work around the deadlines: a place to keep photographs
               of the documents themselves, tracking for the things you have sent
               and are waiting on, the packet your employer asks for, the
-              printable one-pager, and further children.
-              It is priced weekly, which is unusual and deliberate. The need is
-              intense for six to thirteen weeks and then genuinely over, so a
-              weekly price is the honest one for something that ends. There is a
-              one-time option for people who want to keep the document vault for
-              good.
+              printable one-pager, and further children. It is priced weekly,
+              which is unusual and deliberate. The need is intense for six to
+              thirteen weeks and then genuinely over, so a weekly price is the
+              honest one for something that ends. There is a one-time option for
+              people who want to keep the document vault for good.
             </p>
           </div>
 
           <div class="more-info-section">
             <h3>Specs</h3>
             <table class="specs-table">
-              <tr><td>Platform</td><td>iPhone, iOS 17 and later</td></tr>
-              <tr><td>Language</td><td>Swift 6, strict concurrency</td></tr>
-              <tr><td>Framework</td><td>SwiftUI</td></tr>
-              <tr><td>Data</td><td>SwiftData, on one device. No backend.</td></tr>
-              <tr><td>Storage</td><td>Local first, encrypted at rest by iOS</td></tr>
-              <tr><td>Account</td><td>None. There is nothing to sign in to.</td></tr>
+              <tr>
+                <td>Platform</td>
+                <td>iPhone, iOS 17 and later</td>
+              </tr>
+              <tr>
+                <td>Language</td>
+                <td>Swift 6, strict concurrency</td>
+              </tr>
+              <tr>
+                <td>Framework</td>
+                <td>SwiftUI</td>
+              </tr>
+              <tr>
+                <td>Data</td>
+                <td>SwiftData, on one device. No backend.</td>
+              </tr>
+              <tr>
+                <td>Storage</td>
+                <td>Local first, encrypted at rest by iOS</td>
+              </tr>
+              <tr>
+                <td>Account</td>
+                <td>None. There is nothing to sign in to.</td>
+              </tr>
             </table>
           </div>
 
@@ -719,10 +744,12 @@
               like an insurance window teaches you to ignore both.
             </p>
             <p>
-              <strong>Every rule cites its source.</strong> Each task carries the
-              government URL its rule came from and the date someone last read
-              that page, on the task itself rather than behind an info button. A
-              rules app whose rules quietly go stale is worse than no app.
+              <strong>Every sourced rule cites its source.</strong> Each sourced
+              task carries the government URL its rule came from and the date
+              someone last read that page, on the task itself rather than behind
+              an info button. Rules without an honest citation explain the
+              limit. A rules app whose rules quietly go stale is worse than no
+              app.
             </p>
             <p>
               <strong>A verified state beats fifty guessed ones.</strong> Where
@@ -733,9 +760,9 @@
             </p>
             <p>
               <strong>Changing an answer never destroys your work.</strong> Move
-              from a job-based plan to the Marketplace and the plan rebuilds, but
-              a task you have already completed, assigned or gathered documents
-              for stays exactly as you left it.
+              from a job-based plan to the Marketplace and the plan rebuilds,
+              but a task you have already completed, assigned or gathered
+              documents for stays exactly as you left it.
             </p>
           </div>
         </div>

@@ -19,34 +19,39 @@ struct FeedbackSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: AppTheme.spacing) {
-                Text("A rule that was wrong for your state, a deadline we do not have, a link that went nowhere. Whatever it is, it goes straight to the person who writes the rules.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppTheme.spacing) {
+                    Text("A rule that was wrong for your state, a deadline we do not have, a link that went nowhere. Whatever it is, it goes straight to the person who writes the rules.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                TextEditor(text: $feedbackText)
-                    .frame(minHeight: 150)
-                    .padding(AppTheme.tightSpacing)
-                    .background(
-                        AppTheme.surface,
-                        in: RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius)
-                    )
-                    .focused($feedbackFocused)
+                    TextEditor(text: $feedbackText)
+                        .frame(minHeight: 150)
+                        .padding(AppTheme.tightSpacing)
+                        .background(
+                            AppTheme.surface,
+                            in: RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius)
+                        )
+                        .focused($feedbackFocused)
+                        .accessibilityLabel("Feedback")
+                        .accessibilityHint("Describe what is missing or incorrect")
 
-                Text("This opens your mail app with a draft. Nothing is sent from inside Baby Docs, and nothing about your household goes with it.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    Text("This opens your mail app with a draft. Nothing is sent from inside Baby Docs, and nothing about your household goes with it.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                Button("Send feedback", action: sendFeedback)
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .frame(maxWidth: .infinity)
-                    .disabled(trimmedFeedback.isEmpty)
+                    Button("Send feedback", action: sendFeedback)
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .frame(maxWidth: .infinity)
+                        .disabled(trimmedFeedback.isEmpty)
+                }
+                .padding(.horizontal, AppTheme.margin + 8)
+                .padding(.bottom, AppTheme.looseSpacing)
             }
-            .padding(.horizontal, AppTheme.margin + 8)
-            .padding(.bottom, AppTheme.looseSpacing)
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle("Tell us what is missing")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -54,7 +59,6 @@ struct FeedbackSheet: View {
                     Button("Close") { dismiss() }
                 }
             }
-            .onAppear { feedbackFocused = true }
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)

@@ -96,8 +96,8 @@ struct RequirementEngineTests {
 
     // MARK: - Not destroying the family's work
 
-    @Test("A task the family has worked on survives becoming inapplicable")
-    func touchedTasksAreNotRetired() {
+    @Test("A worked task is retired without losing the family's work")
+    func touchedTasksAreRetiredWithoutLosingWork() {
         let context = makeContext()
         let (child, profile) = seed(context)
         RequirementEngine.reconcile(child: child, profile: profile, in: context)
@@ -108,13 +108,18 @@ struct RequirementEngineTests {
         }
         task.completedAt = Date()
         task.completedByName = "Sam"
+        task.submittedAt = Date()
+        task.expectedByAt = Date()
 
         profile.insuranceKind = .marketplace
         RequirementEngine.reconcile(child: child, profile: profile, in: context)
 
-        let survivor = child.liveTasks.first { $0.catalogKey == "insurance_employer" }
-        #expect(survivor != nil, "a completed task was deleted by an answer change")
-        #expect(survivor?.completedByName == "Sam")
+        #expect(!child.liveTasks.contains { $0.catalogKey == "insurance_employer" })
+        let retired = (child.tasks ?? []).first { $0.catalogKey == "insurance_employer" }
+        #expect(retired?.deletedAt != nil)
+        #expect(retired?.completedByName == "Sam")
+        #expect(retired?.submittedAt != nil)
+        #expect(retired?.expectedByAt != nil)
     }
 
     @Test("Rewriting a rule never clears completion, assignment or receipts")

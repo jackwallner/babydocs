@@ -20,6 +20,7 @@ struct DocumentsView: View {
     @State private var navigator = AppNavigator.shared
     @State private var addingFor: Child?
     @State private var viewing: VaultDocument?
+    @State private var errorMessage: String?
     /// A vault entry a swipe has proposed deleting, held until it is confirmed.
     /// See `confirmDelete`.
     @State private var pendingDeletion: VaultDocument?
@@ -55,6 +56,11 @@ struct DocumentsView: View {
                 Button("Keep them", role: .cancel) { pendingDeletion = nil }
             } message: {
                 Text("The photos are removed from this phone now and cannot be recovered: they are not backed up anywhere. The document itself is unaffected.")
+            }
+            .alert("Could not remove all photos", isPresented: errorBinding) {
+                Button("OK", role: .cancel) { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "")
             }
         }
     }
@@ -211,7 +217,10 @@ struct DocumentsView: View {
         // also when a parent has seen it work.
         if store.isPro || isWithinFreeWindow(child) {
             Button {
-                addingFor = child
+                Task {
+                    guard await vault.unlock(reason: "Unlock the document vault") else { return }
+                    addingFor = child
+                }
             } label: {
                 Label("Add a document", systemImage: "photo.badge.plus")
             }
@@ -270,9 +279,18 @@ struct DocumentsView: View {
         // makes an accidental swipe recoverable everywhere else in this app, but
         // leaving orphaned photographs of a Social Security card on disk after
         // someone asked for them to be gone is not a trade worth making.
-        VaultStore.shared.removePages(named: document.pageFileNames)
-        document.pageFileNames = []
-        document.tombstone(in: context)
+        let remaining = VaultStore.shared.removePages(named: document.pageFileNames)
+        document.pageFileNames = remaining
+        if remaining.isEmpty {
+            document.tombstone(in: context)
+        } else {
+            document.recordLocalChange(in: context)
+            errorMessage = "Some photos could not be removed. The document is still listed so you can try again."
+        }
+    }
+
+    private var errorBinding: Binding<Bool> {
+        Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
     }
 }
 
@@ -289,6 +307,8 @@ struct AddVaultDocumentSheet: View {
     @State private var images: [UIImage] = []
     @State private var isShowingSensitiveNote = false
     @State private var hasAcknowledged = false
+    @State private var isLoadingPhotos = false
+    @State private var photoLoadError: String?
     @State private var errorMessage: String?
 
     var body: some View {
@@ -310,6 +330,15 @@ struct AddVaultDocumentSheet: View {
 
                 Section {
                     photoPicker
+                    if isLoadingPhotos {
+                        ProgressView("Loading photos")
+                    }
+                    if let photoLoadError {
+                        Text(photoLoadError)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     if !images.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
@@ -337,7 +366,7 @@ struct AddVaultDocumentSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: attemptSave)
-                        .disabled(images.isEmpty)
+                        .disabled(images.isEmpty || isLoadingPhotos)
                 }
             }
             .onChange(of: picked) { _, items in
@@ -381,14 +410,25 @@ struct AddVaultDocumentSheet: View {
     }
 
     private func load(_ items: [PhotosPickerItem]) async {
+        isLoadingPhotos = true
+        photoLoadError = nil
         var loaded: [UIImage] = []
+        var failed = 0
         for item in items {
             if let data = try? await item.loadTransferable(type: Data.self),
                let image = UIImage(data: data) {
                 loaded.append(image)
+            } else {
+                failed += 1
             }
         }
         images = loaded
+        isLoadingPhotos = false
+        if failed > 0 {
+            photoLoadError = failed == 1
+                ? "One photo could not be loaded. Choose it again before saving."
+                : "\(failed) photos could not be loaded. Choose them again before saving."
+        }
     }
 
     /// The warning fires once per sensitive document rather than once per
@@ -406,15 +446,27 @@ struct AddVaultDocumentSheet: View {
     private func save() {
         let document = VaultDocument(kind: kind, child: child)
         document.customTitle = customTitle
+        var names: [String] = []
+        var inserted = false
         do {
-            document.pageFileNames = try images.map { try VaultStore.shared.addPage($0) }
+            for image in images {
+                names.append(try VaultStore.shared.addPage(image))
+            }
+            document.pageFileNames = names
+            context.insert(document)
+            inserted = true
+            guard document.recordLocalChange(in: context) else {
+                if inserted { context.delete(document) }
+                _ = VaultStore.shared.removePages(named: names)
+                errorMessage = "Could not save the document. Nothing was kept. Try again after freeing some space."
+                return
+            }
+            dismiss()
         } catch {
+            if inserted { context.delete(document) }
+            _ = VaultStore.shared.removePages(named: names)
             errorMessage = error.localizedDescription
-            return
         }
-        context.insert(document)
-        document.recordLocalChange(in: context)
-        dismiss()
     }
 }
 
@@ -422,6 +474,7 @@ struct AddVaultDocumentSheet: View {
 
 struct VaultDocumentViewer: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     let document: VaultDocument
 
     @State private var images: [UIImage] = []
@@ -437,12 +490,15 @@ struct VaultDocumentViewer: View {
                     )
                 } else {
                     TabView {
-                        ForEach(Array(images.enumerated()), id: \.offset) { _, image in
+                        ForEach(Array(images.enumerated()), id: \.offset) { index, image in
                             ZoomableImage(image: image)
+                                .accessibilityLabel("Document photo \(index + 1) of \(images.count)")
                         }
                     }
                     .tabViewStyle(.page)
                     .background(Color.black)
+                    .accessibilityLabel("Document pages")
+                    .accessibilityHint("Swipe between pages. Pinch to zoom a page.")
                 }
             }
             .navigationTitle(document.displayTitle)
@@ -460,6 +516,10 @@ struct VaultDocumentViewer: View {
         .task {
             images = document.pageFileNames.compactMap { VaultStore.shared.image(named: $0) }
         }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { images = [] }
+        }
+        .onDisappear { images = [] }
     }
 }
 

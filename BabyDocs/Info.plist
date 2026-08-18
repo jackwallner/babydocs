@@ -43,12 +43,6 @@
 	</array>
 	<key>UIUserInterfaceStyle</key>
 	<string>Automatic</string>
-	<!-- Asked only at the moment a parent taps "Add a document", never at
-	     launch. All three strings say where the data goes, because that is the
-	     only question worth answering when an app asks to photograph a Social
-	     Security card. -->
-	<key>NSCameraUsageDescription</key>
-	<string>To photograph your baby's documents. The photos stay on this phone, are not backed up, and are never uploaded anywhere.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>To add a document you have already photographed. The copy stays on this phone, is not backed up, and is never uploaded anywhere.</string>
 	<!-- Used once, when you tap "Use my location" on the household questions, to

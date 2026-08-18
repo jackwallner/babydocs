@@ -48,11 +48,11 @@ enum BabyModelStore {
         // full disk as a corrupt file. So it is moved aside, never removed, and
         // the app says so.
         let archived = archiveStoreFiles(at: url)
+        if let archived {
+            Task { @MainActor in recoveredStoreURL = archived }
+        }
 
         if let container = makeContainer(url: url) {
-            if let archived {
-                Task { @MainActor in recoveredStoreURL = archived }
-            }
             return container
         }
 

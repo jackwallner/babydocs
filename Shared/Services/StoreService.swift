@@ -18,7 +18,7 @@ struct PlanOption: Identifiable, Sendable {
     /// price, because a price with no period beside it is the single most
     /// common way a subscription purchase surprises the person who made it.
     var period: String = ""
-    /// "7 days free, then …" when the product carries an introductory offer.
+    /// "3 days free, then ..." when the product carries an introductory offer.
     /// Nil when it does not, or when eligibility could not be determined.
     var introOffer: String?
 

@@ -88,7 +88,7 @@ enum AppTheme {
     /// One number, in one place, so the six screens cannot drift apart again.
     /// Generous on purpose: dead space below the last row costs a parent
     /// nothing, and a control they cannot reach costs them the errand.
-    static let floatingTabBarInset: CGFloat = 76
+    static let floatingTabBarInset: CGFloat = 96
 }
 
 extension RequirementCategory {
@@ -148,30 +148,40 @@ extension View {
 
     /// The page treatment every top-level screen wears.
     ///
-    /// Hiding the scroll background and painting our own is what lets the
-    /// floating tab bar be transparent: the system's default list background is
-    /// drawn *over* the safe area in a way that makes the bar's blur read as a
-    /// hard edge, and this replaces it with one continuous surface the bar can
-    /// actually sit in front of.
+    /// Hiding the scroll background and painting our own gives every page one
+    /// continuous surface behind the system's floating tab bar. The list itself
+    /// ends before the bar, so its rows cannot become unreadable behind glass.
     ///
-    /// The bottom margin comes with it, and is not optional. Once content
-    /// scrolls under the bar, the last row of every list ends up behind glass
-    /// unless something reserves the space, and on a task detail the last row is
-    /// the source footnote: the one element that carries the app's whole claim
-    /// to be checkable. `LayoutUITests` asserts it stays reachable.
+    /// The bottom margin comes with it, and is not optional. The last row of
+    /// every list needs room to clear the bar, and on a task detail the last row
+    /// is the source footnote: the one element that carries the app's whole
+    /// claim to be checkable. `LayoutUITests` asserts it stays reachable.
     ///
     /// Pass `underTabBar: false` on a sheet. A sheet is presented over the tab
-    /// bar rather than behind it, so reserving the bar's height there is 76
+    /// bar rather than behind it, so reserving the bar's height there is 96
     /// points of empty page under the last row and nothing else.
     func planPageBackground(underTabBar: Bool = true) -> some View {
-        self
-            .scrollContentBackground(.hidden)
-            .background(AppTheme.pageBackground)
-            .contentMargins(
-                .bottom,
-                underTabBar ? AppTheme.floatingTabBarInset : AppTheme.looseSpacing,
-                for: .scrollContent
-            )
+        GeometryReader { proxy in
+            ZStack(alignment: .top) {
+                AppTheme.pageBackground
+                    .ignoresSafeArea()
+
+                self
+                    .scrollContentBackground(.hidden)
+                    .contentMargins(
+                        .bottom,
+                        underTabBar ? AppTheme.floatingTabBarInset : AppTheme.looseSpacing,
+                        for: .scrollContent
+                    )
+                    .frame(
+                        width: proxy.size.width,
+                        height: underTabBar
+                            ? max(0, proxy.size.height - AppTheme.floatingTabBarInset)
+                            : proxy.size.height,
+                        alignment: .top
+                    )
+            }
+        }
     }
 }
 

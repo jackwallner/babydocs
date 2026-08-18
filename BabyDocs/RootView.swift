@@ -5,6 +5,8 @@ struct RootView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
     @Query(filter: #Predicate<Child> { $0.deletedAt == nil }) private var children: [Child]
+    @Query(filter: #Predicate<Child> { $0.deletedAt != nil }, sort: \Child.birthDate)
+    private var archivedChildren: [Child]
 
     @State private var navigator = AppNavigator.shared
     @State private var saveFailures = SaveFailureReporter.shared
@@ -14,13 +16,15 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if children.isEmpty {
+            if children.isEmpty && archivedChildren.isEmpty {
                 // No child means no plan, and a plan is the entire app. The
                 // intake is not a wizard the user can be dropped into the
                 // middle of: every deadline in the app is derived from the
                 // birth date and the state, so there is nothing to show until
                 // those exist.
                 OnboardingFlow()
+            } else if children.isEmpty {
+                ArchivedChildrenRecoveryView(children: archivedChildren)
             } else {
                 TabView(selection: $navigator.selectedTab) {
                     PlanView()
@@ -43,7 +47,8 @@ struct RootView: View {
                 // stopping at a hard edge with black either side of the glass.
                 // Paired with `planPageBackground()` on each tab, which gives
                 // the blur something to actually blur.
-                .toolbarBackground(.hidden, for: .tabBar)
+                .toolbarBackground(.visible, for: .tabBar)
+                .toolbarBackground(AppTheme.pageBackground, for: .tabBar)
             }
         }
         .sheet(isPresented: $navigator.isShowingPaywall) {
@@ -75,14 +80,17 @@ struct RootView: View {
             // whenever a child is added. Cheap when nothing changed: the engine
             // writes only what actually moved.
             RequirementEngine.reconcileAll(in: context)
-            await rescheduleReminders()
+            await DeadlineReminderScheduler.reschedule(in: context)
         }
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .active:
                 RequirementEngine.reconcileAll(in: context)
-                Task { await rescheduleReminders() }
-            case .background:
+                Task {
+                    await StoreService.shared.refresh()
+                    await DeadlineReminderScheduler.reschedule(in: context)
+                }
+            case .inactive, .background:
                 // Handing the phone to someone between two appointments should
                 // not hand them the document vault as well.
                 VaultStore.shared.lock()
@@ -130,10 +138,6 @@ struct RootView: View {
             && ReviewPromptTracker.shouldRequestAfterPositiveMoment()
     }
 
-    private func rescheduleReminders() async {
-        let tasks = children.flatMap(\.liveTasks)
-        await DeadlineReminderScheduler.reschedule(for: tasks)
-    }
 }
 
 /// `sheet(item:)` needs an identity, and a seed's identity is its contents: two

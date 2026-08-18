@@ -88,6 +88,9 @@ enum PlanExporter {
         profile: FamilyProfile,
         now: Date = Date()
     ) -> String {
+        guard profile.insuranceKind == .employer else {
+            return "EMPLOYER PACKET NOT APPLICABLE\n\nThis packet is only for job-based health coverage. Check your plan's own enrollment instructions for the coverage selected in Baby Docs."
+        }
         var lines: [String] = []
         let insurance = child.liveTasks.first { $0.catalogKey == "insurance_employer" }
 

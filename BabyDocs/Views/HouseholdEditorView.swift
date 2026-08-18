@@ -29,11 +29,15 @@ struct HouseholdEditorView: View {
                         if let profile {
                             profile.recordLocalChange(in: context)
                             RequirementEngine.reconcileAll(in: context)
+                            Task {
+                                await DeadlineReminderScheduler.reschedule(in: context)
+                            }
                         }
                         dismiss()
                     }
                 }
             }
+            .interactiveDismissDisabled()
             .onAppear {
                 if profile == nil { profile = FamilyProfileStore.current(in: context) }
             }

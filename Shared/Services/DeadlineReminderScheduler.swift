@@ -1,5 +1,6 @@
 import Foundation
 import OSLog
+import SwiftData
 import UserNotifications
 
 /// Local notifications for the deadlines that actually close.
@@ -98,7 +99,10 @@ enum DeadlineReminderScheduler {
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized
-                || settings.authorizationStatus == .provisional else { return }
+                || settings.authorizationStatus == .provisional else {
+            await cancelAll()
+            return
+        }
 
         let pending = await center.pendingNotificationRequests()
         let ours = pending.map(\.identifier).filter { $0.hasPrefix(identifierPrefix) }
@@ -125,6 +129,19 @@ enum DeadlineReminderScheduler {
             } catch {
                 log.error("Could not schedule \(plan.identifier): \(error.localizedDescription)")
             }
+        }
+    }
+
+    /// Rebuilds reminders from the live children in one store pass. Keeping
+    /// this here gives every write path the same source of truth.
+    static func reschedule(in context: ModelContext, now: Date = Date()) async {
+        do {
+            let children = try context.fetch(FetchDescriptor<Child>())
+                .filter { $0.deletedAt == nil }
+            await reschedule(for: children.flatMap(\.liveTasks), now: now)
+        } catch {
+            log.error("Could not read children while rescheduling: \(error.localizedDescription)")
+            await cancelAll()
         }
     }
 

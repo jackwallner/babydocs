@@ -83,16 +83,12 @@ enum RequirementEngine {
                 // Already retired: leave it exactly as it is. Tombstoning a
                 // tombstone would rewrite the row on every launch.
                 if task.deletedAt != nil { continue }
-                // Only retire what the family has not touched. Someone who
-                // ticked a document and then corrected an intake answer has
-                // still done that work, and silently deleting it is worse than
-                // leaving one stale row they can dismiss themselves.
-                if hasFamilyWork(task) {
-                    result.total += 1
-                } else {
-                    task.tombstone(in: context)
-                    result.retired += 1
-                }
+                // A changed answer removes the rule from the active plan, but
+                // never destroys the family's work. The row remains in the
+                // store so a later answer can restore it with its notes,
+                // receipts and checked documents intact.
+                task.tombstone(in: context)
+                result.retired += 1
 
             case (false, .none):
                 continue
@@ -109,8 +105,14 @@ enum RequirementEngine {
     @discardableResult
     static func reconcileAll(in context: ModelContext, now: Date = Date()) -> Result {
         let profile = FamilyProfileStore.current(in: context)
-        let children = ((try? context.fetch(FetchDescriptor<Child>())) ?? [])
-            .filter { $0.deletedAt == nil }
+        let children: [Child]
+        do {
+            children = try context.fetch(FetchDescriptor<Child>())
+                .filter { $0.deletedAt == nil }
+        } catch {
+            SaveFailureReporter.shared.report(error)
+            return Result()
+        }
 
         var combined = Result()
         for child in children {
@@ -291,16 +293,6 @@ enum RequirementEngine {
         return changed
     }
 
-    /// Has anyone actually done something with this task? Anything true here
-    /// makes the row the family's rather than the engine's.
-    private static func hasFamilyWork(_ task: RequirementTask) -> Bool {
-        task.completedAt != nil
-            || task.dismissedAt != nil
-            || !task.assigneeName.isEmpty
-            || !task.parentNotes.isEmpty
-            || !task.liveReceipts.isEmpty
-            || task.liveDocuments.contains(where: \.isOnHand)
-    }
 }
 
 // MARK: - Profile store
@@ -315,16 +307,16 @@ enum FamilyProfileStore {
     static func current(in context: ModelContext) -> FamilyProfile {
         var descriptor = FetchDescriptor<FamilyProfile>()
         descriptor.fetchLimit = 1
-        if let existing = (try? context.fetch(descriptor))?.first {
-            return existing
-        }
-        let profile = FamilyProfile()
-        context.insert(profile)
         do {
-            try context.save()
+            if let existing = try context.fetch(descriptor).first {
+                return existing
+            }
         } catch {
             SaveFailureReporter.shared.report(error)
         }
+        let profile = FamilyProfile()
+        context.insert(profile)
+        profile.recordLocalChange(in: context)
         return profile
     }
 }
