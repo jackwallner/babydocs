@@ -42,7 +42,6 @@ OUT = os.path.join(ROOT, "fastlane", "screenshots", "en-US")
 W, H = 1320, 2868
 
 INK = (17, 24, 39)
-SUB = (85, 99, 119)
 BEZEL = (24, 25, 27)
 
 # Pulled around the app's own iOS blue, so six cards read as one product. The
@@ -58,7 +57,6 @@ TINTS = {
 }
 
 SF = "/System/Library/Fonts/SFNSRounded.ttf"
-SF_TEXT = "/System/Library/Fonts/SFNS.ttf"
 
 # The floating tab bar sits over a scroll-edge material, and on a long scrolling
 # screen the simulator captures the content behind it as a mirrored smear. It is
@@ -67,7 +65,7 @@ SF_TEXT = "/System/Library/Fonts/SFNS.ttf"
 # ordinary store creative; one with garbled text in it is not.
 TAB_BAR_CROP = 270
 
-# (raw, output, tint, headline, subline, crop_bottom)
+# (raw, output, tint, headline, crop_bottom)
 #
 # The first three have to stand alone, because App Store search shows them
 # without the ones after. So they are the three questions a parent actually
@@ -75,28 +73,22 @@ TAB_BAR_CROP = 270
 FRAMES = [
     ("01-plan.png", "01-deadlines.png", "blue",
      "Every deadline,\nsoonest first",
-     "Built from seven questions about your household, not a generic list.",
      720),
     ("02-task-detail.png", "02-why-and-where.png", "mint",
      "Why it applies, and\nwhere to do it",
-     "Each task carries the rule behind its date and a link to the office that issues it.",
      TAB_BAR_CROP),
     ("03-task-documents.png", "03-documents.png", "sand",
      "What to bring,\nbefore you go",
-     "The document list stays beside the official link, so you know what to gather.",
      850),
     ("06-documents.png", "04-still-to-find.png", "lilac",
      "Everything still to find,\nin one place",
-     "Every outstanding document, gathered in one place.",
      650),
     ("07-settings.png", "05-sources.png", "slate",
      "Every rule shows\nits working",
-     "The government page each date came from, and the day a person last read it.",
      TAB_BAR_CROP),
     # A sheet, so there is no tab bar to crop.
     ("05-paywall.png", "06-free.png", "blue",
      "Every deadline is free,\nand stays free",
-     "Plus adds the vault, follow-ups, employer paperwork and more children.",
      650),
 ]
 
@@ -146,7 +138,7 @@ def wrap(draw: ImageDraw.ImageDraw, text: str, fnt, max_width: int) -> list[str]
 
 
 def compose(
-    raw_name: str, out_name: str, tint: str, headline: str, subline: str, crop_bottom: int
+    raw_name: str, out_name: str, tint: str, headline: str, crop_bottom: int
 ) -> None:
     raw = Image.open(os.path.join(RAW, raw_name)).convert("RGB")
     if crop_bottom:
@@ -157,21 +149,15 @@ def compose(
 
     margin = 86
     head_font = font(SF, 90)
-    sub_font = font(SF_TEXT, 44)
 
     y = 155
     for line in wrap(draw, headline, head_font, W - margin * 2):
         draw.text((margin, y), line, font=head_font, fill=INK)
         y += 107
 
-    y += 18
-    for line in wrap(draw, subline, sub_font, W - margin * 2):
-        draw.text((margin, y), line, font=sub_font, fill=SUB)
-        y += 58
-
     # The phone is scaled to whatever height is left, so an edit to the copy
     # above cannot push the screen off the bottom of the canvas.
-    top = y + 80
+    top = y + 64
     bottom_margin = 92
     available_h = H - top - bottom_margin
     frame_w = W - margin * 2
