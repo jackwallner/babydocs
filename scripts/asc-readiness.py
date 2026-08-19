@@ -27,15 +27,16 @@ would not:
   * That the URLs resolve. App Review rejects on a dead privacy URL, and these
     are served from a static host that knows nothing about this repo.
 
-Two things it cannot check, because Apple does not expose them in the public
-API at all:
+Two things still need a human eye:
 
-  * attaching the **first** IAP to a version, which is web-UI only. See the
-    `ios-dev` skill for the sequence.
+  * performing the **first** IAP attachment, which is web-UI only. Once it has
+    happened, the review-submission item audit below verifies the result.
   * whether the screenshots show the build that is attached.
 """
 from __future__ import annotations
 
+import base64
+from collections import Counter
 import re
 import sys
 import urllib.error
@@ -104,12 +105,21 @@ def editable_version(client: ASC, app_id: str) -> dict | None:
         "DEVELOPER_REJECTED",
         "REJECTED",
         "METADATA_REJECTED",
+        "READY_FOR_REVIEW",
         "WAITING_FOR_REVIEW",
     }
     for version in client.get(f"/apps/{app_id}/appStoreVersions", limit=20).get("data", []):
         if version["attributes"].get("appStoreState") in editable:
             return version
     return None
+
+
+def review_item_type(item_id: str) -> str | None:
+    try:
+        padded = item_id + "=" * ((4 - len(item_id) % 4) % 4)
+        return base64.urlsafe_b64decode(padded).decode().split("|")[1]
+    except (IndexError, UnicodeDecodeError, ValueError):
+        return None
 
 
 def check_description(text: str) -> None:
@@ -280,6 +290,37 @@ def main() -> int:
         check(f"iap {attributes.get('productId')}", attributes.get("state"),
               attributes.get("state") in ("READY_TO_SUBMIT", "APPROVED", "WAITING_FOR_REVIEW"))
 
+    submissions = client.get_all(f"/apps/{app_id}/reviewSubmissions", limit=50)
+    ios_submissions = [s for s in submissions if s["attributes"].get("platform") == "IOS"]
+    if ios_submissions:
+        submission = max(
+            ios_submissions,
+            key=lambda s: s["attributes"].get("submittedDate") or "",
+        )
+        submission_attributes = submission["attributes"]
+        check(
+            "iOS review submission",
+            submission_attributes.get("state"),
+            submission_attributes.get("state") in ("READY_FOR_REVIEW", "WAITING_FOR_REVIEW"),
+        )
+        items = client.get_all(f"/reviewSubmissions/{submission['id']}/items", limit=50)
+        item_types = Counter(review_item_type(item["id"]) for item in items)
+        expected_item_types = Counter({"6": 1, "17": 1, "18": 2, "19": 1})
+        check("iOS review submission item count", len(items), len(items) == 5)
+        check(
+            "iOS review submission item types",
+            dict(sorted(item_types.items())),
+            item_types == expected_item_types,
+        )
+        item_states = {item["attributes"].get("state") for item in items}
+        check(
+            "iOS review submission item states",
+            sorted(item_states),
+            item_states <= {"READY_FOR_REVIEW", "WAITING_FOR_REVIEW"},
+        )
+    else:
+        check("iOS review submission", "not created", False)
+
     build = client.get_optional(f"/appStoreVersions/{vid}/build").get("data")
     attached = None
     if build:
@@ -315,9 +356,7 @@ def main() -> int:
         status = url_status(url)
         print(f"  {'+' if status == '200' else '-'} {status}  {url}")
 
-    print("\nNOT VISIBLE TO THE API, CHECK BY HAND:")
-    print("  * the FIRST subscription and non-consumable must be added to the")
-    print("    draft submission through the ASC web UI (see the ios-dev skill)")
+    print("\nCHECK BY HAND:")
     print("  * that the screenshots show the build that is attached")
     return 1 if gaps else 0
 
