@@ -158,6 +158,12 @@ struct RemindersAndExportTests {
         let text = PlanExporter.summary(for: child, profile: profile, now: now)
         #expect(!text.contains("123-45-6789"))
         #expect(text.contains("redacted Social Security number"))
+
+        receipt.value = "SSN 123.45.6789"
+        receipt.recordLocalChange(in: context)
+        let dotted = PlanExporter.summary(for: child, profile: profile, now: now)
+        #expect(!dotted.contains("123.45.6789"))
+        #expect(dotted.contains("redacted Social Security number"))
     }
 
     @Test("Empty sections print as empty rather than vanishing")

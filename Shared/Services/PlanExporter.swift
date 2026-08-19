@@ -211,7 +211,7 @@ enum PlanExporter {
     /// useful confirmation and tracking values while removing the common SSN
     /// shapes from every printable copy.
     private static func safeReceiptValue(_ value: String) -> String {
-        let pattern = #"(?<![0-9])[0-9]{3}[- ]?[0-9]{2}[- ]?[0-9]{4}(?![0-9])"#
+        let pattern = #"(?<![0-9])[0-9]{3}[- .]?[0-9]{2}[- .]?[0-9]{4}(?![0-9])"#
         guard value.range(of: pattern, options: .regularExpression) != nil else {
             return value
         }
