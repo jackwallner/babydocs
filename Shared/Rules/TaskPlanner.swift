@@ -101,6 +101,11 @@ enum TaskPlanner {
         var hardDeadlineCount = 0
         var nextHardDeadline: Date?
         var nextHardDeadlineTitle: String?
+        /// So the card at the top of the plan can be the task rather than a
+        /// description of it. A parent who reads "closes Thursday" wants to open
+        /// the thing, and having to find the same title again in the list below
+        /// is the app making them do its work twice.
+        var nextHardDeadlineID: UUID?
 
         var totalCount: Int { openCount + doneCount }
 
@@ -128,6 +133,7 @@ enum TaskPlanner {
 
         overview.nextHardDeadline = soonest?.dueAt
         overview.nextHardDeadlineTitle = soonest?.title
+        overview.nextHardDeadlineID = soonest?.id
         return overview
     }
 
@@ -148,7 +154,7 @@ enum TaskPlanner {
         case 1: phrase = "Due tomorrow"
         case 2...13: phrase = "\(days) days left"
         default:
-            phrase = "Due \(task.dueAt.map { Self.dateFormatter.string(from: $0) } ?? "")"
+            phrase = "Due \(task.dueAt.map { Self.dayPhrase(for: $0, now: now) } ?? "")"
         }
         // **The word, not just the colour.**
         //
@@ -161,10 +167,42 @@ enum TaskPlanner {
         return task.deadlineKind == .recommended ? "Suggested \u{00B7} \(phrase)" : phrase
     }
 
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        return formatter
-    }()
+    /// A day, said the same way everywhere.
+    ///
+    /// The year is dropped inside the current one. The plan showed "Thursday,
+    /// Sep 17" in the header card and "Due Sep 17, 2026" in the row underneath
+    /// it, for the same task, six points apart: two formats and a year nobody
+    /// needed, which is most of why that screen read as assembled rather than
+    /// designed. One function now, and both callers go through it.
+    static func dayPhrase(for date: Date, now: Date = Date(), calendar: Calendar = .current) -> String {
+        let sameYear = calendar.component(.year, from: date) == calendar.component(.year, from: now)
+        return date.formatted(
+            sameYear
+                ? .dateTime.month(.abbreviated).day()
+                : .dateTime.month(.abbreviated).day().year()
+        )
+    }
+
+    /// The header card's one line about the next hard deadline: the day it
+    /// closes, and how long that is. Same day string as the pill on the row
+    /// below, plus the weekday, because a weekday is what a parent checks a
+    /// deadline against when they are deciding whether it can wait.
+    static func deadlineLine(for date: Date, now: Date = Date(), calendar: Calendar = .current) -> String {
+        let weekday = date.formatted(.dateTime.weekday(.wide))
+        let day = dayPhrase(for: date, now: now, calendar: calendar)
+        let days = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: now),
+            to: calendar.startOfDay(for: date)
+        ).day ?? 0
+        let remaining: String
+        switch days {
+        case ..<(-1): remaining = "\(-days) days past due"
+        case -1: remaining = "1 day past due"
+        case 0: remaining = "today"
+        case 1: remaining = "tomorrow"
+        default: remaining = "\(days) days left"
+        }
+        return "\(weekday), \(day) \u{00B7} \(remaining)"
+    }
 }

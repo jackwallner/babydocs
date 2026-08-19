@@ -128,6 +128,15 @@ final class ScreenshotUITests: XCTestCase {
     /// host under the device's data volume. Also attached, so a failing run in
     /// Xcode still shows what was on screen.
     private func capture(name: String) {
+        // Let the screen settle first.
+        //
+        // A capture taken in the same instant as a swipe catches the scroll-edge
+        // material mid-animation: the large title half faded into the bar, the
+        // row behind it half blurred. At phone size that is a frame of an
+        // animation; blown up to 1320 points on a store page it is a smear
+        // across the top of the picture, and it cost a set of screenshots once
+        // already.
+        Thread.sleep(forTimeInterval: 0.8)
         let screenshot = XCUIScreen.main.screenshot()
 
         let attachment = XCTAttachment(screenshot: screenshot)

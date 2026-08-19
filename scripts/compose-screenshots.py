@@ -58,14 +58,21 @@ TINTS = {
 
 SF = "/System/Library/Fonts/SFNSRounded.ttf"
 
-# The floating tab bar sits over a scroll-edge material, and on a long scrolling
-# screen the simulator captures the content behind it as a mirrored smear. It is
-# a capture artifact rather than a bug, but it is unmistakable at store size, so
-# those raws are cropped just above the bar. A screenshot without a tab bar is
-# ordinary store creative; one with garbled text in it is not.
+# The floating tab bar sits over a scroll-edge material, and the content passes
+# under it by design, so a capture that includes the bar includes whatever was
+# sliding under the glass at that instant. It is unmistakable at store size, so
+# every raw is cropped just above the bar. A screenshot without a tab bar is
+# ordinary store creative; one with a half-legible row behind glass is not.
 TAB_BAR_CROP = 270
 
-# (raw, output, tint, headline, crop_bottom)
+# A scrolled screen keeps its content under the translucent nav bar, which is
+# right on a phone and reads as a smear of half-legible text when the picture is
+# blown up to store size. The one frame captured mid-scroll is cropped below the
+# bar instead: a clean band of content, and the screen it belongs to is already
+# named on the frame before it.
+CROPPED_NAV_BAR = 400
+
+# (raw, output, tint, headline, crop_bottom, crop_top)
 #
 # The first three have to stand alone, because App Store search shows them
 # without the ones after. So they are the three questions a parent actually
@@ -73,23 +80,25 @@ TAB_BAR_CROP = 270
 FRAMES = [
     ("01-plan.png", "01-deadlines.png", "blue",
      "Every deadline,\nsoonest first",
-     720),
+     TAB_BAR_CROP),
     ("02-task-detail.png", "02-why-and-where.png", "mint",
      "Why it applies, and\nwhere to do it",
      TAB_BAR_CROP),
     ("03-task-documents.png", "03-documents.png", "sand",
      "What to bring,\nbefore you go",
-     850),
+     TAB_BAR_CROP, CROPPED_NAV_BAR),
     ("06-documents.png", "04-still-to-find.png", "lilac",
      "Everything still to find,\nin one place",
-     650),
+     TAB_BAR_CROP),
     ("07-settings.png", "05-sources.png", "slate",
      "Every rule shows\nits working",
      TAB_BAR_CROP),
-    # A sheet, so there is no tab bar to crop.
+    # A sheet, so there is no tab bar. The crop stops below the purchase
+    # button: the restore link underneath it landed against the bezel, and a
+    # control cut in half by a drawn phone reads as a rendering mistake.
     ("05-paywall.png", "06-free.png", "blue",
      "Every deadline is free,\nand stays free",
-     650),
+     170),
 ]
 
 
@@ -138,11 +147,16 @@ def wrap(draw: ImageDraw.ImageDraw, text: str, fnt, max_width: int) -> list[str]
 
 
 def compose(
-    raw_name: str, out_name: str, tint: str, headline: str, crop_bottom: int
+    raw_name: str,
+    out_name: str,
+    tint: str,
+    headline: str,
+    crop_bottom: int,
+    crop_top: int = 0,
 ) -> None:
     raw = Image.open(os.path.join(RAW, raw_name)).convert("RGB")
-    if crop_bottom:
-        raw = raw.crop((0, 0, raw.width, raw.height - crop_bottom))
+    if crop_bottom or crop_top:
+        raw = raw.crop((0, crop_top, raw.width, raw.height - crop_bottom))
 
     image = canvas(tint)
     draw = ImageDraw.Draw(image)
@@ -157,13 +171,21 @@ def compose(
 
     # The phone is scaled to whatever height is left, so an edit to the copy
     # above cannot push the screen off the bottom of the canvas.
-    top = y + 64
+    #
+    # Whatever is left over after that is split above and below the device
+    # rather than dropped underneath it. The old version pinned the device to
+    # the top of the space and let the remainder pile up at the bottom, and with
+    # the deeper crops that was five hundred points of empty tint under a stubby
+    # phone: the frame read as an unfinished layout rather than a considered one,
+    # which is most of what "not seamless between sections" was about.
+    head_bottom = y + 40
     bottom_margin = 92
-    available_h = H - top - bottom_margin
+    available_h = H - head_bottom - bottom_margin
     frame_w = W - margin * 2
 
     scale = min(frame_w / raw.width, available_h / raw.height)
     screen_w, screen_h = int(raw.width * scale), int(raw.height * scale)
+    top = head_bottom + max(24, (available_h - screen_h) // 2)
 
     pad = 14
     body = [

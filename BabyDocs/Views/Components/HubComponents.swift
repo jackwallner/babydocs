@@ -152,40 +152,157 @@ struct TaskRow: View {
     }
 }
 
-// MARK: - Next deadline card
+// MARK: - Document checklist row
 
-/// The one thing worth putting in front of someone who has thirty seconds and
-/// one hand free.
+/// One line of the gather list: a tick, what it is, which task wants it, and a
+/// way through to that task.
 ///
-/// The card itself is neutral. It used to be washed in red, which made the most
-/// important element on the home screen read as an error state rather than as a
-/// heading, and left no colour in reserve for the thing that actually is urgent.
-/// Red now appears on exactly one line: the date.
-struct NextDeadlineCard: View {
+/// Same shape as `TaskRow` on purpose, including the 44pt tick target and the
+/// link sitting beside the button rather than around it. The two screens are
+/// asking the same question about different nouns, so they should not look like
+/// two different apps, and a tick box that is 22 points tall on one screen and
+/// 44 on the other is a miss on the screen where somebody is standing at a
+/// counter holding a baby.
+struct DocumentChecklistRow: View {
+    let item: DocumentItem
+    var showChildName = false
+    let onToggle: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: AppTheme.spacing) {
+            Button(action: onToggle) {
+                Image(systemName: item.isOnHand ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundStyle(item.isOnHand ? Color.accentColor : Color.secondary)
+                    .frame(width: 44, height: 44, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(item.isOnHand
+                                ? "Mark \(item.title) not found yet"
+                                : "Mark \(item.title) as in hand")
+
+            link
+        }
+        .padding(.vertical, 2)
+    }
+
+    @ViewBuilder
+    private var link: some View {
+        if let taskID = item.task?.id {
+            NavigationLink(value: taskID) {
+                content
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
+        } else {
+            content.frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var content: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(item.title)
+                .foregroundStyle(item.isOnHand ? .secondary : .primary)
+                .strikethrough(item.isOnHand, color: .secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if !secondaryLine.isEmpty {
+                Text(secondaryLine)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    /// The child's name leads once there is more than one, because with twins
+    /// the two rows are otherwise the same words twice and the parent cannot
+    /// tell which one they just found.
+    private var secondaryLine: String {
+        guard let task = item.task else { return "" }
+        var parts: [String] = []
+        if showChildName { parts.append(task.child?.displayName ?? "Your baby") }
+        parts.append(task.title)
+        return parts.joined(separator: " \u{00B7} ")
+    }
+}
+
+// MARK: - The card at the top of the plan
+
+/// One card, not two.
+///
+/// The plan used to open with a deadline slab and then a second, almost empty
+/// slab underneath it holding "0 of 15 done" and a bar. Two cards of different
+/// heights, saying two halves of one sentence, with a gap between them: the
+/// screen read as assembled rather than designed, and the gap made the progress
+/// bar look like it belonged to whatever came next. They are one card with a
+/// rule through it now, which is what they always were.
+///
+/// The card is the task. Tapping it opens the deadline it names, so the parent
+/// who reads "Thursday, 30 days left" does not then have to find the same title
+/// again in the list below.
+struct PlanHeaderCard: View {
     let overview: TaskPlanner.Overview
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.tightSpacing) {
-            Label {
-                Text(overview.nextHardDeadline == nil ? "Nothing closing" : "Next hard deadline")
-                    .font(.caption.weight(.semibold))
-                    .textCase(.uppercase)
-                    .tracking(0.4)
-            } icon: {
-                Image(systemName: overview.nextHardDeadline == nil
-                      ? "checkmark.circle.fill"
-                      : "exclamationmark.circle.fill")
-                    .font(.caption)
+        VStack(alignment: .leading, spacing: AppTheme.spacing) {
+            if let id = overview.nextHardDeadlineID {
+                NavigationLink(value: id) {
+                    deadlineBlock
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            } else {
+                deadlineBlock
             }
-            .foregroundStyle(overview.nextHardDeadline == nil ? Color.green : Color.red)
+
+            Divider()
+
+            PlanProgressCard(overview: overview, isBare: true)
+        }
+        .planCard(padding: AppTheme.spacing + 2)
+    }
+
+    /// The card itself stays neutral. It used to be washed in red, which made
+    /// the most important element on the home screen read as an error state and
+    /// left no colour in reserve for the thing that actually is urgent. Red
+    /// appears on exactly two lines: the eyebrow and the date.
+    private var deadlineBlock: some View {
+        VStack(alignment: .leading, spacing: AppTheme.tightSpacing) {
+            HStack(spacing: AppTheme.tightSpacing) {
+                Label {
+                    Text(overview.nextHardDeadline == nil ? "Nothing closing" : "Next hard deadline")
+                        .font(.caption.weight(.semibold))
+                        .textCase(.uppercase)
+                        .tracking(0.4)
+                } icon: {
+                    Image(systemName: overview.nextHardDeadline == nil
+                          ? "checkmark.circle.fill"
+                          : "exclamationmark.circle.fill")
+                        .font(.caption)
+                }
+                .foregroundStyle(overview.nextHardDeadline == nil ? Color.green : Color.red)
+
+                Spacer(minLength: 0)
+                // No chevron of our own here. The row is a `NavigationLink`, and
+                // the list draws the disclosure indicator itself: adding one put
+                // two arrows on one card, six points apart, pointing at the same
+                // destination.
+            }
 
             if let date = overview.nextHardDeadline, let title = overview.nextHardDeadlineTitle {
                 Text(title)
                     .font(.headline)
+                    .foregroundStyle(.primary)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(date, format: .dateTime.weekday(.wide).month().day())
+                // The same day string the row below uses. Two formats for one
+                // date, six points apart, is what "it just looks bad" was made
+                // of. See `TaskPlanner.deadlineLine`.
+                Text(TaskPlanner.deadlineLine(for: date))
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
             } else {
                 Text("Every closing window is behind you. What is left has no date attached to it.")
                     .font(.subheadline)
@@ -193,20 +310,31 @@ struct NextDeadlineCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .planCard(padding: AppTheme.spacing + 2)
     }
 }
 
-// MARK: - Progress card
+// MARK: - Progress
 
+/// Used bare inside `PlanHeaderCard`, and as its own card on the child detail,
+/// which has no deadline block to sit under.
 struct PlanProgressCard: View {
     let overview: TaskPlanner.Overview
+    var isBare = false
 
     var body: some View {
+        if isBare {
+            content
+        } else {
+            content.planCard()
+        }
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: AppTheme.tightSpacing) {
             BadgeRow {
                 Text("\(overview.doneCount) of \(overview.totalCount) done")
                     .font(.subheadline.weight(.medium))
+                    .monospacedDigit()
                 Spacer(minLength: 0)
                 if overview.overdueCount > 0 {
                     Text("\(overview.overdueCount) past due")
@@ -219,7 +347,47 @@ struct PlanProgressCard: View {
             // look like a screen showing none.
             ProgressBar(value: overview.progress)
         }
-        .planCard()
+    }
+}
+
+// MARK: - Section header
+
+/// The heading above a group of rows, everywhere there is one.
+///
+/// The blurb used to be a `footer`, which put an explanation of a section
+/// *underneath* the section it explained and immediately above the next one, so
+/// every gap on the plan held a grey sentence belonging to the card above it and
+/// sitting closer to the card below. Read top to bottom it looked like each
+/// heading had lost its subtitle. It is a subtitle now.
+struct PlanSectionHeader: View {
+    let title: String
+    var blurb: String = ""
+    var count: Int?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: AppTheme.tightSpacing) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Spacer(minLength: 0)
+                if let count {
+                    Text("\(count)")
+                        .font(.subheadline)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+            }
+            if !blurb.isEmpty {
+                Text(blurb)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .textCase(nil)
+        .padding(.top, AppTheme.tightSpacing)
+        .accessibilityElement(children: .combine)
     }
 }
 

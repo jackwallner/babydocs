@@ -51,9 +51,7 @@ struct PlanView: View {
         NavigationStack(path: $path) {
             List {
                 Section {
-                    NextDeadlineCard(overview: overview)
-                        .planCardRow()
-                    PlanProgressCard(overview: overview)
+                    PlanHeaderCard(overview: overview)
                         .planCardRow()
                 }
 
@@ -65,9 +63,11 @@ struct PlanView: View {
                             }
                         }
                     } header: {
-                        Text("Sent, and still not here")
-                    } footer: {
-                        Text("Past the date the office told you to expect it. Nothing else in your life is going to mention this, which is why it is at the top.")
+                        PlanSectionHeader(
+                            title: "Sent, and still not here",
+                            blurb: "Past the date the office told you to expect it. Nothing else in your life is going to mention this, which is why it is at the top.",
+                            count: lateTasks.count
+                        )
                     }
                 }
 
@@ -95,11 +95,11 @@ struct PlanView: View {
                             }
                         }
                     } header: {
-                        Text(group.bucket.title)
-                    } footer: {
-                        if !group.bucket.blurb.isEmpty {
-                            Text(group.bucket.blurb)
-                        }
+                        PlanSectionHeader(
+                            title: group.bucket.title,
+                            blurb: group.bucket.blurb,
+                            count: group.tasks.count
+                        )
                     }
                 }
 

@@ -12,12 +12,18 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 WIDTH = 1320
 HEIGHT = 2868
 SCREEN_WIDTH = 1052
-SCREEN_TOP = 500
-SCREEN_HEIGHT = round(SCREEN_WIDTH * 2622 / 1206)
 DEVICE_X = (WIDTH - SCREEN_WIDTH - 44) // 2
-DEVICE_Y = SCREEN_TOP - 20
 DEVICE_WIDTH = SCREEN_WIDTH + 44
-DEVICE_HEIGHT = SCREEN_HEIGHT + 40
+
+# The floating tab bar is glass and the content passes under it by design, so a
+# capture that keeps the bar keeps whatever was sliding under it at that
+# instant. Every frame taken on a tab screen is cropped just above the bar. The
+# old set placed the raw whole, which is what put a grey slab with half-legible
+# text through it across the bottom of six store images.
+TAB_BAR_CROP = 270
+# The top of the space the device is centred in: below the headline block.
+DEVICE_BAND_TOP = 470
+DEVICE_BAND_BOTTOM = HEIGHT - 60
 
 FONT_DIR = Path("/System/Library/Fonts")
 TITLE_FONT = FONT_DIR / "HelveticaNeue.ttc"
@@ -27,6 +33,7 @@ SUBTITLE_FONT = FONT_DIR / "SFNS.ttf"
 FRAMES = (
     {
         "raw": "01-plan.png",
+        "crop": TAB_BAR_CROP,
         "scene": "01-navy-paper.png",
         "title": "KNOW WHAT APPLIES",
         "subtitle": "A plan built from your household answers.",
@@ -34,6 +41,7 @@ FRAMES = (
     },
     {
         "raw": "02-task-detail.png",
+        "crop": TAB_BAR_CROP,
         "scene": "02-warm-desk.png",
         "title": "SEE THE SOURCE",
         "subtitle": "Every task shows the office, the date and what to bring.",
@@ -41,6 +49,8 @@ FRAMES = (
     },
     {
         "raw": "03-documents-checklist.png",
+        "crop": TAB_BAR_CROP,
+        "crop_top": 400,
         "scene": "03-blue-folder.png",
         "title": "BRING THE RIGHT PAPERS",
         "subtitle": "The checklist stays beside the official link.",
@@ -48,6 +58,7 @@ FRAMES = (
     },
     {
         "raw": "04-send-plan.png",
+        "crop": 0,
         "scene": "02-warm-desk.png",
         "title": "SEND THE PLAN FOR FREE",
         "subtitle": "The other parent gets the same answers and deadlines.",
@@ -55,6 +66,7 @@ FRAMES = (
     },
     {
         "raw": "05-children.png",
+        "crop": TAB_BAR_CROP,
         "scene": "03-blue-folder.png",
         "title": "KEEP EVERY CHILD IN ORDER",
         "subtitle": "Start with one household. Add the rest when you need them.",
@@ -62,8 +74,9 @@ FRAMES = (
     },
     {
         "raw": "06-plus.png",
+        "crop": 215,
         "scene": "01-navy-paper.png",
-        "title": "KEEP THE WORK AROUND IT",
+        "title": "KEEP WHAT COMES BACK",
         "subtitle": "Plus adds the vault, follow-ups and employer packet.",
         "ink": (255, 250, 240),
     },
@@ -133,10 +146,24 @@ def add_text(
 
 
 def add_device(canvas: Image.Image, raw: Image.Image) -> None:
+    """Draws the phone, sized to the capture it is holding.
+
+    The geometry used to be fixed, which was fine while every raw was the same
+    full-screen height and wrong the moment one was cropped. It is derived from
+    the image now, and the device is centred in the band under the headline
+    rather than pinned to the top of it, so a shorter capture leaves even air
+    above and below instead of a stripe of dead scene along the bottom.
+    """
+    screen_height = round(SCREEN_WIDTH * raw.height / raw.width)
+    band = DEVICE_BAND_BOTTOM - DEVICE_BAND_TOP
+    screen_top = DEVICE_BAND_TOP + max(0, (band - screen_height - 40) // 2)
+    device_y = screen_top - 20
+    device_height = screen_height + 40
+
     body = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
     body_draw = ImageDraw.Draw(body)
     body_draw.rounded_rectangle(
-        (DEVICE_X, DEVICE_Y, DEVICE_X + DEVICE_WIDTH, DEVICE_Y + DEVICE_HEIGHT),
+        (DEVICE_X, device_y, DEVICE_X + DEVICE_WIDTH, device_y + device_height),
         radius=102,
         fill=(12, 17, 25, 255),
     )
@@ -146,13 +173,13 @@ def add_device(canvas: Image.Image, raw: Image.Image) -> None:
     canvas.alpha_composite(shadow, (0, 28))
     canvas.alpha_composite(body)
 
-    screen = raw.convert("RGB").resize((SCREEN_WIDTH, SCREEN_HEIGHT), Image.Resampling.LANCZOS)
-    mask = Image.new("L", (SCREEN_WIDTH, SCREEN_HEIGHT), 0)
+    screen = raw.convert("RGB").resize((SCREEN_WIDTH, screen_height), Image.Resampling.LANCZOS)
+    mask = Image.new("L", (SCREEN_WIDTH, screen_height), 0)
     ImageDraw.Draw(mask).rounded_rectangle(
-        (0, 0, SCREEN_WIDTH, SCREEN_HEIGHT), radius=76, fill=255
+        (0, 0, SCREEN_WIDTH, screen_height), radius=76, fill=255
     )
     screen_layer = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-    screen_layer.paste(screen, (DEVICE_X + 22, SCREEN_TOP), mask)
+    screen_layer.paste(screen, (DEVICE_X + 22, screen_top), mask)
     canvas.alpha_composite(screen_layer)
 
 
@@ -163,6 +190,10 @@ def compose(source_dir: Path, scene_dir: Path, output_dir: Path) -> None:
         canvas = cover(scene, (WIDTH, HEIGHT)).convert("RGBA")
         add_text(canvas, frame["title"], frame["subtitle"], frame["ink"])
         raw = Image.open(source_dir / frame["raw"]).convert("RGB")
+        crop = frame.get("crop", 0)
+        crop_top = frame.get("crop_top", 0)
+        if crop or crop_top:
+            raw = raw.crop((0, crop_top, raw.width, raw.height - crop))
         add_device(canvas, raw)
         output = output_dir / f"store-{index:02d}.png"
         canvas.convert("RGB").save(output, format="PNG", optimize=True)

@@ -68,7 +68,14 @@ enum AppTheme {
     /// apart. Nothing about that is legible as a decision, and it is most of why
     /// the screen read as unfinished: the eye reads a broken vertical line long
     /// before it reads a heading.
-    static let margin: CGFloat = 16
+    ///
+    /// The number is 20 rather than a taste of our own, because that is what
+    /// `.insetGrouped` uses for its own cards on iPhone. Settings and the
+    /// sources list are system lists and always will be, so picking any other
+    /// value guarantees that the hand-built screens and the system ones sit on
+    /// two different left edges, one tab apart, which is the same bug the
+    /// paragraph above is about with a longer commute.
+    static let margin: CGFloat = 20
 
     /// Vertical rhythm. Three values, used everywhere, so spacing is chosen from
     /// a set rather than typed fresh each time.
@@ -76,19 +83,22 @@ enum AppTheme {
     static let spacing: CGFloat = 12
     static let looseSpacing: CGFloat = 20
 
-    /// How much room the floating tab bar needs above the last row of a list.
+    /// The cushion under the last row of a list, above the floating tab bar.
     ///
-    /// This was 44, which is the bar's *glyph* height and not its footprint: the
-    /// capsule carries its own padding and floats clear of the home indicator,
-    /// so 44 left the last interactive control on Plan, Documents, Settings, the
-    /// task detail and the child detail sitting under glass. An audit found the
-    /// same failure on six screens at once, and at an accessibility text size it
-    /// reached the primary deadline card.
+    /// This was 96, and 96 was a symptom. `planPageBackground` used to wrap
+    /// every page in a `GeometryReader` and hand the scroll view an explicit
+    /// height, which is exactly the shape that stops the system's own tab-bar
+    /// safe area from reaching the list. With the inset gone the page had to
+    /// buy it back by hand, first at 44 (too little, six screens clipped) and
+    /// then at 96, which over-corrected into 96 points of dead page *and* a
+    /// hard clipped edge where the shortened scroll view ended, one glass bar
+    /// away from the bottom of the screen. That edge is the "big bar in the
+    /// way" in the screenshots: content stopped dead above the bar instead of
+    /// passing under it.
     ///
-    /// One number, in one place, so the six screens cannot drift apart again.
-    /// Generous on purpose: dead space below the last row costs a parent
-    /// nothing, and a control they cannot reach costs them the errand.
-    static let floatingTabBarInset: CGFloat = 96
+    /// The scroll view is full height again, so the system contributes the
+    /// bar's own footprint. This is only breathing room on top of it.
+    static let floatingTabBarInset: CGFloat = 24
 }
 
 extension RequirementCategory {
@@ -152,36 +162,29 @@ extension View {
     /// continuous surface behind the system's floating tab bar. The list itself
     /// ends before the bar, so its rows cannot become unreadable behind glass.
     ///
-    /// The bottom margin comes with it, and is not optional. The last row of
-    /// every list needs room to clear the bar, and on a task detail the last row
-    /// is the source footnote: the one element that carries the app's whole
+    /// The scroll view keeps its full height on purpose. It used to be given an
+    /// explicit one, 96 points short, inside a `GeometryReader`: that both cut
+    /// the page off at a hard horizontal edge above the bar and stopped the
+    /// system from insetting the list for the bar at all, which is why the inset
+    /// had to be guessed twice and was wrong twice. Full height, plus the
+    /// system's own safe area, plus a cushion, is the whole arrangement.
+    ///
+    /// The last row of every list still has to clear the bar: on a task detail
+    /// it is the source footnote, the one element that carries the app's whole
     /// claim to be checkable. `LayoutUITests` asserts it stays reachable.
     ///
     /// Pass `underTabBar: false` on a sheet. A sheet is presented over the tab
     /// bar rather than behind it, so reserving the bar's height there is 96
     /// points of empty page under the last row and nothing else.
     func planPageBackground(underTabBar: Bool = true) -> some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .top) {
-                AppTheme.pageBackground
-                    .ignoresSafeArea()
-
-                self
-                    .scrollContentBackground(.hidden)
-                    .contentMargins(
-                        .bottom,
-                        underTabBar ? AppTheme.floatingTabBarInset : AppTheme.looseSpacing,
-                        for: .scrollContent
-                    )
-                    .frame(
-                        width: proxy.size.width,
-                        height: underTabBar
-                            ? max(0, proxy.size.height - AppTheme.floatingTabBarInset)
-                            : proxy.size.height,
-                        alignment: .top
-                    )
-            }
-        }
+        self
+            .scrollContentBackground(.hidden)
+            .contentMargins(
+                .bottom,
+                underTabBar ? AppTheme.floatingTabBarInset : AppTheme.looseSpacing,
+                for: .scrollContent
+            )
+            .background(AppTheme.pageBackground.ignoresSafeArea())
     }
 }
 

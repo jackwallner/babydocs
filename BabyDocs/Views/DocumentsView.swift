@@ -24,11 +24,14 @@ struct DocumentsView: View {
     /// A vault entry a swipe has proposed deleting, held until it is confirmed.
     /// See `confirmDelete`.
     @State private var pendingDeletion: VaultDocument?
+    /// Ticked documents stay on screen. See `onHandSection`.
+    @State private var isShowingOnHand = true
 
     var body: some View {
         NavigationStack {
             List {
                 gatherSection
+                onHandSection
 
                 ForEach(children) { child in
                     vaultSection(for: child)
@@ -37,6 +40,14 @@ struct DocumentsView: View {
             .listStyle(.insetGrouped)
             .planPageBackground()
             .navigationTitle("Documents")
+            // A checklist row is about a task, and until now it went nowhere:
+            // the parent who wants to know *which* form the office wants, or
+            // where the link to it is, had to leave and find the task by name.
+            .navigationDestination(for: UUID.self) { id in
+                if let task = liveTasks.first(where: { $0.id == id }) {
+                    TaskDetailView(task: task)
+                }
+            }
             .sheet(item: $addingFor) { child in
                 AddVaultDocumentSheet(child: child)
             }
@@ -67,12 +78,22 @@ struct DocumentsView: View {
 
     // MARK: - What still has to be found
 
+    private var liveTasks: [RequirementTask] {
+        children.flatMap(\.liveTasks)
+    }
+
+    /// Every document every *open* task asks for, ticked or not. A task that is
+    /// finished has stopped asking, so its list stops appearing here.
+    private var checklist: [DocumentItem] {
+        liveTasks.filter(\.isOpen).flatMap(\.liveDocuments)
+    }
+
     private var outstanding: [DocumentItem] {
-        children
-            .flatMap(\.liveTasks)
-            .filter(\.isOpen)
-            .flatMap(\.liveDocuments)
-            .filter { !$0.isOnHand }
+        checklist.filter { !$0.isOnHand }
+    }
+
+    private var gathered: [DocumentItem] {
+        checklist.filter(\.isOnHand)
     }
 
     /// Deduplicated by title **within one child**, because the same certified
@@ -90,10 +111,13 @@ struct DocumentsView: View {
         return "\(childID)|\(item.title.lowercased())"
     }
 
-    private var uniqueOutstanding: [DocumentItem] {
+    private func unique(_ items: [DocumentItem]) -> [DocumentItem] {
         var seen = Set<String>()
-        return outstanding.filter { seen.insert(identity($0)).inserted }
+        return items.filter { seen.insert(identity($0)).inserted }
     }
+
+    private var uniqueOutstanding: [DocumentItem] { unique(outstanding) }
+    private var uniqueGathered: [DocumentItem] { unique(gathered) }
 
     @ViewBuilder
     private var gatherSection: some View {
@@ -105,42 +129,63 @@ struct DocumentsView: View {
                     .font(.subheadline)
             } else {
                 ForEach(items) { item in
-                    Button {
-                        markGathered(item)
-                    } label: {
-                        HStack(alignment: .top, spacing: 10) {
-                            Image(systemName: "square")
-                                .foregroundStyle(.secondary)
-                                .frame(width: 22, height: 22)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(item.title)
-                                    .foregroundStyle(.primary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                if let task = item.task {
-                                    // The child's name leads once there is more
-                                    // than one, because with twins the two rows
-                                    // are otherwise the same words twice and the
-                                    // parent cannot tell which one they just
-                                    // found.
-                                    Text(children.count > 1
-                                         ? "\(task.child?.displayName ?? "Your baby") \u{00B7} \(task.title)"
-                                         : task.title)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
+                    DocumentChecklistRow(
+                        item: item,
+                        showChildName: children.count > 1,
+                        onToggle: { setOnHand(item, true) }
+                    )
                 }
             }
         } header: {
-            Text("Still to find")
-        } footer: {
-            Text(children.count > 1
-                 ? "Every open task's list in one place, with the duplicates collapsed. Ticking one here ticks it wherever else it appears for that child, and never for the other."
-                 : "Every open task's list in one place, with the duplicates collapsed. Ticking one here ticks it wherever else it appears.")
+            PlanSectionHeader(
+                title: "Still to find",
+                blurb: children.count > 1
+                    ? "Every open task's list in one place, with the duplicates collapsed. Ticking one here ticks it wherever else it appears for that child, and never for the other."
+                    : "Every open task's list in one place, with the duplicates collapsed. Ticking one here ticks it wherever else it appears.",
+                count: items.isEmpty ? nil : items.count
+            )
+        }
+    }
+
+    /// **A ticked document does not vanish.**
+    ///
+    /// It used to: the only list on this screen was "still to find", so ticking
+    /// the row was indistinguishable from deleting it. That is the worst
+    /// possible feedback for the one gesture this screen exists for, because the
+    /// question a parent asks at the counter is not "what is left" but "did I
+    /// already deal with this one", and a list that answers only the first
+    /// question makes them re-check the drawer.
+    ///
+    /// So it moves, visibly, into a list of what is in hand, and it can be
+    /// unticked from there when the certificate turns out to be the
+    /// informational copy after all.
+    @ViewBuilder
+    private var onHandSection: some View {
+        let items = uniqueGathered
+        if !items.isEmpty {
+            Section {
+                DisclosureGroup(isExpanded: $isShowingOnHand) {
+                    ForEach(items) { item in
+                        DocumentChecklistRow(
+                            item: item,
+                            showChildName: children.count > 1,
+                            onToggle: { setOnHand(item, false) }
+                        )
+                    }
+                } label: {
+                    HStack(spacing: AppTheme.tightSpacing) {
+                        Text("In hand")
+                            .font(.subheadline.weight(.medium))
+                        Spacer(minLength: 0)
+                        Text("\(items.count)")
+                            .font(.subheadline)
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } footer: {
+                Text("Ticked, and still here. Tap the tick to put one back on the list, or the row itself to open the task that asks for it.")
+            }
         }
     }
 
@@ -152,11 +197,11 @@ struct DocumentsView: View {
     /// It stops at that child. One family's two birth certificates are two
     /// pieces of paper from two different orders, and one of them arriving tells
     /// you nothing about the other.
-    private func markGathered(_ item: DocumentItem) {
+    private func setOnHand(_ item: DocumentItem, _ value: Bool) {
         let key = identity(item)
-        for match in outstanding where identity(match) == key {
-            match.isOnHand = true
-            match.markedOnHandAt = Date()
+        for match in checklist where identity(match) == key {
+            match.isOnHand = value
+            match.markedOnHandAt = value ? Date() : nil
             match.recordLocalChange(in: context)
         }
     }

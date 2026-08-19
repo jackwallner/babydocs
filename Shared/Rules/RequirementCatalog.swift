@@ -242,9 +242,15 @@ enum RequirementCatalog {
             let where_ = input.birthStateCode.isEmpty
                 ? "the state where the birth was registered"
                 : USState.displayName(for: input.birthStateCode)
-            let verification = office.isVerified
-                ? "We have read that office's own page."
-                : "We have not read that office's own page yet, so the link goes to the national directory rather than to a specific office we would be guessing at."
+            let verification: String
+            switch office.check {
+            case .pageRead:
+                verification = "We have read that office's own page."
+            case .summaryChecked:
+                verification = "We have checked that address against the office's own guidance, though nobody here has read the page end to end."
+            case .federalFallback:
+                verification = "We do not carry a specific office for this place yet, so the link goes to the national directory rather than to one we would be guessing at."
+            }
             return "Issued by \(where_), not by the hospital and not federally. Order two or three certified copies at once: the passport application keeps one, and a second request later costs the same fee and the same wait. Office: \(office.officeName). \(verification)"
         },
         deadline: { input in

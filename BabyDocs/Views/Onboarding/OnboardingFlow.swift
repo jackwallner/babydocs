@@ -94,7 +94,7 @@ struct OnboardingFlow: View {
     /// Scrolling costs a well-sighted parent nothing here and is the difference
     /// between readable and not for everyone else.
     private var welcomeStep: some View {
-        ScrollView {
+        CentredIfItFits {
             VStack(spacing: AppTheme.spacing) {
                 Image(systemName: "folder.badge.person.crop")
                     .font(.system(size: 52))
@@ -108,42 +108,35 @@ struct OnboardingFlow: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, 28)
-            .padding(.top, 40)
-            .padding(.bottom, AppTheme.looseSpacing)
-        }
-        .safeAreaInset(edge: .bottom) {
-            VStack(spacing: AppTheme.spacing) {
-                // The "two windows close fast" line used to live here as fine
-                // print under a button, which is the worst place for it: it is
-                // jargon, and it is on the one screen where nothing can be done
-                // about it. The explanation now sits on the coverage question,
-                // where it is the decision being made.
-                Button {
-                    step = .baby
-                } label: {
-                    Text("Get started").frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
 
                 // Not "nothing leaves this phone", which the app then goes on to
                 // contradict on purpose: sending the plan to the other parent is
                 // a link full of these answers, and it is one of the best things
                 // here. The claim worth making is the one that stays true, which
                 // is that nothing goes anywhere on its own.
-                Text("No household-data account, and no copy of your answers anywhere but here. Your plan stays on this phone unless you choose to send it. Purchases are handled separately by Apple and RevenueCat.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+                //
+                // The long form of it is a paragraph, and a paragraph of
+                // qualified privacy language is the last thing a reader on the
+                // first screen needs in front of the button. It unfurls.
+                OnboardingDisclosure(
+                    label: "What happens to my answers",
+                    text: "No household-data account, and no copy of your answers anywhere but here. Your plan stays on this phone unless you choose to send it, and photographs of documents never travel at all. Purchases are handled separately by Apple and RevenueCat, which is the one thing that does leave: an anonymous ID and what you bought, never anything about your family.",
+                    boxed: true
+                )
+                .padding(.top, AppTheme.tightSpacing)
             }
+            .frame(maxWidth: .infinity)
             .padding(.horizontal, 24)
-            .padding(.top, AppTheme.spacing)
-            .padding(.bottom, 28)
-            .background(.bar)
+        }
+        .safeAreaInset(edge: .bottom) {
+            // The "two windows close fast" line used to live here as fine
+            // print under a button, which is the worst place for it: it is
+            // jargon, and it is on the one screen where nothing can be done
+            // about it. The explanation now sits on the coverage question,
+            // where it is the decision being made.
+            OnboardingFooter(title: "Get started", note: "About a minute. Nothing is submitted anywhere.") {
+                step = .baby
+            }
         }
     }
 
@@ -161,28 +154,38 @@ struct OnboardingFlow: View {
                 )
             } header: {
                 Text("Your baby")
-            } footer: {
-                Text("The date of birth is what every deadline in the app counts from, so it is the one answer worth double-checking.")
             }
 
             Section {
                 statePicker("State of birth", selection: $birthStateCode)
                 countyPicker(stateCode: birthStateCode, selection: $birthCounty)
+                Toggle("US citizen", isOn: $isUSCitizen)
             } header: {
                 Text("Where the birth was registered")
-            } footer: {
-                Text("The birth certificate is issued where the birth was registered, not where you live now. In many states a county office is faster than the state one, which is the only reason the county is asked for.")
             }
 
             Section {
-                Toggle("US citizen", isOn: $isUSCitizen)
-            } footer: {
-                Text("If you are not sure, leave this off until you verify it. One task turns on this: a federal account for newborn citizens, explained in a moment.")
+                OnboardingDisclosure(
+                    label: "Why these three",
+                    text: """
+                    The date of birth is what every deadline in the app counts \
+                    from, so it is the one answer worth double-checking. The \
+                    birth certificate is issued where the birth was registered \
+                    rather than where you live now, and in many states a county \
+                    office is faster than the state one, which is the only \
+                    reason the county is asked for. Citizenship turns on exactly \
+                    one task, a federal account for newborn citizens, explained \
+                    in a moment: if you are not sure, leave it off until you \
+                    have verified it.
+                    """
+                )
             }
-
-            continueButton(enabled: !birthStateCode.isEmpty) { step = .household }
+            .listRowBackground(Color.clear)
         }
         .navigationTitle("Your baby")
+        .safeAreaInset(edge: .bottom) {
+            OnboardingFooter(enabled: !birthStateCode.isEmpty) { step = .household }
+        }
     }
 
     // MARK: - Household
@@ -194,8 +197,6 @@ struct OnboardingFlow: View {
                 statePicker("State you live in", selection: $residenceStateCode)
             } header: {
                 Text("Where you live")
-            } footer: {
-                Text("Decides the Medicaid and CHIP agency, and whether there is a state paid-leave programme to file with.")
             }
 
             // "Prefer not to say" is a real answer here, not a hidden case.
@@ -219,23 +220,32 @@ struct OnboardingFlow: View {
                 }
             } header: {
                 Text("Parents")
-            } footer: {
-                Text(parentage == .unknown
-                     ? "Nothing on your plan needs this except one task: establishing a second parent who is not automatically on the record. Leave it here and that task stays off, and you can turn it on later in your household answers without redoing anything."
-                     : "This decides one task. In most states marriage puts the second parent on the record automatically and an unmarried second parent has to establish it deliberately.")
             }
 
-            if parentage == .unmarriedBothParents && !secondParentOnRecord {
-                Section {
-                    Text("Establishing the second parent is state law and legally significant. The app will show you the task and your state's own form. It will not prepare or file anything for you.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
+            Section {
+                OnboardingDisclosure(
+                    label: "Why we ask",
+                    text: parentageExplanation
+                )
             }
-
-            continueButton(enabled: !residenceStateCode.isEmpty) { step = .coverage }
+            .listRowBackground(Color.clear)
         }
         .navigationTitle("Your household")
+        .safeAreaInset(edge: .bottom) {
+            OnboardingFooter(enabled: !residenceStateCode.isEmpty) { step = .coverage }
+        }
+    }
+
+    private var parentageExplanation: String {
+        let base = "Where you live decides the Medicaid and CHIP agency, and whether there is a state paid-leave programme to file with. "
+        switch parentage {
+        case .unknown:
+            return base + "Nothing on your plan needs the parents question except one task: establishing a second parent who is not automatically on the record. Leave it where it is and that task stays off, and you can turn it on later in your household answers without redoing anything."
+        case .unmarriedBothParents where !secondParentOnRecord:
+            return base + "In most states marriage puts the second parent on the record automatically and an unmarried second parent has to establish it deliberately. That is state law and legally significant: the app will show you the task and your state's own form, and it will not prepare or file anything for you."
+        default:
+            return base + "The parents question decides one task. In most states marriage puts the second parent on the record automatically and an unmarried second parent has to establish it deliberately."
+        }
     }
 
     /// Fills the residence state and county from one location fix.
@@ -275,14 +285,6 @@ struct OnboardingFlow: View {
     private var coverageStep: some View {
         Form {
             Section {
-                Text("Two deadlines in this app are real doors closing. Both of them are here.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .listRowBackground(Color.clear)
-
-            Section {
                 Picker("Coverage", selection: $insuranceKind) {
                     ForEach(InsuranceKind.allCases, id: \.self) { value in
                         Text(value.label).tag(value)
@@ -294,8 +296,8 @@ struct OnboardingFlow: View {
                 Text("How is the family covered?")
             } footer: {
                 Text(insuranceKind == .unknown
-                     ? "\"Not sure yet\" is a real answer and it does not block anything. Your plan gets one task at the top telling you what to find out and why it is worth doing this fortnight, and the moment you set the answer the real deadline appears in its place."
-                     : "A job-based plan must let you add the baby for at least 30 days after the birth. The Marketplace is 60. Miss the window and you usually wait for open enrollment, so this sets the hardest date in the app. If you are covered both ways, pick the job-based plan: it is the shorter one.")
+                     ? "\"Not sure yet\" does not block anything, and it does not invent a date either."
+                     : "This sets the hardest date in the app.")
             }
 
             // Asked because it changes where the family has to go, not how long
@@ -314,20 +316,37 @@ struct OnboardingFlow: View {
                     .labelsHidden()
                 } header: {
                     Text("Which marketplace?")
-                } footer: {
-                    Text("The 60 days is the same either way. The site is not: some states run their own, with their own account and their own documents. If you are not sure, leave it, and the task sends you to the federal page that picks your state for you.")
                 }
             }
 
             Section {
                 Toggle("We have a dependent care FSA", isOn: $hasDependentCareFSA)
-            } footer: {
-                Text("A separate election from the health plan, with its own window, and the one people most often miss because they assume the two move together. They do not. Your employer's plan document sets that window rather than the law, so Baby Docs shows it as a suggestion and asks you to confirm the real date.")
             }
 
-            continueButton(enabled: true) { step = .leave }
+            Section {
+                OnboardingDisclosure(
+                    label: "Why this is the important one",
+                    text: coverageExplanation
+                )
+            }
+            .listRowBackground(Color.clear)
         }
         .navigationTitle("Coverage")
+        .safeAreaInset(edge: .bottom) {
+            OnboardingFooter(enabled: true) { step = .leave }
+        }
+    }
+
+    private var coverageExplanation: String {
+        var text = "Two deadlines in this app are real doors closing, and both of them are here. A job-based plan must let you add the baby for at least 30 days after the birth. The Marketplace is 60. Miss the window and you usually wait for open enrollment. If you are covered both ways, pick the job-based plan: it is the shorter one. "
+        if insuranceKind == .unknown {
+            text += "\"Not sure yet\" is a real answer and it does not block anything: your plan gets one task at the top telling you what to find out and why it is worth doing this fortnight, and the moment you set the answer the real deadline appears in its place. "
+        }
+        if insuranceKind == .marketplace {
+            text += "The 60 days is the same whichever marketplace you use. The site is not: some states run their own, with their own account and their own documents, and if you are not sure the task sends you to the federal page that picks your state for you. "
+        }
+        text += "A dependent care FSA is a separate election from the health plan, with its own window, and the one people most often miss because they assume the two move together. Your employer's plan document sets that window rather than the law, so Baby Docs shows it as a suggestion and asks you to confirm the real date."
+        return text
     }
 
     // MARK: - The optional four, one page each
@@ -389,7 +408,7 @@ struct OnboardingFlow: View {
     // MARK: - Done
 
     private var doneStep: some View {
-        ScrollView {
+        CentredIfItFits {
             VStack(spacing: AppTheme.spacing) {
                 Image(systemName: "checkmark.seal.fill")
                     .font(.system(size: 48))
@@ -404,17 +423,14 @@ struct OnboardingFlow: View {
                 Text(PlanExporter.disclaimer)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
                     .padding(.top, AppTheme.tightSpacing)
             }
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, 28)
-            .padding(.top, 40)
-            .padding(.bottom, AppTheme.looseSpacing)
+            .padding(.horizontal, 24)
         }
         .safeAreaInset(edge: .bottom) {
-            VStack(spacing: AppTheme.spacing) {
+            VStack(spacing: AppTheme.tightSpacing) {
                 if canOfferReminders {
                     Button {
                         Task {
@@ -435,10 +451,11 @@ struct OnboardingFlow: View {
 
                 Button("Not now") { }
                     .font(.subheadline)
+                    .padding(.vertical, AppTheme.tightSpacing)
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, AppTheme.margin)
             .padding(.top, AppTheme.spacing)
-            .padding(.bottom, 28)
+            .padding(.bottom, AppTheme.tightSpacing)
             .background(.bar)
         }
     }
@@ -474,19 +491,6 @@ struct OnboardingFlow: View {
                     Text(county).tag(county)
                 }
             }
-        }
-    }
-
-    private func continueButton(enabled: Bool, action: @escaping () -> Void) -> some View {
-        Section {
-            Button(action: action) {
-                Text("Continue").frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .disabled(!enabled)
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
         }
     }
 
@@ -560,27 +564,19 @@ struct ExplainedChoice: View {
             Section {
                 VStack(alignment: .leading, spacing: AppTheme.spacing) {
                     Image(systemName: symbol)
-                        .font(.system(size: 30))
+                        .font(.system(size: 28))
                         .foregroundStyle(Color.accentColor)
                     Text(title)
                         .font(.title2.weight(.bold))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(what)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.vertical, AppTheme.tightSpacing)
             }
             .listRowBackground(Color.clear)
-
-            Section("What it is") {
-                Text(what).fixedSize(horizontal: false, vertical: true)
-            }
-
-            Section("Why it might matter to you") {
-                Text(why).fixedSize(horizontal: false, vertical: true)
-            }
-
-            Section("What it adds to your plan") {
-                Text(adds).fixedSize(horizontal: false, vertical: true)
-            }
 
             Section {
                 if isAvailable {
@@ -596,16 +592,128 @@ struct ExplainedChoice: View {
             }
 
             Section {
-                Button(action: onContinue) {
-                    Text("Continue").frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
+                OnboardingDisclosure(label: "Why it might matter to you", text: why)
+                OnboardingDisclosure(label: "What it adds to your plan", text: adds)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom) {
+            OnboardingFooter(enabled: true, action: onContinue)
+        }
+    }
+}
+
+// MARK: - The two shapes every question shares
+
+/// The footer that does not scroll away.
+///
+/// Continue used to be the last row of the form, which meant that on any
+/// question long enough to scroll (most of them, at most text sizes) the way
+/// forward was somewhere below the bottom of the screen. A reader who cannot
+/// see the button assumes there is nothing there, and an intake that looks like
+/// a dead end on question two is an intake that gets abandoned on question two.
+struct OnboardingFooter: View {
+    var title = "Continue"
+    var enabled = true
+    var note = ""
+    let action: () -> Void
+
+    init(title: String = "Continue", enabled: Bool = true, note: String = "", action: @escaping () -> Void) {
+        self.title = title
+        self.enabled = enabled
+        self.note = note
+        self.action = action
+    }
+
+    var body: some View {
+        VStack(spacing: AppTheme.tightSpacing) {
+            Button(action: action) {
+                Text(title).frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .disabled(!enabled)
+
+            if !note.isEmpty {
+                Text(note)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.horizontal, AppTheme.margin)
+        .padding(.top, AppTheme.spacing)
+        .padding(.bottom, AppTheme.tightSpacing)
+        .background(.bar)
+    }
+}
+
+/// The paragraph, folded away until somebody wants it.
+///
+/// Every question in this intake carries an explanation that is worth reading
+/// once and is in the way every other time. As a form footer it was neither: it
+/// pushed the controls off the screen for the reader who already knew, and it
+/// still read as fine print to the reader who did not. Collapsed, the question
+/// fits on one screen and the explanation is one tap away and phrased as an
+/// invitation rather than as small grey text under a switch.
+struct OnboardingDisclosure: View {
+    let label: String
+    let text: String
+    /// Set on the two pages that are not forms. Inside a `Form` the row already
+    /// has a card under it; on the welcome screen it had nothing, so a blue
+    /// label and a chevron floated on the page looking like a mistake.
+    var boxed = false
+    @State private var isOpen = false
+
+    var body: some View {
+        if boxed {
+            group.planCard()
+        } else {
+            group
+        }
+    }
+
+    private var group: some View {
+        DisclosureGroup(isExpanded: $isOpen) {
+            Text(text)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.vertical, 2)
+        } label: {
+            Label(label, systemImage: "questionmark.circle")
+                .font(.subheadline)
+        }
+        .accessibilityHint(isOpen ? "Collapses the explanation" : "Expands the explanation")
+    }
+}
+
+/// Centres its content on a screen it fits on, and scrolls on one it does not.
+///
+/// The welcome and finished screens are a short block of text with a pinned
+/// button under them. Top-aligned in a `ScrollView` they left half a phone of
+/// empty page below the words, which reads as a layout that ran out. Centred
+/// with fixed spacers they truncated the product's whole promise to an ellipsis
+/// at an accessibility text size, which is worse. `ViewThatFits` takes the
+/// centred version when the content fits the screen and the scrolling one when
+/// it does not, and neither case needs a `GeometryReader`.
+struct CentredIfItFits<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ViewThatFits(in: .vertical) {
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                content
+                Spacer(minLength: 0)
+            }
+            ScrollView {
+                content
+                    .padding(.top, AppTheme.looseSpacing)
+                    .padding(.bottom, AppTheme.spacing)
+            }
+        }
     }
 }
 

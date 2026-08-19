@@ -54,12 +54,21 @@ the property a merge needs.
   **source citation with the date someone last read it**. Rules are pure
   functions of `RuleInput`, a plain struct, so the whole catalog is testable
   without SwiftData, a container or a network.
-- `StateVitalRecords.swift` — per-state birth certificate offices. A state is
-  only ever presented as *verified* when a human has read that state's own page
-  and stamped the date. Everything else falls back to the federal directory,
-  which carries a state picker. **Never bulk import a list of state URLs into
-  here**: a generic-but-correct link beats a specific-but-guessed one, because a
-  parent who follows a wrong link to a wrong office loses a fortnight.
+- `StateVitalRecords.swift` — per-state birth certificate offices, now all fifty
+  states and DC rather than California alone. **Never bulk import a list of state
+  URLs into here**: a generic-but-correct link beats a specific-but-guessed one,
+  because a parent who follows a wrong link to a wrong office loses a fortnight.
+  What made fifty possible without breaking that rule is admitting there are two
+  depths and printing which is which. `check` is `.pageRead` where the office's
+  own page was read end to end, and `.summaryChecked` where the address returned
+  a live page on the state's own domain and every sentence of the note was
+  confirmed against that office's published text without a full read. The UI
+  says which; flattening them into one tick is the thing not to do. Fees and
+  processing times stay out (same reason as the turnaround rule below), as does
+  every office below state level: where a county or town office is faster the
+  note says so in words and lets the parent find their own, because three
+  thousand guessed county URLs is the failure this file exists to prevent. The
+  five territories still fall back to the federal directory and say so.
 - `USCounties.swift` — 3,110 county names from the Census, and *only* names.
   Same rule as above, harder: it routes nothing. It exists to spell a county
   correctly and to let CoreLocation prefill one. A generated list of three
@@ -198,6 +207,21 @@ thing sent and overdue back) rather than one that triggers nothing.
   description and the App Review notes have to say the same thing, and both
   once said the summary and the packet were free. `asc-readiness.py` now asserts
   it, because nothing recompiles when a `.txt` file changes.
+- **A ticked document does not disappear.** The Documents tab was one list,
+  "still to find", so ticking a row was indistinguishable from deleting it. That
+  is the worst possible feedback for the one gesture the screen exists for: the
+  question at the counter is not "what is left" but "did I already deal with
+  this one", and a list that only answers the first makes a parent re-check the
+  drawer. Ticked items move, visibly, into "In hand", they can be unticked from
+  there, and every row links through to the task that asks for it.
+- **The intake fits on one screen and unfurls the rest.** Every question used to
+  carry its explanation as a form footer and its Continue button as the last row
+  of the form, so on most phones at most text sizes the way forward was below
+  the fold: an intake that looks like a dead end on question two is abandoned on
+  question two. `OnboardingFooter` pins Continue to the bottom of every step and
+  `OnboardingDisclosure` folds the paragraph away behind "Why we ask". The copy
+  is not cut, it is collapsed, and the same shape carries the four explained
+  choices.
 - **Every local write goes through `LocalRecord`.** After a create or an edit,
   call `recordLocalChange()`; to delete, call `tombstone()`. Reads go through
   `child.liveTasks` and friends rather than the raw relationship. With sync gone
@@ -209,20 +233,28 @@ thing sent and overdue back) rather than one that triggers nothing.
   reuse its rows.** Anything that creates a generated task goes through
   `RequirementEngine`, never by hand.
 - **One margin, one colour system.** `AppTheme.margin` is the only horizontal
-  inset, and colour means exactly one thing: how close a door is to closing.
+  inset, it is 20 because that is what `.insetGrouped` uses on iPhone (Settings
+  and the sources list are system lists and always will be, so any other number
+  guarantees two left edges), and colour means exactly one thing: how close a
+  door is to closing.
   Categories are grey glyphs. The screen this replaced had two left edges and
   three competing colour systems in one row, which is why none of them read as
   information. Cards use `planCard()`/`planCardRow()`; pages use
   `planPageBackground()`, which also reserves the bottom margin the floating tab
   bar needs.
   - That margin is `AppTheme.floatingTabBarInset`, one number for the whole app,
-    and it was wrong: 44 is the bar's glyph height, not its footprint, so the
-    last interactive control was under glass on Plan, Documents, Settings, the
-    task detail and the child detail simultaneously, and at an accessibility
-    text size it reached the primary deadline card. A single-screen layout test
-    cannot catch a bad shared constant, which is why `TabBarClearanceUITests`
-    asserts it on the tabs as well. Sheets pass `underTabBar: false`: they are
-    presented over the bar, not behind it.
+    and it was guessed twice because the real bug was somewhere else.
+    `planPageBackground` used to wrap every page in a `GeometryReader` and hand
+    the scroll view an explicit height, which is exactly what stops the system's
+    own tab-bar safe area from reaching the list. The page then had to buy the
+    inset back by hand: 44 (the bar's glyph height, not its footprint, so six
+    screens were clipped) and then 96, which bought a hard horizontal edge where
+    the shortened scroll view ended and 96 points of dead page under it. That
+    edge is the "big bar in the way" in the screenshots. The scroll view is full
+    height again, the system contributes the bar's footprint, and the constant
+    is 24 points of breathing room on top. `TabBarClearanceUITests` still
+    asserts it on every tab, because a single-screen layout test cannot catch a
+    bad shared constant. Sheets pass `underTabBar: false`.
 - **`docs/plan.html` is part of the app, not the marketing site.** Every shared
   plan link points at it (`PlanSeed.webBase`), and those messages sit in inboxes
   longer than the build that wrote them, so the page has to stay published at

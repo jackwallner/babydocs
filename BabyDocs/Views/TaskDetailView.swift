@@ -171,17 +171,26 @@ struct TaskDetailView: View {
         if !documents.isEmpty {
             Section {
                 ForEach(documents) { item in
+                    // The same tick as the plan and the documents tab, at the
+                    // same size. This screen used a small square while the other
+                    // two used a circle, for the very same document, which is
+                    // one visual vocabulary short of what the app claims to
+                    // have. It is also under the 44pt target on the screen a
+                    // parent is most likely to be using one-handed.
                     Button {
                         item.isOnHand.toggle()
                         item.markedOnHandAt = item.isOnHand ? Date() : nil
                         item.recordLocalChange(in: context)
                     } label: {
-                        HStack(alignment: .top, spacing: 10) {
-                            Image(systemName: item.isOnHand ? "checkmark.square.fill" : "square")
+                        HStack(alignment: .top, spacing: AppTheme.spacing) {
+                            Image(systemName: item.isOnHand ? "checkmark.circle.fill" : "circle")
+                                .font(.title3)
                                 .foregroundStyle(item.isOnHand ? Color.accentColor : Color.secondary)
+                                .frame(width: 44, height: 44, alignment: .leading)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(item.title)
-                                    .foregroundStyle(.primary)
+                                    .foregroundStyle(item.isOnHand ? .secondary : .primary)
+                                    .strikethrough(item.isOnHand, color: .secondary)
                                     .fixedSize(horizontal: false, vertical: true)
                                 if !item.detail.isEmpty {
                                     Text(item.detail)
@@ -190,7 +199,10 @@ struct TaskDetailView: View {
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
+                            .padding(.top, 10)
+                            Spacer(minLength: 0)
                         }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(item.title)
