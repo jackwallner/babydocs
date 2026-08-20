@@ -43,12 +43,16 @@ struct RootView: View {
                         .tabItem { Label("Settings", systemImage: "gearshape") }
                         .tag(AppNavigator.Tab.settings)
                 }
-                // Lets the plan scroll under the floating tab bar instead of
-                // stopping at a hard edge with black either side of the glass.
-                // Paired with `planPageBackground()` on each tab, which gives
-                // the blur something to actually blur.
-                .toolbarBackground(.visible, for: .tabBar)
-                .toolbarBackground(AppTheme.pageBackground, for: .tabBar)
+                // **Nothing is set on the tab bar on purpose.**
+                //
+                // It used to be forced visible and painted with the page
+                // colour, which turns the system's floating glass capsule into
+                // an opaque grey slab: the page then shows through as two black
+                // gutters either side of it, which is the "black bars" in the
+                // screenshots. Left alone, the bar is Liquid Glass, it takes its
+                // own material from whatever scrolls under it, and there are no
+                // gutters because there is no slab. `planPageBackground()` on
+                // each tab is what gives the glass something to refract.
             }
         }
         .sheet(isPresented: $navigator.isShowingPaywall) {

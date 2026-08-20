@@ -46,6 +46,11 @@ struct PlanSeed: Codable, Equatable, Sendable {
     var wants529: Bool
     var wantsNewbornAccount: Bool
     var takingParentalLeave: Bool
+    /// Optional for the same reason `marketplaceKind` is: a link written by an
+    /// older build has no idea how many parents are taking leave, and a missing
+    /// value has to read as whatever that build did know, which is the boolean
+    /// above.
+    var parentalLeaveTakers: String?
 
     static let currentVersion = 1
 
@@ -68,7 +73,8 @@ struct PlanSeed: Codable, Equatable, Sendable {
             wantsPassport: profile.wantsPassport,
             wants529: profile.wants529,
             wantsNewbornAccount: profile.wantsNewbornAccount,
-            takingParentalLeave: profile.takingParentalLeave
+            takingParentalLeave: profile.takingParentalLeave,
+            parentalLeaveTakers: profile.parentalLeaveTakers.rawValue
         )
     }
 

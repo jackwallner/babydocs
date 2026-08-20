@@ -67,9 +67,18 @@ final class LayoutUITests: XCTestCase {
 
     private func assertSourceClearsTabBar(_ app: XCUIApplication) {
         let footnote = app.staticTexts["Where this comes from"]
-        for _ in 0..<12 where !footnote.isHittable {
+        // Twelve swipes was the budget, and at accessibility XXXL the task
+        // detail is far longer than twelve swipes: the assertion was failing on
+        // a screen where the footnote was reachable, just further down than the
+        // loop was willing to go. A budget for the *largest* text size is what
+        // this test needs, because that is the size it exists to check.
+        for _ in 0..<30 where !footnote.isHittable {
             app.swipeUp()
         }
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "accessibility-bottom-of-task"
+        shot.lifetime = .keepAlways
+        add(shot)
         XCTAssertTrue(footnote.isHittable, "The source footnote never became reachable at large text")
         XCTAssertLessThanOrEqual(
             footnote.frame.maxY,
@@ -140,6 +149,10 @@ final class TabBarClearanceUITests: XCTestCase {
         let app = launchSeeded()
         app.tabBars.buttons["Documents"].tap()
         XCTAssertTrue(app.navigationBars["Documents"].waitForExistence(timeout: 10))
+        // The tab is two screens behind a switch now: a checklist of what to
+        // take to each errand, and the photographs. "Add a document" is the last
+        // control of the second one.
+        app.buttons["Photos"].firstMatch.tap()
         assertClearsTabBar(
             app.buttons["Add a document"].firstMatch,
             in: app,

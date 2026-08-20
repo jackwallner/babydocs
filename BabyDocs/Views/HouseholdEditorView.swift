@@ -104,7 +104,11 @@ struct HouseholdEditorView: View {
                         }
                     }
                 }
-                TextField("Plan name (optional)", text: $profile.employerPlanName)
+                if profile.insuranceKind == .employer {
+                    TextField("Plan or employer name", text: $profile.employerPlanName)
+                        .textInputAutocapitalization(.words)
+                    TextField("Benefits contact or phone", text: $profile.benefitsContactNote)
+                }
                 Toggle("Dependent care FSA", isOn: $profile.hasDependentCareFSA)
             } header: {
                 Text("Health coverage")
@@ -117,12 +121,15 @@ struct HouseholdEditorView: View {
             // each of these and is coming back to change their mind; someone in
             // the intake had never heard of any of them. The subtitles carry
             // enough to jog a memory without repeating four screens of prose.
-            Section("Optional tasks") {
-                labelledToggle(
-                    "Parental leave",
-                    "A state or employer claim, usually with its own window.",
-                    isOn: $profile.takingParentalLeave
-                )
+            Section {
+                Picker("Parental leave", selection: Binding(
+                    get: { profile.parentalLeaveTakers },
+                    set: { profile.parentalLeaveTakers = $0 }
+                )) {
+                    ForEach(ParentalLeaveTakers.allCases, id: \.self) { value in
+                        Text(value.label).tag(value)
+                    }
+                }
                 labelledToggle(
                     "The $1,000 newborn account",
                     "A one-time federal contribution for citizen children born 2025 to 2028. The IRS calls these Trump Accounts.",
@@ -138,6 +145,10 @@ struct HouseholdEditorView: View {
                     "Needs the certified birth certificate first, and both parents in person.",
                     isOn: $profile.wantsPassport
                 )
+            } header: {
+                Text("Optional tasks")
+            } footer: {
+                Text("Both parents taking leave means two claims, with two employers and two windows, so it puts two tasks on the plan rather than one.")
             }
         }
     }

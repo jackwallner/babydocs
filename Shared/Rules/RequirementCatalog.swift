@@ -26,7 +26,20 @@ struct RuleInput: Sendable, Equatable {
     var wantsPassport: Bool = false
     var wants529: Bool = false
     var wantsNewbornAccount: Bool = false
-    var takingParentalLeave: Bool = false
+    var parentalLeaveTakers: ParentalLeaveTakers = .nobody
+    /// The family's own name for their job-based plan. Cosmetic to the rule and
+    /// not cosmetic to the parent: a reminder that says "add Rosa to the Acme
+    /// PPO" is one they can act on without opening anything.
+    var employerPlanName: String = ""
+    var benefitsContactNote: String = ""
+
+    var takingParentalLeave: Bool { parentalLeaveTakers != .nobody }
+
+    /// What to call the job-based plan in a sentence.
+    var planPhrase: String {
+        let trimmed = employerPlanName.trimmingCharacters(in: .whitespaces)
+        return trimmed.isEmpty ? "the job-based health plan" : "the \(trimmed) plan"
+    }
 
     var shortName: String {
         let trimmed = childName.trimmingCharacters(in: .whitespaces)
@@ -81,6 +94,11 @@ struct DocumentSpec: Sendable, Equatable {
 struct RequirementRule: Identifiable, Sendable {
     let key: String
     let title: String
+    /// The title with this family's own words in it, when there are any worth
+    /// putting there. Defaults to `title`, which is what nineteen of the twenty
+    /// rules use: a rule only overrides this when the family told the app
+    /// something that makes the sentence more actionable, never to decorate it.
+    var titleForFamily: (@Sendable (RuleInput) -> String)?
     /// The navigation-bar title. A full task title is a sentence, and a sentence
     /// truncates to "Order certified copies of the birth cer..." in a nav bar,
     /// which tells a parent nothing.
@@ -111,6 +129,10 @@ struct RequirementRule: Identifiable, Sendable {
     let link: @Sendable (RuleInput) -> OfficialLink?
 
     var id: String { key }
+
+    func title(for input: RuleInput) -> String {
+        titleForFamily?(input) ?? title
+    }
 
     /// The manifest entry behind this rule, or nil when the rule says outright
     /// that there is nothing to cite.
@@ -155,6 +177,7 @@ enum RequirementCatalog {
         birthRecordNameCheck,
         newbornScreeningResult,
         parentalLeaveClaim,
+        secondParentLeaveClaim,
         w4Update,
         hospitalBillCheck,
         newbornAccount,
@@ -309,6 +332,16 @@ enum RequirementCatalog {
     static let employerInsurance = RequirementRule(
         key: "insurance_employer",
         title: "Add the baby to the job-based health plan",
+        // Filled in with the plan's own name when the family gave one. The
+        // title is what a notification reads out at 9am on day 23, and "add
+        // Rosa to the Acme PPO" is a sentence somebody can act on without
+        // opening anything.
+        titleForFamily: { input in
+            let trimmed = input.employerPlanName.trimmingCharacters(in: .whitespaces)
+            return trimmed.isEmpty
+                ? "Add the baby to the job-based health plan"
+                : "Add the baby to the \(trimmed) plan"
+        },
         shortTitle: "Job-based plan",
         category: .insurance,
         sortWeight: 1,
@@ -336,8 +369,13 @@ enum RequirementCatalog {
             )
         ],
         applies: { $0.insuranceKind == .employer },
-        detail: { _ in
-            "This is the hardest date in the whole list, and it is handled by your employer's benefits administrator rather than by any website. Federal rules give you at least 30 days from the birth, and the plan then has to make coverage effective from the date of birth, which is what makes the hospital bill get paid. Outside the window you are waiting for open enrollment."
+        detail: { input in
+            var text = "This is the hardest date in the whole list, and it is handled by your employer's benefits administrator rather than by any website. Federal rules give you at least 30 days from the birth, and the plan then has to make coverage effective from the date of birth, which is what makes the hospital bill get paid. Outside the window you are waiting for open enrollment."
+            let contact = input.benefitsContactNote.trimmingCharacters(in: .whitespaces)
+            if !contact.isEmpty {
+                text += " You said to contact: \(contact)."
+            }
+            return text
         },
         deadline: { input in
             Deadline(
@@ -633,6 +671,11 @@ enum RequirementCatalog {
     static let parentalLeaveClaim = RequirementRule(
         key: "parental_leave_claim",
         title: "File the parental leave claim",
+        titleForFamily: { input in
+            input.parentalLeaveTakers == .bothParents
+                ? "File the first parent's leave claim"
+                : "File the parental leave claim"
+        },
         shortTitle: "Parental leave",
         category: .work,
         sortWeight: 12,
@@ -647,13 +690,61 @@ enum RequirementCatalog {
             let state = input.residenceStateCode.isEmpty
                 ? "Your state"
                 : USState.displayName(for: input.residenceStateCode)
-            return "FMLA protects the job but is unpaid. Whether anything is paid depends on your employer's policy and on whether \(state) runs a paid family leave programme, and the state programmes are the ones with real filing windows measured in weeks."
+            var text = "FMLA protects the job but is unpaid. Whether anything is paid depends on your employer's policy and on whether \(state) runs a paid family leave programme, and the state programmes are the ones with real filing windows measured in weeks."
+            if input.parentalLeaveTakers == .bothParents {
+                text += " You said both parents are taking leave, so this is the first parent's claim and there is a second task for the other one: two employers, two sets of forms, and possibly two different windows."
+            }
+            return text
         },
         deadline: { input in
             Deadline(
                 date: addDays(30, to: input.birthDate),
                 kind: .recommended,
                 basis: "FMLA itself has no filing deadline for the employee, but state paid-leave programmes do, and several of them run from the first day of leave rather than from the birth."
+            )
+        },
+        link: { _ in
+            OfficialLink(label: "Department of Labor: FMLA", urlString: "https://www.dol.gov/agencies/whd/fmla")
+        }
+    )
+
+    /// **The second parent's claim is a second task, not a footnote on the
+    /// first.**
+    ///
+    /// Leave is not a household arrangement, it is a claim: each parent files
+    /// with their own employer, under their own policy, and often under a
+    /// different state programme rule than the one that covers the birth
+    /// parent. One shared row meant one tick, one assignee and one set of
+    /// receipts for two separate pieces of paperwork, and the commonest way the
+    /// second one gets missed is that nothing ever asked about it.
+    static let secondParentLeaveClaim = RequirementRule(
+        key: "parental_leave_claim_second",
+        title: "File the second parent's leave claim",
+        shortTitle: "Second parent's leave",
+        category: .work,
+        sortWeight: 13,
+        sourcing: .cite(key: "dol_fmla", subject: .familyLeave),
+        documents: [
+            DocumentSpec(key: "employer_form", title: "The second parent's employer leave request form"),
+            DocumentSpec(key: "proof_of_birth", title: "Proof of the birth"),
+            DocumentSpec(
+                key: "policy_window",
+                title: "The second parent's own notice window, in writing",
+                detail: "Employer policies for the non-birth parent differ from the birth parent's, and so does the amount of notice they ask for."
+            )
+        ],
+        applies: { $0.parentalLeaveTakers == .bothParents },
+        detail: { input in
+            let state = input.residenceStateCode.isEmpty
+                ? "your state"
+                : USState.displayName(for: input.residenceStateCode)
+            return "A separate claim, with a separate employer and possibly a separate programme. Bonding leave for the non-birth parent is often governed by different rules than the birth parent's own leave, both in \(state)'s programme and in the employer's policy, so the two dates cannot be assumed to match. Assign this one to whoever is filing it."
+        },
+        deadline: { input in
+            Deadline(
+                date: addDays(30, to: input.birthDate),
+                kind: .recommended,
+                basis: "FMLA sets no filing deadline for the employee, but employer policies and state paid-leave programmes do, and bonding leave for a second parent commonly has to start inside the first year and be claimed far earlier than that."
             )
         },
         link: { _ in

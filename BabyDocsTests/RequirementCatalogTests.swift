@@ -44,7 +44,7 @@ struct RequirementCatalogTests {
             wantsPassport: true,
             wants529: true,
             wantsNewbornAccount: true,
-            takingParentalLeave: true
+            parentalLeaveTakers: .bothParents
         )
     }
 
@@ -118,6 +118,52 @@ struct RequirementCatalogTests {
         let rule = RequirementCatalog.dependentCareFSA
         #expect(rule.applies(family))
         #expect(rule.deadline(family).kind == .recommended)
+    }
+
+    /// Leave is a claim, not a household arrangement: each parent files their
+    /// own, with their own employer, often under different rules. One shared row
+    /// meant one tick and one assignee for two separate pieces of paperwork.
+    @Test("Both parents taking leave produces two claims, one each")
+    func bothParentsTakingLeaveGetOneClaimEach() {
+        let first = RequirementCatalog.parentalLeaveClaim
+        let second = RequirementCatalog.secondParentLeaveClaim
+
+        var nobody = input()
+        nobody.parentalLeaveTakers = .nobody
+        #expect(!first.applies(nobody))
+        #expect(!second.applies(nobody))
+
+        var one = input()
+        one.parentalLeaveTakers = .oneParent
+        #expect(first.applies(one))
+        #expect(!second.applies(one), "one parent taking leave must not generate a second claim")
+        #expect(first.title(for: one) == first.title)
+
+        var both = input()
+        both.parentalLeaveTakers = .bothParents
+        #expect(first.applies(both))
+        #expect(second.applies(both))
+        // Two rows with the same words on them are two rows nobody can tell
+        // apart, and the tick on the wrong one is silent.
+        #expect(first.title(for: both) != second.title(for: both))
+    }
+
+    /// The plan name is the difference between a notification a parent can act
+    /// on and one that sends them looking for a phone number.
+    @Test("A named job plan reaches the task title, and an unnamed one changes nothing")
+    func theJobPlanNameReachesTheTitle() {
+        let rule = RequirementCatalog.employerInsurance
+        // One input, copied. Two calls to `input()` differ by however long the
+        // line took to run, and the deadlines then differ by that too.
+        let anonymous = input(insurance: .employer)
+        #expect(rule.title(for: anonymous) == rule.title)
+
+        var named = anonymous
+        named.employerPlanName = "Acme PPO"
+        #expect(rule.title(for: named).contains("Acme PPO"))
+        // The date is federal and does not move because a plan has a name.
+        #expect(rule.deadline(named).date == rule.deadline(anonymous).date)
+        #expect(rule.deadline(named).kind == .hard)
     }
 
     /// The 60 days is the same either way; the site is not. A family on a

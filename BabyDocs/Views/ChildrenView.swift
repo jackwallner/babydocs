@@ -25,8 +25,6 @@ struct ChildrenView: View {
                             ChildRow(child: child)
                         }
                     }
-                } header: {
-                    Text("Children")
                 }
 
                 if !restorableArchivedChildren.isEmpty {
@@ -248,8 +246,11 @@ private struct ChildRow: View {
 
             Spacer()
 
-            Text("\(overview.openCount)")
+            // A bare number in the corner of a row is a badge nobody can read:
+            // eighteen of what, and is more of it better or worse.
+            Text("\(overview.openCount) left")
                 .font(.subheadline.weight(.medium))
+                .monospacedDigit()
                 .foregroundStyle(overview.overdueCount > 0 ? .red : .secondary)
         }
         .accessibilityElement(children: .combine)

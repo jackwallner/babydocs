@@ -6,11 +6,32 @@ import SwiftUI
 ///
 /// The plan answers "what do I have to do". This answers "where is the thing
 /// they are asking me for", which is the question at the counter, in the waiting
-/// room and on the phone to a benefits administrator. It is two lists that
-/// belong together: what still has to be found, gathered across every task so
-/// nobody has to open fifteen screens to build one errand, and copies of what
-/// has already been found.
+/// room and on the phone to a benefits administrator.
+///
+/// **Two jobs, and they are behind a switch rather than stacked.** The screen
+/// used to run three sections down one list: what to find, what is in hand, and
+/// a photo vault, each with its own header and its own footer, and every one of
+/// them a different noun. Read from the top it looked like one list of documents
+/// that had been shuffled, so nobody could tell that ticking a row and
+/// photographing a certificate are unrelated actions. The switch names the two
+/// jobs out loud: a checklist of what the tasks ask you to bring, and
+/// photographs of the papers you already have.
 struct DocumentsView: View {
+    /// Which half of the screen is showing. Not a filter: two different jobs.
+    enum Mode: String, CaseIterable, Identifiable {
+        case checklist
+        case copies
+
+        var id: String { rawValue }
+
+        var label: String {
+            switch self {
+            case .checklist: return "To bring"
+            case .copies: return "Photos"
+            }
+        }
+    }
+
     @Environment(\.modelContext) private var context
     @Query(filter: #Predicate<Child> { $0.deletedAt == nil }, sort: \Child.birthDate)
     private var children: [Child]
@@ -26,15 +47,35 @@ struct DocumentsView: View {
     @State private var pendingDeletion: VaultDocument?
     /// Ticked documents stay on screen. See `onHandSection`.
     @State private var isShowingOnHand = true
+    @State private var mode: Mode = .checklist
 
     var body: some View {
         NavigationStack {
             List {
-                gatherSection
-                onHandSection
+                Section {
+                    Picker("What to show", selection: $mode) {
+                        ForEach(Mode.allCases) { value in
+                            Text(value.label).tag(value)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(
+                        top: 0, leading: 0, bottom: AppTheme.tightSpacing, trailing: 0
+                    ))
+                } footer: {
+                    Text(modeFooter)
+                }
 
-                ForEach(children) { child in
-                    vaultSection(for: child)
+                switch mode {
+                case .checklist:
+                    gatherSection
+                    onHandSection
+                case .copies:
+                    ForEach(children) { child in
+                        vaultSection(for: child)
+                    }
                 }
             }
             .listStyle(.insetGrouped)
@@ -88,17 +129,15 @@ struct DocumentsView: View {
         liveTasks.filter(\.isOpen).flatMap(\.liveDocuments)
     }
 
-    private var outstanding: [DocumentItem] {
-        checklist.filter { !$0.isOnHand }
-    }
-
     private var gathered: [DocumentItem] {
         checklist.filter(\.isOnHand)
     }
 
-    /// Deduplicated by title **within one child**, because the same certified
-    /// copy appears on four different tasks and a list that says "birth
-    /// certificate" four times reads as four errands.
+    /// The identity a tick travels along: title **within one child**.
+    ///
+    /// It is what deduplicates a group, what collapses the in-hand list, and
+    /// what makes ticking a certificate under one errand tick it under the other
+    /// three that also want it.
     ///
     /// The child is half the identity, and leaving it out was a bug with real
     /// consequences: with two children the list collapsed to one "Birth
@@ -116,35 +155,76 @@ struct DocumentsView: View {
         return items.filter { seen.insert(identity($0)).inserted }
     }
 
-    private var uniqueOutstanding: [DocumentItem] { unique(outstanding) }
     private var uniqueGathered: [DocumentItem] { unique(gathered) }
+
+    /// **One group per task, soonest first, rather than one flat list.**
+    ///
+    /// Flat, this screen was forty-four rows of "Photo ID for the parent
+    /// applying", "The per-copy fee", "Your benefits administrator's name"
+    /// stacked in one column with nothing to say what any of them was for. Half
+    /// of them are not even documents, they are things to have ready, and out of
+    /// context they read as an inventory somebody else had made of a drawer.
+    ///
+    /// A parent is never gathering forty-four things. They are doing *one
+    /// errand*, and the question is what to take to it, so the errand is the
+    /// heading and its own deadline sits under it. A document wanted by four
+    /// tasks appears under all four on purpose: it is needed at four counters,
+    /// and ticking it in any one of them still ticks it in the rest.
+    private var outstandingGroups: [(task: RequirementTask, items: [DocumentItem])] {
+        TaskPlanner.sorted(liveTasks.filter(\.isOpen))
+            .map { (task: $0, items: unique($0.liveDocuments.filter { !$0.isOnHand })) }
+            .filter { !$0.items.isEmpty }
+    }
 
     @ViewBuilder
     private var gatherSection: some View {
-        let items = uniqueOutstanding
-        Section {
-            if items.isEmpty {
+        let groups = outstandingGroups
+        if groups.isEmpty {
+            Section {
                 Label("Everything your open tasks ask for is gathered.", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.secondary)
                     .font(.subheadline)
-            } else {
-                ForEach(items) { item in
-                    DocumentChecklistRow(
-                        item: item,
-                        showChildName: children.count > 1,
-                        onToggle: { setOnHand(item, true) }
+            } header: {
+                PlanSectionHeader(title: "Still to find")
+            }
+        } else {
+            ForEach(groups, id: \.task.id) { group in
+                Section {
+                    ForEach(group.items) { item in
+                        DocumentChecklistRow(
+                            item: item,
+                            showChildName: false,
+                            showTaskName: false,
+                            onToggle: { setOnHand(item, true) }
+                        )
+                    }
+                } header: {
+                    PlanSectionHeader(
+                        title: headerTitle(for: group.task),
+                        blurb: TaskPlanner.duePhrase(for: group.task),
+                        count: group.items.count
                     )
                 }
             }
-        } header: {
-            PlanSectionHeader(
-                title: "Still to find",
-                blurb: children.count > 1
-                    ? "Every open task's list in one place, with the duplicates collapsed. Ticking one here ticks it wherever else it appears for that child, and never for the other."
-                    : "Every open task's list in one place, with the duplicates collapsed. Ticking one here ticks it wherever else it appears.",
-                count: items.isEmpty ? nil : items.count
-            )
         }
+    }
+
+    private var modeFooter: String {
+        switch mode {
+        case .checklist:
+            return children.count > 1
+                ? "What to take to each errand. Tick something and it ticks on every task that wants it for that child, and never for the other child."
+                : "What to take to each errand. Tick something and it ticks on every task that wants it."
+        case .copies:
+            return "Photographs of papers you already have. Nothing here is a task."
+        }
+    }
+
+    /// The child's name leads once there is more than one, because with twins
+    /// two groups are otherwise the same heading twice.
+    private func headerTitle(for task: RequirementTask) -> String {
+        guard children.count > 1, let name = task.child?.displayName else { return task.title }
+        return "\(name) \u{00B7} \(task.title)"
     }
 
     /// **A ticked document does not vanish.**
@@ -174,7 +254,7 @@ struct DocumentsView: View {
                     }
                 } label: {
                     HStack(spacing: AppTheme.tightSpacing) {
-                        Text("In hand")
+                        Text("Already in hand")
                             .font(.subheadline.weight(.medium))
                         Spacer(minLength: 0)
                         Text("\(items.count)")
@@ -184,7 +264,7 @@ struct DocumentsView: View {
                     }
                 }
             } footer: {
-                Text("Ticked, and still here. Tap the tick to put one back on the list, or the row itself to open the task that asks for it.")
+                Text("Ticked, and deliberately still here: the question at the counter is \"did I already deal with this one\". Tap the tick to put one back on the list, or the row itself to open the task that asks for it.")
             }
         }
     }
@@ -247,7 +327,13 @@ struct DocumentsView: View {
                 addButton(for: child, existingCount: documents.count)
             }
         } header: {
-            Text(children.count > 1 ? "\(child.displayName)'s copies" : "Your copies")
+            PlanSectionHeader(
+                title: children.count > 1 ? "\(child.displayName)'s papers" : "Photos of your papers",
+                blurb: documents.isEmpty
+                    ? "So you are not driving home for the certificate."
+                    : "",
+                count: documents.isEmpty ? nil : documents.count
+            )
         } footer: {
             Text(footerText(count: documents.count))
         }
@@ -290,7 +376,7 @@ struct DocumentsView: View {
 
     private func footerText(count: Int) -> String {
         if count == 0 {
-            return "Photographs of the documents you already have, so you are not driving home for the certificate. They stay on this phone: they are not backed up, not uploaded, and Baby Docs has no server to put them on."
+            return "They stay on this phone: not backed up, not uploaded, and Baby Docs has no server to put them on."
         }
         return "On this phone only. Not backed up, not uploaded. If you lose the phone these copies go with it, so keep the originals where you always kept them."
     }

@@ -117,7 +117,11 @@ struct TaskRow: View {
                 // the previous layout let them truncate to four characters each
                 // instead of stacking.
                 BadgeRow {
-                    DeadlinePill(task: task)
+                    // "No deadline" next to "Not arrived" is two badges saying
+                    // nothing and something. The something wins.
+                    if !(task.isLate() && task.deadlineKind == .none) {
+                        DeadlinePill(task: task)
+                    }
                     if task.isLate() { LatePill() }
                     metadata
                 }
@@ -166,6 +170,9 @@ struct TaskRow: View {
 struct DocumentChecklistRow: View {
     let item: DocumentItem
     var showChildName = false
+    /// Off inside a group already headed by the task, where repeating it under
+    /// every row is the same seven words four times in one card.
+    var showTaskName = true
     let onToggle: () -> Void
 
     var body: some View {
@@ -222,7 +229,11 @@ struct DocumentChecklistRow: View {
         guard let task = item.task else { return "" }
         var parts: [String] = []
         if showChildName { parts.append(task.child?.displayName ?? "Your baby") }
-        parts.append(task.title)
+        if showTaskName { parts.append(task.title) }
+        // Inside a group headed by the task, the row's own detail is the useful
+        // line: "the page where the number was requested" is what tells a parent
+        // which piece of paper this is.
+        if !showTaskName, !item.detail.isEmpty { parts.append(item.detail) }
         return parts.joined(separator: " \u{00B7} ")
     }
 }

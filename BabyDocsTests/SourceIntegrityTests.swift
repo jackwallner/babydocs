@@ -24,7 +24,7 @@ struct SourceIntegrityTests {
             wantsPassport: true,
             wants529: true,
             wantsNewbornAccount: true,
-            takingParentalLeave: true
+            parentalLeaveTakers: .bothParents
         )
     }
 

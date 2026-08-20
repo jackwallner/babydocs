@@ -69,6 +69,13 @@ final class ScreenshotUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Documents"].waitForExistence(timeout: 5))
         capture(name: "06-documents")
 
+        // The other half of the same tab. The two are behind a switch rather
+        // than stacked down one list, so both halves have to be looked at: a
+        // checklist row and a photograph are different nouns and used to sit in
+        // the same column looking like the same thing.
+        app.buttons["Photos"].firstMatch.tap()
+        capture(name: "06b-documents-photos")
+
         app.tabBars.buttons["Settings"].tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
         capture(name: "07-settings")
@@ -89,20 +96,34 @@ final class ScreenshotUITests: XCTestCase {
         // actually arrives here.
         app.buttons["Get started"].tap()
         XCTAssertTrue(app.navigationBars["Your baby"].waitForExistence(timeout: 5))
+        // Captured before anything is answered, because that is the state the
+        // required marks exist for: the first screen a parent sees has to say
+        // which answers the plan cannot be built without.
+        capture(name: "01-baby")
         choose(state: "California", labelled: "State of birth", in: app)
         app.buttons["Continue"].firstMatch.tap()
 
         XCTAssertTrue(app.navigationBars["Your household"].waitForExistence(timeout: 5))
+        capture(name: "02-household")
         choose(state: "California", labelled: "State you live in", in: app)
         app.buttons["Continue"].firstMatch.tap()
 
         XCTAssertTrue(app.navigationBars["Coverage"].waitForExistence(timeout: 5))
-        capture(name: "01-coverage")
+        capture(name: "03-coverage")
         app.buttons["Through a job"].firstMatch.tap()
+        // The plan questions only exist once the answer is "through a job", and
+        // they are what make the hardest task in the app name a plan and a
+        // person instead of "the job-based health plan".
+        capture(name: "04-coverage-employer")
         app.buttons["Continue"].firstMatch.tap()
 
         XCTAssertTrue(app.navigationBars["Leave"].waitForExistence(timeout: 5))
-        capture(name: "02-explained-choice")
+        capture(name: "05-leave")
+        app.buttons["Both parents"].firstMatch.tap()
+        app.buttons["Continue"].firstMatch.tap()
+
+        XCTAssertTrue(app.navigationBars["Newborn account"].waitForExistence(timeout: 5))
+        capture(name: "06-explained-choice")
     }
 
     /// A `Picker` row in a SwiftUI `Form` is a cell containing the label, not a

@@ -249,7 +249,9 @@ struct ImportPlanSheet: View {
         profile.wantsPassport = seed.wantsPassport
         profile.wants529 = seed.wants529
         profile.wantsNewbornAccount = seed.wantsNewbornAccount
-        profile.takingParentalLeave = seed.takingParentalLeave
+        profile.parentalLeaveTakers = seed.parentalLeaveTakers
+            .flatMap(ParentalLeaveTakers.init(rawValue:))
+            ?? (seed.takingParentalLeave ? .oneParent : .nobody)
         profile.recordLocalChange(in: context)
 
         // Whichever child the recipient picked, and nothing inferred. See

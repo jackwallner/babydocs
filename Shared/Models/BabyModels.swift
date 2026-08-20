@@ -148,6 +148,27 @@ enum MarketplaceKind: String, Codable, CaseIterable, Sendable {
     }
 }
 
+/// Which parents are taking leave after the birth.
+///
+/// A boolean was the wrong shape and it hid a real fact: leave is not a
+/// household arrangement, it is a claim, and each parent files their own with
+/// their own employer, on their own state's programme, inside their own window.
+/// One task for "someone is taking parental leave" left the second parent's
+/// claim as a thing the app had silently decided did not exist.
+enum ParentalLeaveTakers: String, Codable, CaseIterable, Sendable {
+    case nobody
+    case oneParent = "one_parent"
+    case bothParents = "both_parents"
+
+    var label: String {
+        switch self {
+        case .nobody: return "Nobody is taking leave"
+        case .oneParent: return "One parent"
+        case .bothParents: return "Both parents"
+        }
+    }
+}
+
 /// The legal relationship between the parents at the time of birth. In most
 /// states marriage creates a presumption of parentage and an unmarried second
 /// parent has to establish it deliberately, which is why this question exists.
@@ -334,14 +355,29 @@ final class FamilyProfile {
     /// Only read when `insuranceKind` is `.marketplace`. Decides which page the
     /// Marketplace task sends the family to.
     var marketplaceKindRaw: String = MarketplaceKind.unknown.rawValue
-    var employerPlanName: String = ""
     /// A dependent-care FSA election is a separate qualifying-life-event window
     /// from the medical plan, and is missed far more often.
     var hasDependentCareFSA: Bool = false
     var wantsPassport: Bool = false
     var wants529: Bool = false
     var wantsNewbornAccount: Bool = true
+    /// Legacy storage. Kept because builds already in the field wrote it, and
+    /// it is still the answer to "is anyone taking leave at all". Everything
+    /// reads `parentalLeaveTakers`, which is the question that actually forks a
+    /// rule, and writing that keeps this in step.
     var takingParentalLeave: Bool = true
+    /// Empty means the family answered the old yes/no question and has not seen
+    /// the new one, so the getter reads the boolean rather than inventing an
+    /// answer nobody gave.
+    var parentalLeaveTakersRaw: String = ""
+    /// The employer or plan name, used to make the hardest task in the app say
+    /// *which* plan rather than "the job-based health plan". Optional, and the
+    /// deadline does not depend on it.
+    var employerPlanName: String = ""
+    /// What the benefits administrator is reachable on. A phone number is what
+    /// the 30-day window actually turns on, and it is never to hand at the
+    /// moment it is needed.
+    var benefitsContactNote: String = ""
 
     var updatedAt: Date = Date()
     var deletedAt: Date?
@@ -364,6 +400,17 @@ final class FamilyProfile {
     var marketplaceKind: MarketplaceKind {
         get { MarketplaceKind(rawValue: marketplaceKindRaw) ?? .unknown }
         set { marketplaceKindRaw = newValue.rawValue }
+    }
+
+    var parentalLeaveTakers: ParentalLeaveTakers {
+        get {
+            ParentalLeaveTakers(rawValue: parentalLeaveTakersRaw)
+                ?? (takingParentalLeave ? .oneParent : .nobody)
+        }
+        set {
+            parentalLeaveTakersRaw = newValue.rawValue
+            takingParentalLeave = newValue != .nobody
+        }
     }
 
     /// True once the intake has enough to generate a plan that is worth showing.

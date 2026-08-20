@@ -144,13 +144,20 @@ extension View {
     }
 
     /// Applied to a card used as a `List` row. Pairs with `planCard`.
+    ///
+    /// **Horizontally zero, and that is the whole point.** An `.insetGrouped`
+    /// section already holds its cells `AppTheme.margin` in from the page, and
+    /// `listRowInsets` are applied *inside* that cell. Setting the margin here
+    /// as well spent it twice: the header card sat about twenty points further
+    /// in than the task rows underneath it, which is the mismatched grey outline
+    /// in the screenshots. The section supplies the margin; the row adds none.
     func planCardRow() -> some View {
         self
             .listRowInsets(EdgeInsets(
                 top: AppTheme.tightSpacing,
-                leading: AppTheme.margin,
+                leading: 0,
                 bottom: AppTheme.tightSpacing,
-                trailing: AppTheme.margin
+                trailing: 0
             ))
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)

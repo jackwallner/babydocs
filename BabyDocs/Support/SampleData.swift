@@ -24,8 +24,9 @@ enum SampleData {
         profile.secondParentOnRecord = false
         profile.insuranceKind = .employer
         profile.employerPlanName = "Acme PPO"
+        profile.benefitsContactNote = "Dana in HR, 555 0134"
         profile.hasDependentCareFSA = true
-        profile.takingParentalLeave = true
+        profile.parentalLeaveTakers = .bothParents
         profile.wantsPassport = true
         profile.wants529 = true
         profile.wantsNewbornAccount = true

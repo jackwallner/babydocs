@@ -143,7 +143,9 @@ enum RequirementEngine {
             wantsPassport: profile.wantsPassport,
             wants529: profile.wants529,
             wantsNewbornAccount: profile.wantsNewbornAccount,
-            takingParentalLeave: profile.takingParentalLeave
+            parentalLeaveTakers: profile.parentalLeaveTakers,
+            employerPlanName: profile.employerPlanName,
+            benefitsContactNote: profile.benefitsContactNote
         )
     }
 
@@ -163,7 +165,7 @@ enum RequirementEngine {
         child: Child,
         in context: ModelContext
     ) -> RequirementTask {
-        let task = RequirementTask(title: rule.title)
+        let task = RequirementTask(title: rule.title(for: input))
         task.id = taskID(childID: child.id, catalogKey: rule.key)
         task.catalogKey = rule.key
         task.child = child
@@ -194,7 +196,7 @@ enum RequirementEngine {
         let deadline = rule.deadline(input)
         let link = rule.link(input)
 
-        task.title = rule.title
+        task.title = rule.title(for: input)
         task.detail = rule.detail(input)
         task.category = rule.category
         task.sortWeight = rule.sortWeight

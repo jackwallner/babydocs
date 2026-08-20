@@ -3,21 +3,21 @@ import SwiftUI
 
 /// The intake.
 ///
-/// The rule that shaped this: no question that does not fork a rule. It is
+/// Two rules shaped it. **No question that does not fork a rule**: it is
 /// tempting to ask for the hospital, the pediatrician and the weight, and all
 /// three would make the app feel thorough and none of them would change a single
 /// deadline. Every field here is read by `RequirementCatalog`.
 ///
-/// The optional four used to be four unexplained toggles on one screen called
-/// "Plans". That screen was where somebody opted out of a $1,000 federal
-/// contribution because a switch did not say what it was. They are one page each
-/// now, and each page answers the same three questions in the same order: what
-/// it is, why it might matter to *you*, and what saying yes actually adds to
-/// your list. Nobody should have to already know.
+/// And **no paragraph that is not about the answer being given**. The intake
+/// used to carry an essay on each screen, including one on the welcome page
+/// about where the answers are stored, which is a fine thing to be able to look
+/// up and a strange thing to put in front of somebody who has not typed
+/// anything yet. What survived is either short enough to sit in a footer where
+/// it will actually be read, or genuinely worth a tap on a question a reader
+/// has never heard of, like the $1,000 newborn account.
 struct OnboardingFlow: View {
     @Environment(\.modelContext) private var context
     @State private var step: Step = .welcome
-    @State private var navigator = AppNavigator.shared
     @State private var location = LocationLookup()
 
     // Baby
@@ -25,10 +25,13 @@ struct OnboardingFlow: View {
     @State private var birthDate = Date()
     @State private var birthStateCode = ""
     @State private var birthCounty = ""
-    @State private var isUSCitizen = false
+    @State private var isUSCitizen = true
 
     // Household
     @State private var residenceStateCode = ""
+    /// What the location fix filled in, so the screens can say so rather than
+    /// quietly presenting a guess as an answer.
+    @State private var prefilledFromLocation: LocationLookup.Place?
     // Neutral by default, all three of them. Each one changes which tasks are
     // generated, so a value the parent never chose is a plan the parent never
     // chose: "married" quietly decides a parentage question, and "already on the
@@ -37,11 +40,13 @@ struct OnboardingFlow: View {
     @State private var secondParentOnRecord = false
     @State private var insuranceKind: InsuranceKind = .unknown
     @State private var marketplaceKind: MarketplaceKind = .unknown
+    @State private var employerPlanName = ""
+    @State private var benefitsContactNote = ""
     @State private var hasDependentCareFSA = false
 
     // The optional four. A question is not an answer, so each starts off until
     // the parent explicitly adds it to the plan.
-    @State private var takingParentalLeave = false
+    @State private var leaveTakers: ParentalLeaveTakers = .nobody
     @State private var wantsNewbornAccount = false
     @State private var wants529 = false
     @State private var wantsPassport = false
@@ -108,32 +113,11 @@ struct OnboardingFlow: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
-
-                // Not "nothing leaves this phone", which the app then goes on to
-                // contradict on purpose: sending the plan to the other parent is
-                // a link full of these answers, and it is one of the best things
-                // here. The claim worth making is the one that stays true, which
-                // is that nothing goes anywhere on its own.
-                //
-                // The long form of it is a paragraph, and a paragraph of
-                // qualified privacy language is the last thing a reader on the
-                // first screen needs in front of the button. It unfurls.
-                OnboardingDisclosure(
-                    label: "What happens to my answers",
-                    text: "No household-data account, and no copy of your answers anywhere but here. Your plan stays on this phone unless you choose to send it, and photographs of documents never travel at all. Purchases are handled separately by Apple and RevenueCat, which is the one thing that does leave: an anonymous ID and what you bought, never anything about your family.",
-                    boxed: true
-                )
-                .padding(.top, AppTheme.tightSpacing)
             }
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 24)
         }
         .safeAreaInset(edge: .bottom) {
-            // The "two windows close fast" line used to live here as fine
-            // print under a button, which is the worst place for it: it is
-            // jargon, and it is on the one screen where nothing can be done
-            // about it. The explanation now sits on the coverage question,
-            // where it is the decision being made.
             OnboardingFooter(title: "Get started", note: "About a minute. Nothing is submitted anywhere.") {
                 step = .baby
             }
@@ -147,44 +131,87 @@ struct OnboardingFlow: View {
             Section {
                 TextField("First name (optional)", text: $name)
                 DatePicker(
-                    "Date of birth",
                     selection: $birthDate,
                     in: ...Date(),
                     displayedComponents: .date
-                )
+                ) {
+                    RequiredLabel("Date of birth")
+                }
             } header: {
                 Text("Your baby")
+            } footer: {
+                Text("Every deadline in the app counts from this date, so it is the one answer worth double-checking.")
             }
 
             Section {
-                statePicker("State of birth", selection: $birthStateCode)
+                locationButton
+                statePicker("State of birth", selection: $birthStateCode, required: true)
                 countyPicker(stateCode: birthStateCode, selection: $birthCounty)
                 Toggle("US citizen", isOn: $isUSCitizen)
             } header: {
                 Text("Where the birth was registered")
+            } footer: {
+                Text(birthFooter)
             }
-
-            Section {
-                OnboardingDisclosure(
-                    label: "Why these three",
-                    text: """
-                    The date of birth is what every deadline in the app counts \
-                    from, so it is the one answer worth double-checking. The \
-                    birth certificate is issued where the birth was registered \
-                    rather than where you live now, and in many states a county \
-                    office is faster than the state one, which is the only \
-                    reason the county is asked for. Citizenship turns on exactly \
-                    one task, a federal account for newborn citizens, explained \
-                    in a moment: if you are not sure, leave it off until you \
-                    have verified it.
-                    """
-                )
-            }
-            .listRowBackground(Color.clear)
         }
         .navigationTitle("Your baby")
         .safeAreaInset(edge: .bottom) {
-            OnboardingFooter(enabled: !birthStateCode.isEmpty) { step = .household }
+            OnboardingFooter(
+                enabled: !birthStateCode.isEmpty,
+                note: birthStateCode.isEmpty ? "Pick the state of birth to carry on." : ""
+            ) { step = .household }
+        }
+    }
+
+    private var birthFooter: String {
+        if let place = prefilledFromLocation {
+            let county = place.county.isEmpty ? "" : "\(place.county), "
+            return "From where you are now: \(county)\(USState.displayName(for: place.stateCode)). Where you live has been set to the same state. Change either if the birth was somewhere else."
+        }
+        if birthStateCode.isEmpty {
+            return "The certificate comes from where the birth was registered, not from where you live now."
+        }
+        return "The certificate comes from where the birth was registered. The county is asked for because in many states its office is faster than the state one."
+    }
+
+    /// Fills the birth state and county, and the residence state with them.
+    ///
+    /// This used to be offered on the household question only, on the reasoning
+    /// that where you are standing is poor evidence about where you gave birth.
+    /// The reasoning was right about *silent* inference and wrong about the
+    /// button: the likeliest thing by a distance is that a parent is using this
+    /// app in the state the birth was registered in, and typing the same state
+    /// twice on two screens is a worse experience than reading one sentence that
+    /// says exactly what was filled in and inviting a correction.
+    ///
+    /// So it fills both, it says so underneath in words, and both pickers stay
+    /// editable and visible. Nothing here is inferred without being shown.
+    @ViewBuilder
+    private var locationButton: some View {
+        switch location.status {
+        case .working, .asking:
+            HStack {
+                ProgressView()
+                Text("Finding your county").foregroundStyle(.secondary)
+            }
+        case .failed(let message):
+            Text(message)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        default:
+            Button {
+                Task {
+                    await location.find()
+                    if case .done(let place) = location.status {
+                        birthStateCode = place.stateCode
+                        birthCounty = place.county
+                        residenceStateCode = place.stateCode
+                        prefilledFromLocation = place
+                    }
+                }
+            } label: {
+                Label("Use my location to fill these in", systemImage: "location")
+            }
         }
     }
 
@@ -193,10 +220,11 @@ struct OnboardingFlow: View {
     private var householdStep: some View {
         Form {
             Section {
-                locationButton
-                statePicker("State you live in", selection: $residenceStateCode)
+                statePicker("State you live in", selection: $residenceStateCode, required: true)
             } header: {
                 Text("Where you live")
+            } footer: {
+                Text(residenceFooter)
             }
 
             // "Prefer not to say" is a real answer here, not a hidden case.
@@ -220,63 +248,35 @@ struct OnboardingFlow: View {
                 }
             } header: {
                 Text("Parents")
+            } footer: {
+                Text(parentageFooter)
             }
-
-            Section {
-                OnboardingDisclosure(
-                    label: "Why we ask",
-                    text: parentageExplanation
-                )
-            }
-            .listRowBackground(Color.clear)
         }
         .navigationTitle("Your household")
         .safeAreaInset(edge: .bottom) {
-            OnboardingFooter(enabled: !residenceStateCode.isEmpty) { step = .coverage }
+            OnboardingFooter(
+                enabled: !residenceStateCode.isEmpty,
+                note: residenceStateCode.isEmpty ? "Pick the state you live in to carry on." : ""
+            ) { step = .coverage }
         }
     }
 
-    private var parentageExplanation: String {
-        let base = "Where you live decides the Medicaid and CHIP agency, and whether there is a state paid-leave programme to file with. "
+    private var residenceFooter: String {
+        let base = "Sets your Medicaid and CHIP agency, and whether there is a state paid-leave programme to file with."
+        if let place = prefilledFromLocation, place.stateCode == residenceStateCode {
+            return "Filled in from your location. " + base
+        }
+        return base
+    }
+
+    private var parentageFooter: String {
         switch parentage {
         case .unknown:
-            return base + "Nothing on your plan needs the parents question except one task: establishing a second parent who is not automatically on the record. Leave it where it is and that task stays off, and you can turn it on later in your household answers without redoing anything."
+            return "This decides one task: establishing a second parent who is not automatically on the birth record. Left as it is, that task stays off, and you can turn it on later without redoing anything."
         case .unmarriedBothParents where !secondParentOnRecord:
-            return base + "In most states marriage puts the second parent on the record automatically and an unmarried second parent has to establish it deliberately. That is state law and legally significant: the app will show you the task and your state's own form, and it will not prepare or file anything for you."
+            return "In most states marriage puts the second parent on the record automatically and an unmarried second parent has to establish it deliberately. Your plan will carry that task and your state's own form. Baby Docs will not prepare or file it for you."
         default:
-            return base + "The parents question decides one task. In most states marriage puts the second parent on the record automatically and an unmarried second parent has to establish it deliberately."
-        }
-    }
-
-    /// Fills the residence state and county from one location fix.
-    ///
-    /// Only offered on this question, never on the birth one. Where you are
-    /// standing today is good evidence about where you live and poor evidence
-    /// about where you gave birth, and a plan built on a silently wrong birth
-    /// state sends a parent to the wrong vital records office for a fortnight.
-    @ViewBuilder
-    private var locationButton: some View {
-        switch location.status {
-        case .working, .asking:
-            HStack {
-                ProgressView()
-                Text("Finding your county").foregroundStyle(.secondary)
-            }
-        case .failed(let message):
-            Text(message)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        default:
-            Button {
-                Task {
-                    await location.find()
-                    if case .done(let place) = location.status {
-                        residenceStateCode = place.stateCode
-                    }
-                }
-            } label: {
-                Label("Use my location", systemImage: "location")
-            }
+            return "This decides one task: in most states marriage puts the second parent on the record automatically, and an unmarried second parent has to establish it deliberately."
         }
     }
 
@@ -295,9 +295,12 @@ struct OnboardingFlow: View {
             } header: {
                 Text("How is the family covered?")
             } footer: {
-                Text(insuranceKind == .unknown
-                     ? "\"Not sure yet\" does not block anything, and it does not invent a date either."
-                     : "This sets the hardest date in the app.")
+                // The single most important sentence in the intake, so it is
+                // printed rather than folded away behind a disclosure. A job
+                // plan and the Marketplace are the only two hard doors in the
+                // app, and a reader who never taps "why" is exactly the reader
+                // who needs to know this.
+                Text(coverageFooter)
             }
 
             // Asked because it changes where the family has to go, not how long
@@ -316,20 +319,32 @@ struct OnboardingFlow: View {
                     .labelsHidden()
                 } header: {
                     Text("Which marketplace?")
+                } footer: {
+                    Text("The 60 days is the same either way. The site and the sign-in are not: HealthCare.gov will tell a Californian it does not serve them.")
+                }
+            }
+
+            // Asked here rather than left to a settings screen nobody opens,
+            // because these two answers are what turn the hardest task in the
+            // app from "add the baby to the job-based health plan" into a
+            // sentence naming the plan and the person who can confirm the date.
+            if insuranceKind == .employer {
+                Section {
+                    TextField("Plan or employer name", text: $employerPlanName)
+                        .textInputAutocapitalization(.words)
+                    TextField("Benefits contact or phone", text: $benefitsContactNote)
+                } header: {
+                    Text("Which plan? (optional)")
+                } footer: {
+                    Text("Both go onto the task and into the reminder, so the notification names the plan and who to ring. Neither changes the deadline, and neither leaves this phone.")
                 }
             }
 
             Section {
                 Toggle("We have a dependent care FSA", isOn: $hasDependentCareFSA)
+            } footer: {
+                Text("A separate election from the health plan, with its own window, and the one most often missed. Your employer sets that window rather than the law, so it is shown as a suggestion to confirm.")
             }
-
-            Section {
-                OnboardingDisclosure(
-                    label: "Why this is the important one",
-                    text: coverageExplanation
-                )
-            }
-            .listRowBackground(Color.clear)
         }
         .navigationTitle("Coverage")
         .safeAreaInset(edge: .bottom) {
@@ -337,31 +352,77 @@ struct OnboardingFlow: View {
         }
     }
 
-    private var coverageExplanation: String {
-        var text = "Two deadlines in this app are real doors closing, and both of them are here. A job-based plan must let you add the baby for at least 30 days after the birth. The Marketplace is 60. Miss the window and you usually wait for open enrollment. If you are covered both ways, pick the job-based plan: it is the shorter one. "
+    private var coverageFooter: String {
+        let base = "A job-based plan must let you add the baby within 30 days of the birth. The Marketplace gives 60. Miss it and you usually wait for open enrollment. Covered both ways? Pick the job plan: it closes first."
         if insuranceKind == .unknown {
-            text += "\"Not sure yet\" is a real answer and it does not block anything: your plan gets one task at the top telling you what to find out and why it is worth doing this fortnight, and the moment you set the answer the real deadline appears in its place. "
+            return base + " \"Not sure yet\" blocks nothing: you get a task about finding out instead of a date the app guessed."
         }
-        if insuranceKind == .marketplace {
-            text += "The 60 days is the same whichever marketplace you use. The site is not: some states run their own, with their own account and their own documents, and if you are not sure the task sends you to the federal page that picks your state for you. "
-        }
-        text += "A dependent care FSA is a separate election from the health plan, with its own window, and the one people most often miss because they assume the two move together. Your employer's plan document sets that window rather than the law, so Baby Docs shows it as a suggestion and asks you to confirm the real date."
-        return text
+        return base
     }
 
     // MARK: - The optional four, one page each
 
+    /// Not a toggle, because leave is not a household arrangement.
+    ///
+    /// It shipped as "someone is taking leave", which quietly decided that a
+    /// family where both parents take leave has one piece of paperwork. They
+    /// have two: two employers, two policies, often two different windows, and
+    /// the second parent's claim is the one that gets forgotten precisely
+    /// because nothing ever asked about it.
     private var leaveStep: some View {
-        ExplainedChoice(
-            symbol: "briefcase",
-            title: "Is anyone taking parental leave?",
-            what: "Paid or unpaid time off after the birth, whether it comes from your employer, from a state programme, or from unpaid job protection under federal law.",
-            why: "The states that run paid family leave mostly require the claim inside a window measured in weeks, and it is the one piece of newborn paperwork that pays you rather than costing you. Federal job protection is separate again and has its own notice rules. Nobody hands you this: you file for it.",
-            adds: "A task with your state's own programme, the federal rules that sit behind it, and what your employer needs from you.",
-            isOn: $takingParentalLeave,
-            toggleLabel: "Someone is taking leave"
-        ) { step = .newbornAccount }
+        Form {
+            Section {
+                VStack(alignment: .leading, spacing: AppTheme.spacing) {
+                    Image(systemName: "briefcase")
+                        .font(.system(size: 28))
+                        .foregroundStyle(Color.accentColor)
+                    Text("Who is taking parental leave?")
+                        .font(.title2.weight(.bold))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("Paid or unpaid time off after the birth, whether it comes from an employer, from a state programme, or from unpaid job protection under federal law.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.vertical, AppTheme.tightSpacing)
+            }
+            .listRowBackground(Color.clear)
+
+            Section {
+                Picker("Leave", selection: $leaveTakers) {
+                    ForEach(ParentalLeaveTakers.allCases, id: \.self) { value in
+                        Text(value.label).tag(value)
+                    }
+                }
+                .pickerStyle(.inline)
+                .labelsHidden()
+            } footer: {
+                Text(leaveFooter)
+            }
+
+            Section {
+                OnboardingDisclosure(
+                    label: "Why leave is the one that pays you",
+                    text: "The states that run paid family leave mostly require the claim inside a window measured in weeks, and it is the one piece of newborn paperwork that pays you rather than costing you. Federal job protection under FMLA is separate again and has its own notice rules. Nobody hands you this: you file for it, with your own employer."
+                )
+            }
+        }
         .navigationTitle("Leave")
+        .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom) {
+            OnboardingFooter(enabled: true) { step = isUSCitizen ? .newbornAccount : .plan529 }
+        }
+    }
+
+    private var leaveFooter: String {
+        switch leaveTakers {
+        case .nobody:
+            return "Nothing about leave goes on your plan. You can change this later without redoing any of this."
+        case .oneParent:
+            return "One task, with your state's own programme, the federal rules behind it, and what the employer needs from you."
+        case .bothParents:
+            return "Two tasks, one for each parent. Each claim goes to a different employer, and the rules for a second parent's bonding leave are often not the rules for the birth parent's."
+        }
     }
 
     private var newbornAccountStep: some View {
@@ -369,8 +430,8 @@ struct OnboardingFlow: View {
             symbol: "dollarsign.circle",
             title: "Claim the $1,000 newborn account?",
             what: "A one-time $1,000 federal contribution into an investment account for children born between 2025 and 2028. The IRS calls these Trump Accounts, which is the name you will see on irs.gov and on the form itself.",
-            why: "It is a thousand dollars, most US citizen newborns can qualify, and almost nobody has heard of it. It is claimed by election rather than automatically, so a family that does not know about it simply does not get it. The election needs the baby's Social Security number first, which is why that task sits at the top of your plan.",
-            adds: "A task that waits for the SSN, then points at the IRS page and the current form instructions. Baby Docs cannot tell you whether you qualify: there are conditions beyond citizenship and a birth year, and the instructions are the only thing that settles them.",
+            detailLabel: "Why almost nobody claims this",
+            detail: "It is a thousand dollars, most US citizen newborns can qualify, and it is claimed by election rather than automatically, so a family that has not heard of it simply does not get it. The election needs the baby's Social Security number first, which is why that task sits at the top of your plan. Baby Docs cannot tell you whether you qualify: there are conditions beyond citizenship and a birth year, and the instructions are the only thing that settles them.",
             isOn: $wantsNewbornAccount,
             toggleLabel: "Add this to my plan",
             isAvailable: isUSCitizen,
@@ -384,8 +445,8 @@ struct OnboardingFlow: View {
             symbol: "graduationcap",
             title: "Open a 529?",
             what: "A tax-advantaged savings account for education. Most states run their own, several give residents a state tax deduction for paying into it, and you can use another state's if theirs is better.",
-            why: "Nothing about a 529 is urgent, and this app will not pretend otherwise: there is no deadline and no penalty for opening one next year. It is here because it is far easier to do in the same fortnight you are already gathering a birth certificate and a Social Security number than it is to come back to in eighteen months.",
-            adds: "One unhurried task with your state's own plan and what opening an account asks for.",
+            detailLabel: "Why now rather than in a year",
+            detail: "Nothing about a 529 is urgent, and this app will not pretend otherwise: there is no deadline and no penalty for opening one next year. It is here because it is far easier to do in the same fortnight you are already gathering a birth certificate and a Social Security number than it is to come back to in eighteen months. Saying yes adds one unhurried task with your state's own plan and what opening an account asks for.",
             isOn: $wants529,
             toggleLabel: "Add this to my plan"
         ) { step = .passport }
@@ -397,8 +458,8 @@ struct OnboardingFlow: View {
             symbol: "airplane",
             title: "Will the baby need a passport?",
             what: "A US passport for a child under 16. Both parents have to appear in person with the child, or the absent one has to send a notarised consent form.",
-            why: "The in-person rule is what catches people out, and so is the order of operations: the application needs a certified birth certificate, so it cannot start until that has arrived. If there is a trip in the first year, this is the task that has to be started earliest and is almost always started last.",
-            adds: "A task that stays blocked until the certificate is in hand, then explains the appointment and who has to be at it.",
+            detailLabel: "Why this one has to start earliest",
+            detail: "The application needs a certified birth certificate, so it cannot start until that has arrived, and the in-person rule is what catches people out. If there is a trip in the first year, this is the task that has to be started earliest and is almost always started last. It stays blocked on your plan until the certificate is in hand, then explains the appointment and who has to be at it.",
             isOn: $wantsPassport,
             toggleLabel: "Add this to my plan"
         ) { finish() }
@@ -462,11 +523,17 @@ struct OnboardingFlow: View {
 
     // MARK: - Pieces
 
-    private func statePicker(_ title: String, selection: Binding<String>) -> some View {
-        Picker(title, selection: selection) {
+    private func statePicker(_ title: String, selection: Binding<String>, required: Bool = false) -> some View {
+        Picker(selection: selection) {
             Text("Select").tag("")
             ForEach(USState.all) { state in
                 Text(state.name).tag(state.code)
+            }
+        } label: {
+            if required {
+                RequiredLabel(title)
+            } else {
+                Text(title)
             }
         }
     }
@@ -513,11 +580,13 @@ struct OnboardingFlow: View {
         profile.secondParentOnRecord = parentage == .married || secondParentOnRecord
         profile.insuranceKind = insuranceKind
         profile.marketplaceKind = insuranceKind == .marketplace ? marketplaceKind : .unknown
+        profile.employerPlanName = insuranceKind == .employer ? employerPlanName : ""
+        profile.benefitsContactNote = insuranceKind == .employer ? benefitsContactNote : ""
         profile.hasDependentCareFSA = hasDependentCareFSA
         profile.wantsPassport = wantsPassport
         profile.wants529 = wants529
         profile.wantsNewbornAccount = wantsNewbornAccount
-        profile.takingParentalLeave = takingParentalLeave
+        profile.parentalLeaveTakers = leaveTakers
         profile.recordLocalChange(in: context)
 
         let child = Child(name: name, birthDate: birthDate, birthStateCode: birthStateCode)
@@ -541,18 +610,20 @@ struct OnboardingFlow: View {
 
 // MARK: - One question, explained
 
-/// The page shape the four optional questions share.
+/// The page shape the optional questions share.
 ///
-/// Three headings in a fixed order, because the order is the argument: *what it
-/// is* before *why it might matter to you* before *what it adds*. A toggle with
-/// a four-word label asks someone to make a decision using knowledge they were
-/// never given, and then quietly records the answer as though they had.
+/// *What it is* in plain sight, and one folded paragraph for the reader who has
+/// never heard of the thing. It used to be two folded paragraphs, labelled "Why
+/// it might matter to you" and "What it adds to your plan", which is a shape
+/// rather than an answer: the labels were the same on every page, so they told a
+/// reader nothing about which one was worth opening. One disclosure, and its
+/// label says what is actually inside it.
 struct ExplainedChoice: View {
     let symbol: String
     let title: String
     let what: String
-    let why: String
-    let adds: String
+    let detailLabel: String
+    let detail: String
     @Binding var isOn: Bool
     let toggleLabel: String
     var isAvailable: Bool = true
@@ -592,8 +663,7 @@ struct ExplainedChoice: View {
             }
 
             Section {
-                OnboardingDisclosure(label: "Why it might matter to you", text: why)
-                OnboardingDisclosure(label: "What it adds to your plan", text: adds)
+                OnboardingDisclosure(label: detailLabel, text: detail)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -603,7 +673,34 @@ struct ExplainedChoice: View {
     }
 }
 
-// MARK: - The two shapes every question shares
+// MARK: - The shapes every question shares
+
+/// A field the intake will not move on without.
+///
+/// Three screens in, the difference between "optional" and "the app cannot build
+/// your plan without this" was invisible until Continue refused to work, which
+/// reads as a broken button rather than as a missing answer. The star marks the
+/// field, and `OnboardingFooter` says in words which one is missing.
+struct RequiredLabel: View {
+    let text: String
+
+    init(_ text: String) { self.text = text }
+
+    /// The label element keeps the plain title, and the star is hidden from
+    /// accessibility rather than merged into it. Merging read better in one
+    /// sense ("state of birth, required") and cost the row its identity for
+    /// everything that looks a control up by name, VoiceOver's own rotor
+    /// included. What is missing is said in words by the footer under Continue,
+    /// which is spoken as well as drawn.
+    var body: some View {
+        HStack(spacing: 2) {
+            Text(text)
+            Text("*")
+                .foregroundStyle(.red)
+                .accessibilityHidden(true)
+        }
+    }
+}
 
 /// The footer that does not scroll away.
 ///
@@ -637,7 +734,7 @@ struct OnboardingFooter: View {
             if !note.isEmpty {
                 Text(note)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(enabled ? .secondary : Color.red)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -651,18 +748,18 @@ struct OnboardingFooter: View {
 
 /// The paragraph, folded away until somebody wants it.
 ///
-/// Every question in this intake carries an explanation that is worth reading
-/// once and is in the way every other time. As a form footer it was neither: it
-/// pushed the controls off the screen for the reader who already knew, and it
-/// still read as fine print to the reader who did not. Collapsed, the question
-/// fits on one screen and the explanation is one tap away and phrased as an
-/// invitation rather than as small grey text under a switch.
+/// Used on the questions where a reader may never have met the thing being
+/// asked about: a $1,000 federal election, a 529, the order of operations on a
+/// passport. **Not** used to hide something the reader needs in order to answer
+/// the question in front of them, which is what it had become: the intake grew
+/// one of these on every screen, including the state-of-birth question, and a
+/// disclosure on every screen is just a page nobody reads with an extra tap in
+/// front of it. Short and load-bearing goes in the footer; long and optional
+/// goes in here.
 struct OnboardingDisclosure: View {
     let label: String
     let text: String
-    /// Set on the two pages that are not forms. Inside a `Form` the row already
-    /// has a card under it; on the welcome screen it had nothing, so a blue
-    /// label and a chevron floated on the page looking like a mistake.
+    /// Set on the pages that are not forms, where the row has no card under it.
     var boxed = false
     @State private var isOpen = false
 

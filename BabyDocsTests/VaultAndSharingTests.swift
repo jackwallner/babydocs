@@ -29,7 +29,7 @@ struct VaultAndSharingTests {
         profile.wantsNewbornAccount = true
         profile.wantsPassport = true
         profile.wants529 = true
-        profile.takingParentalLeave = true
+        profile.parentalLeaveTakers = .bothParents
 
         let child = Child(name: "Rosa", birthDate: Date(), birthStateCode: "CA")
         child.birthCounty = "Alameda County"
