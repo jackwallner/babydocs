@@ -29,4 +29,56 @@ final class OnboardingUITests: XCTestCase {
         // deliver. A shared plan now arrives as a link and opens its own sheet,
         // so there is nothing to find on this screen.
     }
+
+    /// Leave starts with nothing selected, and says so by not letting you past.
+    ///
+    /// It used to open with a checkmark already sitting on "Nobody is taking
+    /// leave", which is an answer nobody gave, and the one answer that removes
+    /// the only newborn task that pays the family. "Nobody" is still a real
+    /// answer here: it just has to be chosen.
+    func testLeaveStepStartsWithNothingChosen() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-uitest-wipe-store"]
+        app.launch()
+
+        XCTAssertTrue(app.buttons["Get started"].waitForExistence(timeout: 10))
+        app.buttons["Get started"].tap()
+
+        XCTAssertTrue(app.navigationBars["Your baby"].waitForExistence(timeout: 5))
+        choose(state: "California", labelled: "State of birth", in: app)
+        app.buttons["Continue"].firstMatch.tap()
+
+        XCTAssertTrue(app.navigationBars["Your household"].waitForExistence(timeout: 5))
+        choose(state: "California", labelled: "State you live in", in: app)
+        app.buttons["Continue"].firstMatch.tap()
+
+        XCTAssertTrue(app.navigationBars["Coverage"].waitForExistence(timeout: 5))
+        app.buttons["Continue"].firstMatch.tap()
+
+        XCTAssertTrue(app.navigationBars["Leave"].waitForExistence(timeout: 5))
+        let continueButton = app.buttons["Continue"].firstMatch
+        XCTAssertTrue(continueButton.exists)
+        XCTAssertFalse(
+            continueButton.isEnabled,
+            "The leave step let the parent past without ever answering it"
+        )
+
+        app.buttons["Nobody is taking leave"].firstMatch.tap()
+        XCTAssertTrue(
+            continueButton.isEnabled,
+            "\"Nobody\" is a real answer and has to open the way forward"
+        )
+    }
+
+    /// A `Picker` row in a SwiftUI `Form` is a cell containing the label, not a
+    /// tappable static text.
+    private func choose(state: String, labelled label: String, in app: XCUIApplication) {
+        let row = app.cells.containing(.staticText, identifier: label).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "No picker row labelled \(label)")
+        row.tap()
+
+        let option = app.buttons[state].firstMatch
+        XCTAssertTrue(option.waitForExistence(timeout: 5), "\(state) never appeared in the picker")
+        option.tap()
+    }
 }

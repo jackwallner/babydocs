@@ -52,17 +52,46 @@ final class LayoutUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.navigationBars["Plan"].waitForExistence(timeout: 15))
-        let row = app.staticTexts.containing(
-            NSPredicate(format: "label CONTAINS[c] %@", "Order certified copies")
-        ).firstMatch
-        for _ in 0..<8 where !row.exists {
-            app.swipeUp()
-        }
-        XCTAssertTrue(row.waitForExistence(timeout: 10))
-        row.tap()
-        XCTAssertTrue(app.navigationBars["Birth certificate"].waitForExistence(timeout: 10))
-
+        openBirthCertificateTask(in: app)
         assertSourceClearsTabBar(app)
+    }
+
+    /// Scroll to the birth certificate row and open it, at whatever text size
+    /// the app was launched with.
+    ///
+    /// Two things made this flaky rather than the layout it is testing.
+    /// `exists` was the wrong question: the row enters the accessibility tree
+    /// while it is still under the floating tab bar, so the tap landed on the
+    /// bar and no detail opened. And a single tap after a swipe is a race with
+    /// the scroll view's own deceleration, which is why it passed on its own
+    /// and failed in a full run. Swipe until the row is *hittable*, then tap
+    /// until the detail is actually on screen, which is what a parent does.
+    private func openBirthCertificateTask(in app: XCUIApplication) {
+        let row = app.staticTexts["Order certified copies of the birth certificate"]
+        let detail = app.navigationBars["Birth certificate"]
+
+        for _ in 0..<5 {
+            for _ in 0..<20 where !row.isHittable {
+                app.swipeUp()
+            }
+            guard row.isHittable else {
+                // Swiped past it: get back to the top and try the whole scroll
+                // again rather than sitting at the bottom of the plan.
+                for _ in 0..<10 { app.swipeDown() }
+                continue
+            }
+            row.tap()
+            if detail.waitForExistence(timeout: 3) { return }
+
+            // A tap that landed on the wrong row leaves some other detail
+            // pushed, and every further tap would be aimed at the wrong screen.
+            if !app.navigationBars["Plan"].exists {
+                app.navigationBars.buttons.firstMatch.tap()
+                _ = app.navigationBars["Plan"].waitForExistence(timeout: 5)
+            }
+        }
+
+        XCTFail("The birth certificate task never opened")
     }
 
     private func assertSourceClearsTabBar(_ app: XCUIApplication) {

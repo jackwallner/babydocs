@@ -46,7 +46,15 @@ struct OnboardingFlow: View {
 
     // The optional four. A question is not an answer, so each starts off until
     // the parent explicitly adds it to the plan.
-    @State private var leaveTakers: ParentalLeaveTakers = .nobody
+    /// Nil until the parent picks, rather than defaulting to `.nobody`.
+    ///
+    /// A checkmark sitting on "Nobody is taking leave" before anybody touched
+    /// the screen is an answer nobody gave, and it is the answer that removes
+    /// the one piece of newborn paperwork that pays the family. The three
+    /// options are all visible and Continue is one tap away once one is
+    /// chosen, so nothing here is a dead end: "Nobody" is still an answer,
+    /// it just has to be given.
+    @State private var leaveTakers: ParentalLeaveTakers?
     @State private var wantsNewbornAccount = false
     @State private var wants529 = false
     @State private var wantsPassport = false
@@ -391,7 +399,7 @@ struct OnboardingFlow: View {
             Section {
                 Picker("Leave", selection: $leaveTakers) {
                     ForEach(ParentalLeaveTakers.allCases, id: \.self) { value in
-                        Text(value.label).tag(value)
+                        Text(value.label).tag(ParentalLeaveTakers?.some(value))
                     }
                 }
                 .pickerStyle(.inline)
@@ -410,17 +418,22 @@ struct OnboardingFlow: View {
         .navigationTitle("Leave")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) {
-            OnboardingFooter(enabled: true) { step = isUSCitizen ? .newbornAccount : .plan529 }
+            OnboardingFooter(
+                enabled: leaveTakers != nil,
+                note: leaveTakers == nil ? "Pick one to carry on. \"Nobody\" is a real answer here." : ""
+            ) { step = isUSCitizen ? .newbornAccount : .plan529 }
         }
     }
 
     private var leaveFooter: String {
         switch leaveTakers {
-        case .nobody:
+        case .none:
+            return "Nothing is selected yet. Pick one and this will say what it puts on the plan."
+        case .some(.nobody):
             return "Nothing about leave goes on your plan. You can change this later without redoing any of this."
-        case .oneParent:
+        case .some(.oneParent):
             return "One task, with your state's own programme, the federal rules behind it, and what the employer needs from you."
-        case .bothParents:
+        case .some(.bothParents):
             return "Two tasks, one for each parent. Each claim goes to a different employer, and the rules for a second parent's bonding leave are often not the rules for the birth parent's."
         }
     }
@@ -586,7 +599,7 @@ struct OnboardingFlow: View {
         profile.wantsPassport = wantsPassport
         profile.wants529 = wants529
         profile.wantsNewbornAccount = wantsNewbornAccount
-        profile.parentalLeaveTakers = leaveTakers
+        profile.parentalLeaveTakers = leaveTakers ?? .nobody
         profile.recordLocalChange(in: context)
 
         let child = Child(name: name, birthDate: birthDate, birthStateCode: birthStateCode)
