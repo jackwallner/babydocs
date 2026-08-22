@@ -31,7 +31,7 @@ struct FeedbackSheet: View {
                         .padding(AppTheme.tightSpacing)
                         .background(
                             AppTheme.surface,
-                            in: RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius)
+                            in: AppTheme.cardShape
                         )
                         .focused($feedbackFocused)
                         .accessibilityLabel("Feedback")

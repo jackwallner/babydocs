@@ -313,7 +313,7 @@ struct SourcesView: View {
             if !uncited.isEmpty {
                 Section {
                     ForEach(uncited) { rule in
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: AppTheme.hairSpacing) {
                             Text(rule.title).font(.subheadline)
                             Text(rule.noSourceReason)
                                 .font(.caption)

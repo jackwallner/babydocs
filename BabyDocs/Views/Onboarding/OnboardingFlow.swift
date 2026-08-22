@@ -123,7 +123,7 @@ struct OnboardingFlow: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, 24)
+            .padding(.horizontal, AppTheme.margin)
         }
         .safeAreaInset(edge: .bottom) {
             OnboardingFooter(title: "Get started", note: "About a minute. Nothing is submitted anywhere.") {
@@ -501,7 +501,7 @@ struct OnboardingFlow: View {
             }
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, 24)
+            .padding(.horizontal, AppTheme.margin)
         }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: AppTheme.tightSpacing) {
@@ -609,6 +609,10 @@ struct OnboardingFlow: View {
         child.recordLocalChange(in: context)
 
         result = RequirementEngine.reconcile(child: child, profile: profile, in: context)
+        // The one moment in the intake that is an outcome rather than a step:
+        // ten questions in, there is now a plan. Every Continue before this is
+        // silent, which is what leaves this one meaning something.
+        Haptics.completed()
         step = .done
     }
 
@@ -706,7 +710,7 @@ struct RequiredLabel: View {
     /// included. What is missing is said in words by the footer under Continue,
     /// which is spoken as well as drawn.
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: AppTheme.hairSpacing) {
             Text(text)
             Text("*")
                 .foregroundStyle(.red)
@@ -790,7 +794,7 @@ struct OnboardingDisclosure: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.vertical, 2)
+                .padding(.vertical, AppTheme.hairSpacing)
         } label: {
             Label(label, systemImage: "questionmark.circle")
                 .font(.subheadline)
@@ -841,7 +845,7 @@ struct StepDots: View {
     }
 
     var body: some View {
-        HStack(spacing: 5) {
+        HStack(spacing: AppTheme.hairSpacing) {
             ForEach(steps, id: \.self) { step in
                 Circle()
                     .fill(stepIndex(for: step) <= currentIndex ? Color.accentColor : Color.secondary.opacity(0.3))

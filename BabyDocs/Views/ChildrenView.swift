@@ -35,12 +35,12 @@ struct ChildrenView: View {
                             } label: {
                                 HStack {
                                     ChildRow(child: child)
-                                    Spacer(minLength: 8)
+                                    Spacer(minLength: AppTheme.tightSpacing)
                                     Image(systemName: "arrow.uturn.backward")
                                         .foregroundStyle(.tint)
                                 }
                             }
-                            .buttonStyle(.plain)
+                            .pressableCard()
                             .accessibilityLabel("Restore \(child.displayName)")
                             .accessibilityHint("Puts this child back in the plan")
                         }
@@ -179,14 +179,14 @@ struct ArchivedChildrenRecoveryView: View {
                             } label: {
                                 HStack {
                                     ChildRow(child: child)
-                                    Spacer(minLength: 8)
+                                    Spacer(minLength: AppTheme.tightSpacing)
                                     Image(systemName: "arrow.uturn.backward")
                                         .foregroundStyle(.tint)
                                 }
                                 .padding(AppTheme.spacing)
-                                .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius))
+                                .background(AppTheme.surface, in: AppTheme.cardShape)
                             }
-                            .buttonStyle(.plain)
+                            .pressableCard()
                             .accessibilityLabel("Restore \(child.displayName)")
                             .accessibilityHint("Puts this child back in the plan")
                         }
@@ -230,7 +230,7 @@ private struct ChildRow: View {
 
     var body: some View {
         let overview = TaskPlanner.overview(for: child.liveTasks)
-        HStack(spacing: 12) {
+        HStack(spacing: AppTheme.spacing) {
             ZStack {
                 Circle().fill(child.color.opacity(0.18))
                 Text(child.initials)
@@ -239,7 +239,7 @@ private struct ChildRow: View {
             }
             .frame(width: 36, height: 36)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: AppTheme.hairSpacing) {
                 Text(child.displayName).font(.body)
                 Text(summary).font(.caption).foregroundStyle(.secondary)
             }

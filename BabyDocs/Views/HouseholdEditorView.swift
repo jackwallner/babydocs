@@ -46,7 +46,7 @@ struct HouseholdEditorView: View {
 
     private func labelledToggle(_ title: String, _ detail: String, isOn: Binding<Bool>) -> some View {
         Toggle(isOn: isOn) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: AppTheme.hairSpacing) {
                 Text(title)
                 Text(detail)
                     .font(.caption)

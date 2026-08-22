@@ -58,6 +58,11 @@ final class SaveFailureReporter {
     /// a diagnostic is a small leak this app has no reason to take.
     func report(_ error: Error) {
         log.error("Local save failed: \(error.localizedDescription, privacy: .public)")
+        // The tick has already animated back out by the time the alert is drawn,
+        // and a row that quietly un-ticks itself reads as the app losing the tap.
+        // The buzz is what says "that failed" in the moment the finger is still
+        // on the glass, before anybody has read a word of the alert.
+        Haptics.failed()
         message = """
         Your last change could not be saved to this phone, so what you are \
         looking at may not survive closing the app. This is usually storage \

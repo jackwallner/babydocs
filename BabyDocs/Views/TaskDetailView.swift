@@ -178,6 +178,7 @@ struct TaskDetailView: View {
                     // have. It is also under the 44pt target on the screen a
                     // parent is most likely to be using one-handed.
                     Button {
+                        if item.isOnHand { Haptics.selected() } else { Haptics.completed() }
                         item.isOnHand.toggle()
                         item.markedOnHandAt = item.isOnHand ? Date() : nil
                         item.recordLocalChange(in: context)
@@ -187,7 +188,7 @@ struct TaskDetailView: View {
                                 .font(.title3)
                                 .foregroundStyle(item.isOnHand ? Color.accentColor : Color.secondary)
                                 .frame(width: 44, height: 44, alignment: .leading)
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: AppTheme.hairSpacing) {
                                 Text(item.title)
                                     .foregroundStyle(item.isOnHand ? .secondary : .primary)
                                     .strikethrough(item.isOnHand, color: .secondary)
@@ -199,12 +200,14 @@ struct TaskDetailView: View {
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
-                            .padding(.top, 10)
+                            // Aligns the title's first line with the centre
+                            // of the 44pt tick beside it.
+                            .padding(.top, AppTheme.spacing)
                             Spacer(minLength: 0)
                         }
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .pressableCard()
                     .accessibilityLabel(item.title)
                     .accessibilityValue(item.isOnHand ? "Gathered" : "Still to find")
                 }
@@ -226,7 +229,7 @@ struct TaskDetailView: View {
             } label: {
                 HStack {
                     Label("Track what comes back", systemImage: "clock.badge.exclamationmark")
-                    Spacer(minLength: 8)
+                    Spacer(minLength: AppTheme.tightSpacing)
                     PlusBadge()
                 }
             }
@@ -313,7 +316,7 @@ struct TaskDetailView: View {
     private var receiptsSection: some View {
         Section {
             ForEach(task.liveReceipts) { receipt in
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: AppTheme.hairSpacing) {
                     Text(receipt.value.isEmpty ? receipt.kind.label : receipt.value)
                         .font(.body.monospaced())
                     Text("\(receipt.kind.label) \u{00B7} \(receipt.recordedAt, format: .dateTime.month().day())")

@@ -17,7 +17,7 @@ struct DeadlinePill: View {
     var compact = false
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: AppTheme.hairSpacing) {
             if task.deadlineKind == .hard {
                 Image(systemName: "exclamationmark.circle.fill")
                     .font(.caption2)
@@ -27,8 +27,8 @@ struct DeadlinePill: View {
                 .fontWeight(task.deadlineKind == .hard ? .semibold : .regular)
         }
         .foregroundStyle(task.accentColor)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
+        .padding(.horizontal, AppTheme.tightSpacing)
+        .padding(.vertical, AppTheme.hairSpacing)
         .background(task.accentColor.opacity(0.12), in: Capsule())
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
@@ -44,15 +44,15 @@ struct DeadlinePill: View {
 /// tells a parent something they could not have worked out themselves.
 struct LatePill: View {
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: AppTheme.hairSpacing) {
             Image(systemName: "clock.badge.exclamationmark.fill")
                 .font(.caption2)
             Text("Not arrived")
                 .font(.caption.weight(.semibold))
         }
         .foregroundStyle(.red)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
+        .padding(.horizontal, AppTheme.tightSpacing)
+        .padding(.vertical, AppTheme.hairSpacing)
         .background(Color.red.opacity(0.12), in: Capsule())
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Sent, and past the date it was expected back")
@@ -77,6 +77,10 @@ struct TaskRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: AppTheme.spacing) {
             Button {
+                // Ticked is a completion; unticking is a correction. Firing the
+                // same success buzz both ways would tell the hand that undoing
+                // a task is an achievement.
+                if task.isDone { Haptics.selected() } else { Haptics.completed() }
                 onToggle?()
             } label: {
                 Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
@@ -87,7 +91,7 @@ struct TaskRow: View {
                     .frame(width: 44, height: 44, alignment: .leading)
                     .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .pressableCard()
             .disabled(onToggle == nil)
             .accessibilityLabel(task.isDone ? "Mark \(task.title) not done" : "Mark \(task.title) done")
 
@@ -100,7 +104,7 @@ struct TaskRow: View {
                     .contentShape(Rectangle())
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, AppTheme.hairSpacing)
     }
 
     private var content: some View {
@@ -133,7 +137,7 @@ struct TaskRow: View {
 
     @ViewBuilder
     private var metadata: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: AppTheme.hairSpacing) {
             Image(systemName: task.category.symbol)
                 .font(.caption2)
             Text(secondaryLine)
@@ -177,21 +181,24 @@ struct DocumentChecklistRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: AppTheme.spacing) {
-            Button(action: onToggle) {
+            Button {
+                if item.isOnHand { Haptics.selected() } else { Haptics.completed() }
+                onToggle()
+            } label: {
                 Image(systemName: item.isOnHand ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
                     .foregroundStyle(item.isOnHand ? Color.accentColor : Color.secondary)
                     .frame(width: 44, height: 44, alignment: .leading)
                     .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .pressableCard()
             .accessibilityLabel(item.isOnHand
                                 ? "Mark \(item.title) not found yet"
                                 : "Mark \(item.title) as in hand")
 
             link
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, AppTheme.hairSpacing)
     }
 
     @ViewBuilder
@@ -208,7 +215,7 @@ struct DocumentChecklistRow: View {
     }
 
     private var content: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: AppTheme.hairSpacing) {
             Text(item.title)
                 .foregroundStyle(item.isOnHand ? .secondary : .primary)
                 .strikethrough(item.isOnHand, color: .secondary)
@@ -263,7 +270,7 @@ struct PlanHeaderCard: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .pressableCard()
             } else {
                 deadlineBlock
             }
@@ -272,7 +279,7 @@ struct PlanHeaderCard: View {
 
             PlanProgressCard(overview: overview, isBare: true)
         }
-        .planCard(padding: AppTheme.spacing + 2)
+        .planCard(padding: AppTheme.spacing)
     }
 
     /// The card itself stays neutral. It used to be washed in red, which made
@@ -376,7 +383,7 @@ struct PlanSectionHeader: View {
     var count: Int?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: AppTheme.hairSpacing) {
             HStack(alignment: .firstTextBaseline, spacing: AppTheme.tightSpacing) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
@@ -445,7 +452,7 @@ struct SourceFootnote: View {
 
     var body: some View {
         if let url = URL(string: urlString), !urlString.isEmpty {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: AppTheme.hairSpacing) {
                 Link(destination: url) {
                     Label("Where this comes from", systemImage: "text.book.closed")
                         .font(.caption)
@@ -503,8 +510,8 @@ struct PlusBadge: View {
     var body: some View {
         Text("Plus")
             .font(.caption2.weight(.semibold))
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
+            .padding(.horizontal, AppTheme.tightSpacing)
+            .padding(.vertical, AppTheme.hairSpacing)
             .background(Color.accentColor.opacity(0.15), in: Capsule())
             .foregroundStyle(Color.accentColor)
     }
@@ -535,7 +542,7 @@ struct SummaryShareControl: View {
             } label: {
                 HStack {
                     Label(title, systemImage: symbol)
-                    Spacer(minLength: 8)
+                    Spacer(minLength: AppTheme.tightSpacing)
                     PlusBadge()
                 }
             }
@@ -567,11 +574,11 @@ struct EmptyStateView: View {
             if let actionTitle, let action {
                 Button(actionTitle, action: action)
                     .buttonStyle(.borderedProminent)
-                    .padding(.top, 4)
+                    .padding(.top, AppTheme.hairSpacing)
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 28)
+        .padding(.vertical, AppTheme.looseSpacing)
         .padding(.horizontal, AppTheme.looseSpacing)
     }
 }

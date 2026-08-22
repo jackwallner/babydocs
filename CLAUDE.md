@@ -232,6 +232,14 @@ thing sent and overdue back) rather than one that triggers nothing.
 - **Task ids are derived from (child, catalog key), so a regenerated plan must
   reuse its rows.** Anything that creates a generated task goes through
   `RequirementEngine`, never by hand.
+- **`design.md` is the design system, and `scripts/design-audit.py` is what
+  stops it being a document nobody reads.** Tokens live in `AppTheme`; the audit
+  reads them out of that file and fails on any view that types a spacing number
+  of its own, draws a `RoundedRectangle` without a continuous curve, defines a
+  colour outside `AppTheme` or names a font. Four spacing values, all multiples
+  of four; one radius and one curve; `.pressableCard()` rather than
+  `.buttonStyle(.plain)` on anything card-shaped; four named haptics in
+  `Haptics` and nothing for navigation. Run it before a release.
 - **One margin, one colour system.** `AppTheme.margin` is the only horizontal
   inset, it is 20 because that is what `.insetGrouped` uses on iPhone (Settings
   and the sources list are system lists and always will be, so any other number

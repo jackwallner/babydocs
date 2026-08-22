@@ -24,7 +24,7 @@ struct PaywallView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 22) {
+                VStack(spacing: AppTheme.looseSpacing) {
                     header
                     // Put the decision in the first viewport. The fixed purchase
                     // bar repeats the selected plan's terms, but it must never
@@ -34,8 +34,8 @@ struct PaywallView: View {
                     subscriptionTerms
                     footerLinks
                 }
-                .padding(.horizontal, 22)
-                .padding(.bottom, 24)
+                .padding(.horizontal, AppTheme.margin)
+                .padding(.bottom, AppTheme.looseSpacing)
             }
             .safeAreaInset(edge: .bottom) { buyBar }
             .navigationTitle("Baby Docs Plus")
@@ -61,7 +61,7 @@ struct PaywallView: View {
     }
 
     private var header: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: AppTheme.spacing) {
             Image(systemName: "doc.text.fill")
                 .font(.system(size: 44))
                 .foregroundStyle(Color.accentColor)
@@ -73,7 +73,7 @@ struct PaywallView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
-        .padding(.top, 12)
+        .padding(.top, AppTheme.spacing)
     }
 
     /// Every line here is a thing this build does today.
@@ -82,7 +82,7 @@ struct PaywallView: View {
     /// server and there is not going to be one. Sending the plan to the other
     /// parent works, and it is free, so it is not sold here either.
     private var benefits: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: AppTheme.spacing) {
             benefit("lock.doc", "The document vault",
                     "Photographs of the birth certificate, the card and the insurance details, on your phone at the counter. Never backed up, never uploaded.")
             benefit("clock.badge.exclamationmark", "Chase what has not arrived",
@@ -96,12 +96,12 @@ struct PaywallView: View {
     }
 
     private func benefit(_ symbol: String, _ title: String, _ detail: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: AppTheme.spacing) {
             Image(systemName: symbol)
                 .font(.title3)
                 .foregroundStyle(Color.accentColor)
                 .frame(width: 28)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: AppTheme.hairSpacing) {
                 Text(title).font(.subheadline.weight(.semibold))
                 Text(detail)
                     .font(.caption)
@@ -113,13 +113,13 @@ struct PaywallView: View {
 
     @ViewBuilder
     private var plans: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: AppTheme.spacing) {
             if store.plans.isEmpty {
                 if let error = store.loadError {
                     // An empty list under a spinner reads as "nothing for sale".
                     // A customer who cannot see a price cannot buy, and cannot
                     // tell whether that is the app or their connection.
-                    VStack(spacing: 8) {
+                    VStack(spacing: AppTheme.tightSpacing) {
                         Text("The App Store did not send the prices back.")
                             .font(.subheadline)
                             .multilineTextAlignment(.center)
@@ -132,17 +132,21 @@ struct PaywallView: View {
                         }
                         .buttonStyle(.bordered)
                     }
-                    .padding(.vertical, 12)
+                    .padding(.vertical, AppTheme.spacing)
                 } else {
-                    ProgressView().padding(.vertical, 20)
+                    ProgressView().padding(.vertical, AppTheme.looseSpacing)
                 }
             }
             ForEach(store.plans) { plan in
                 Button {
+                    // Selection, not completion. A success buzz for choosing a
+                    // price tells the hand something was finished when nothing
+                    // has been bought yet.
+                    if selection != plan.id { Haptics.selected() }
                     selection = plan.id
                 } label: {
                     HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: AppTheme.hairSpacing) {
                             Text(plan.title).font(.body.weight(.medium))
                             Text(ProProduct.rationale(for: plan.id))
                                 .font(.caption)
@@ -154,9 +158,17 @@ struct PaywallView: View {
                                     .foregroundStyle(Color.accentColor)
                             }
                         }
-                        Spacer(minLength: 10)
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text(plan.price).font(.body.weight(.semibold))
+                        Spacer(minLength: AppTheme.spacing)
+                        VStack(alignment: .trailing, spacing: AppTheme.hairSpacing) {
+                            // Tabular figures because these three prices sit in
+                            // a column being compared: proportional digits give
+                            // "$4.99" and "$29.99" different decimal positions,
+                            // and a price column that does not line up is read
+                            // as carelessness on the one screen that cannot
+                            // afford to be read that way.
+                            Text(plan.price)
+                                .font(.body.weight(.semibold))
+                                .monospacedDigit()
                             if !plan.period.isEmpty {
                                 Text(plan.period)
                                     .font(.caption2)
@@ -164,16 +176,16 @@ struct PaywallView: View {
                             }
                         }
                     }
-                    .padding(14)
+                    .padding(AppTheme.spacing)
                     .background(
-                        RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius)
+                        AppTheme.cardShape
                             .stroke(
                                 selection == plan.id ? Color.accentColor : Color.secondary.opacity(0.3),
                                 lineWidth: selection == plan.id ? 2 : 1
                             )
                     )
                 }
-                .buttonStyle(.plain)
+                .pressableCard()
                 .accessibilityLabel(
                     "\(plan.title), \(plan.price) \(plan.period). \(plan.introOffer ?? "")"
                 )
@@ -191,7 +203,7 @@ struct PaywallView: View {
     /// Kept to one quiet paragraph: this has to be unmissable and true, not
     /// loud.
     private var subscriptionTerms: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: AppTheme.tightSpacing) {
             if let plan = store.plans.first(where: { $0.id == selection }) {
                 Text(StoreService.disclosure(for: plan))
             }
@@ -214,7 +226,7 @@ struct PaywallView: View {
     /// line as well. Whatever is scrolled, the price, the period and the renewal
     /// are now in the same glance as the button that agrees to them.
     private var buyBar: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: AppTheme.tightSpacing) {
             if let plan = store.plans.first(where: { $0.id == selection }) {
                 Text(StoreService.disclosure(for: plan))
                     .font(.caption)
@@ -236,8 +248,8 @@ struct PaywallView: View {
             Button("Restore purchases") { restore() }
                 .font(.footnote)
         }
-        .padding(.horizontal, 22)
-        .padding(.vertical, 12)
+        .padding(.horizontal, AppTheme.margin)
+        .padding(.vertical, AppTheme.spacing)
         .background(Color(uiColor: .systemBackground))
     }
 
@@ -261,8 +273,8 @@ struct PaywallView: View {
     /// same pair either way. Naming only one of them is the kind of mismatch
     /// between metadata and binary that a subscription review is looking for.
     private var footerLinks: some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 14) {
+        VStack(spacing: AppTheme.tightSpacing) {
+            HStack(spacing: AppTheme.looseSpacing) {
                 Link("Terms of Use", destination: URL(string: "https://jackwallner.com/ios/babydocs/terms.html")!)
                 Link("Privacy Policy", destination: URL(string: "https://jackwallner.com/ios/babydocs/privacy-policy.html")!)
             }
@@ -284,7 +296,10 @@ struct PaywallView: View {
             defer { isWorking = false }
             do {
                 try await store.purchase(plan)
-                if store.isPro { dismiss() }
+                if store.isPro {
+                    Haptics.purchased()
+                    dismiss()
+                }
             } catch {
                 errorMessage = error.localizedDescription
             }
@@ -298,6 +313,7 @@ struct PaywallView: View {
             do {
                 switch try await store.restore() {
                 case .restored:
+                    Haptics.purchased()
                     dismiss()
                 case .nothingToRestore:
                     // Said plainly, because the alternative is a customer who

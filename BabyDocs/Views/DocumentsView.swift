@@ -308,7 +308,7 @@ struct DocumentsView: View {
                                 .font(.body)
                                 .foregroundStyle(.secondary)
                                 .frame(width: 26)
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: AppTheme.hairSpacing) {
                                 Text(document.displayTitle).foregroundStyle(.primary)
                                 Text(pageLabel(document))
                                     .font(.caption)
@@ -320,7 +320,7 @@ struct DocumentsView: View {
                                 .foregroundStyle(.tertiary)
                         }
                     }
-                    .buttonStyle(.plain)
+                    .pressableCard()
                 }
                 .onDelete { offsets in delete(offsets, from: documents) }
 
@@ -361,7 +361,7 @@ struct DocumentsView: View {
             } label: {
                 HStack {
                     Label("Add a document", systemImage: "photo.badge.plus")
-                    Spacer(minLength: 8)
+                    Spacer(minLength: AppTheme.tightSpacing)
                     PlusBadge()
                 }
             }
@@ -472,13 +472,13 @@ struct AddVaultDocumentSheet: View {
                     }
                     if !images.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
+                            HStack(spacing: AppTheme.tightSpacing) {
                                 ForEach(Array(images.enumerated()), id: \.offset) { _, image in
                                     Image(uiImage: image)
                                         .resizable()
                                         .scaledToFill()
                                         .frame(width: 72, height: 96)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        .clipShape(AppTheme.innerShape)
                                 }
                             }
                         }

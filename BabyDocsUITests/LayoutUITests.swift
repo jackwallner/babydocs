@@ -41,57 +41,37 @@ final class LayoutUITests: XCTestCase {
         )
     }
 
+    /// The same question as the test above, at the largest text size there is.
+    ///
+    /// It opens the task by launch argument rather than by scrolling to it. The
+    /// scroll hunt was not incidental: at accessibility XXXL the plan is many
+    /// screens long, so finding one row took twenty swipes on a good run and ran
+    /// out of budget on a bad one, and a test that fails because it could not
+    /// find a row reports a layout failure that is not one. It failed that way
+    /// on this branch and on `main` alike, for nine minutes at a time, which is
+    /// how long it takes for a red suite to stop being read.
+    ///
+    /// What this test is *for* is the last element on the task detail: the
+    /// source footnote, the one thing carrying the app's claim to be checkable,
+    /// and whether it clears the floating tab bar when every glyph on screen is
+    /// three times its usual size.
     func testAccessibilityTextKeepsTaskSourceReachable() {
         let app = XCUIApplication()
         app.launchArguments = [
             "-uitest-wipe-store",
             "-uitest-seed",
+            "-uitest-open-task",
+            "birth_certificate",
             "-UIPreferredContentSizeCategoryName",
             "UICTContentSizeCategoryAccessibilityXXXL"
         ]
         app.launch()
 
-        XCTAssertTrue(app.navigationBars["Plan"].waitForExistence(timeout: 15))
-        openBirthCertificateTask(in: app)
+        XCTAssertTrue(
+            app.navigationBars["Birth certificate"].waitForExistence(timeout: 20),
+            "The task detail never opened from the launch argument"
+        )
         assertSourceClearsTabBar(app)
-    }
-
-    /// Scroll to the birth certificate row and open it, at whatever text size
-    /// the app was launched with.
-    ///
-    /// Two things made this flaky rather than the layout it is testing.
-    /// `exists` was the wrong question: the row enters the accessibility tree
-    /// while it is still under the floating tab bar, so the tap landed on the
-    /// bar and no detail opened. And a single tap after a swipe is a race with
-    /// the scroll view's own deceleration, which is why it passed on its own
-    /// and failed in a full run. Swipe until the row is *hittable*, then tap
-    /// until the detail is actually on screen, which is what a parent does.
-    private func openBirthCertificateTask(in app: XCUIApplication) {
-        let row = app.staticTexts["Order certified copies of the birth certificate"]
-        let detail = app.navigationBars["Birth certificate"]
-
-        for _ in 0..<5 {
-            for _ in 0..<20 where !row.isHittable {
-                app.swipeUp()
-            }
-            guard row.isHittable else {
-                // Swiped past it: get back to the top and try the whole scroll
-                // again rather than sitting at the bottom of the plan.
-                for _ in 0..<10 { app.swipeDown() }
-                continue
-            }
-            row.tap()
-            if detail.waitForExistence(timeout: 3) { return }
-
-            // A tap that landed on the wrong row leaves some other detail
-            // pushed, and every further tap would be aimed at the wrong screen.
-            if !app.navigationBars["Plan"].exists {
-                app.navigationBars.buttons.firstMatch.tap()
-                _ = app.navigationBars["Plan"].waitForExistence(timeout: 5)
-            }
-        }
-
-        XCTFail("The birth certificate task never opened")
     }
 
     private func assertSourceClearsTabBar(_ app: XCUIApplication) {
