@@ -500,15 +500,31 @@ struct OnboardingFlow: View {
             .listRowBackground(Color.clear)
 
             Section {
-                Picker("Leave", selection: $leaveTakers) {
-                    ForEach(ParentalLeaveTakers.allCases, id: \.self) { value in
-                        Text(value.label).tag(ParentalLeaveTakers?.some(value))
+                ForEach(ParentalLeaveTakers.allCases, id: \.self) { value in
+                    Button {
+                        guard leaveTakers != value else { return }
+                        leaveTakers = value
+                        Haptics.selected()
+                    } label: {
+                        HStack {
+                            Text(value.label)
+                            Spacer(minLength: AppTheme.tightSpacing)
+                            if leaveTakers == value {
+                                Image(systemName: "checkmark")
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
                     }
+                    .pressableCard()
+                    .foregroundStyle(.primary)
+                    .accessibilityLabel(value.label)
+                    .accessibilityAddTraits(leaveTakers == value ? .isSelected : [])
                 }
-                .pickerStyle(.inline)
-                .labelsHidden()
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel("Parental leave")
+            } header: {
+                Text("Parental leave")
             } footer: {
                 Text(leaveFooter)
             }

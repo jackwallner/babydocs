@@ -9,12 +9,17 @@ struct RootView: View {
     private var archivedChildren: [Child]
 
     @State private var navigator = AppNavigator.shared
+    @State private var selectedTab: AppNavigator.Tab
     @State private var saveFailures = SaveFailureReporter.shared
     @State private var recoveredStoreURL: URL?
     @State private var hasAcknowledgedRecovery = false
     /// One ask per launch at most, whatever else happens.
     @State private var hasRequestedReviewThisSession = false
     @Environment(\.requestReview) private var requestReview
+
+    init() {
+        _selectedTab = State(initialValue: AppNavigator.shared.selectedTab)
+    }
 
     var body: some View {
         Group {
@@ -32,7 +37,7 @@ struct RootView: View {
             } else if children.isEmpty {
                 ArchivedChildrenRecoveryView(children: archivedChildren)
             } else {
-                TabView(selection: $navigator.selectedTab) {
+                TabView(selection: $selectedTab) {
                     PlanView()
                         .tabItem { Label("Plan", systemImage: "checklist") }
                         .tag(AppNavigator.Tab.plan)
@@ -60,6 +65,14 @@ struct RootView: View {
                 // gutters because there is no slab. `planPageBackground()` on
                 // each tab is what gives the glass something to refract.
             }
+        }
+        .onChange(of: selectedTab) { _, tab in
+            guard navigator.selectedTab != tab else { return }
+            navigator.selectedTab = tab
+        }
+        .onChange(of: navigator.selectedTab) { _, tab in
+            guard selectedTab != tab else { return }
+            selectedTab = tab
         }
         .sheet(isPresented: $navigator.isShowingPaywall) {
             PaywallView()
