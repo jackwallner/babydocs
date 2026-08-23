@@ -16,6 +16,7 @@ final class AppNavigator {
         case plan
         case children
         case documents
+        case plus
         case settings
     }
 
@@ -44,8 +45,21 @@ final class AppNavigator {
 
     private init() {}
 
+    /// The sheet, for a gate somebody has just walked into.
+    ///
+    /// The Plus tab carries the same pitch, unprompted, for anybody who wants
+    /// to go and read it. This is the other direction: a locked control was
+    /// tapped, and the answer belongs in front of the tap rather than three
+    /// screens away.
     func requestUpgrade() {
         isShowingPaywall = true
+    }
+
+    /// Sends somebody to the Plus tab rather than putting a sheet over what
+    /// they were reading. Used where the mention is an aside rather than a
+    /// refusal.
+    func showPlusTab() {
+        selectedTab = .plus
     }
 
     func open(_ url: URL) {

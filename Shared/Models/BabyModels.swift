@@ -482,6 +482,14 @@ final class RequirementTask {
     /// stay in the store so the engine does not resurrect them on the next pass.
     var dismissedAt: Date?
     var parentNotes: String = ""
+    /// A reminder the family asked for on this task, at a date they chose.
+    ///
+    /// Separate from `dueAt` because it is not a deadline and must never be
+    /// drawn as one: the app knows when the Marketplace window closes, and it
+    /// does not know that this parent wants to phone the benefits line on
+    /// Tuesday. Cleared once the task is done, by the scheduler skipping it,
+    /// never by rewriting the family's own value.
+    var customReminderAt: Date?
     /// Lower sorts first within a due-date bucket.
     var sortWeight: Int = 100
     var isCustom: Bool = false
@@ -522,6 +530,19 @@ final class RequirementTask {
     var isDone: Bool { completedAt != nil }
     var isDismissed: Bool { dismissedAt != nil }
     var isOpen: Bool { !isDone && !isDismissed }
+
+    /// Completion and dismissal describe different answers, so they are
+    /// mutually exclusive. Keeping the transitions here prevents the Plan row
+    /// and the detail screen from drifting apart.
+    func setCompleted(_ completed: Bool, at date: Date = Date()) {
+        completedAt = completed ? date : nil
+        if completed { dismissedAt = nil }
+    }
+
+    func setDismissed(_ dismissed: Bool, at date: Date = Date()) {
+        dismissedAt = dismissed ? date : nil
+        if dismissed { completedAt = nil }
+    }
 
     /// Sent, past the date it should have come back, and still not ticked off.
     /// The one state the old checklist could not represent, and the reason

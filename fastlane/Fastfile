@@ -66,27 +66,39 @@ platform :ios do
           Government links open in Safari.
 
           Core flow: launch, answer the state, coverage and household questions,
-          then review the Plan tab. Each task explains why it applies, what to
+          then the intake offers Baby Docs Plus on its last page, which can be
+          skipped with "Continue with the free plan", and lands on the Plan tab. Each task explains why it applies, what to
           bring and where to go. Children holds household answers, Documents
           holds paperwork photos, and Settings shows the source review date.
 
-          Paid-feature paths:
-          1. Follow-up tracking: Plan, open a sent task, tap "Sent it". Plus
+          Paid-feature paths, all reachable from the Plus tab, which shows the
+          offer before purchase and the tools after it:
+          1. Suggested-date reminders and the Sunday digest: Plus tab, "What
+             gets said out loud". Free devices still receive both warnings for
+             the two deadlines that legally close.
+          2. Recommended order: Plus tab, the timeline sections at the top.
+             Tasks that wait on another task are shown as waiting rather than
+             as work.
+          3. A reminder the parent sets: Plan, open any task, "Your own
+             reminder".
+          4. Calendar export: Plus tab, "Put the dates in a calendar".
+          5. Follow-up tracking: Plan, open a sent task, tap "Sent it". Plus
              unlocks the follow-up date and reminder.
-          2. Document vault after twelve weeks: Documents, Photos, "Add a
+          6. Document vault after twelve weeks: Documents, Photos, "Add a
              document". Plus unlocks adding new photos. Existing photos remain
              viewable after a lapse.
-          3. Printable summary: Plan, Plan options, "Send or print this plan",
-             then "One-page summary".
-          4. Employer packet: choose Coverage "Through a job", then Children,
-             select a child, "Send or print this plan", then "Employer packet".
-          5. Further children: Children, "Add another child".
+          7. Printable summary: Plus tab, or Plan, Plan options, "Send or print
+             this plan", then "One-page summary".
+          8. Employer packet: choose Coverage "Through a job", then Plus tab or
+             Children, select a child, "Send or print this plan", then
+             "Employer packet".
 
-          Every task, deadline, document list, official link and shared plan link
-          is free. "Send the plan" carries answers in the URL fragment so the
-          other parent's app can rebuild the same plan without a backend. There
-          is no live sync. A Plus lapse stops new photos only; existing photos
-          remain on the device.
+          Every task, deadline, document list, official link, additional child
+          and shared plan link is free, as are the reminders for the two
+          deadlines that legally close. "Send the plan" carries answers in the
+          URL fragment so the other parent's app can rebuild the same plan
+          without a backend. There is no live sync. A Plus lapse stops new
+          photos only; existing photos remain on the device.
 
           The app's only review action is the system requestReview call, with no
           custom question or rating gate. "Send feedback" in Settings opens
@@ -143,7 +155,7 @@ platform :ios do
       skip_screenshots: true,
       force: true,
       submit_for_review: true,
-      automatic_release: true,
+      automatic_release: false,
       run_precheck_before_submit: false,
       submission_information: {
         add_id_info_uses_idfa: false,

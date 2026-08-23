@@ -86,16 +86,22 @@ V2 = "https://api.appstoreconnect.apple.com/v2"
 
 # What the binary actually charges for. Every one is a real gate in the shipping
 # code (`SummaryShareControl`, `TaskDetailView`, `DocumentsView.addButton`,
-# `ChildrenView`), and both the description and the review notes have to agree
-# with all five.
+# `PlusToolsView`, `DeadlineReminderScheduler.Options`), and both the
+# description and the review notes have to agree with all of them.
 #
 # Two vocabularies, because they are written for different readers: the store
 # copy sells "the document vault", the review notes tell a reviewer which tab to
 # tap. Matching on either is what keeps this a check on meaning rather than on
 # wording.
+#
+# **Further children left this list on purpose** and must not come back without
+# the binary changing first: twins are one birth and one household, so charging
+# for the second child billed the family that had the harder delivery.
 PAID_FEATURES = {
+    "suggested-date reminders": ("suggest", "reminders for the dates"),
+    "the recommended order": ("order", "sequence", "timeline"),
+    "the calendar export": ("calendar",),
     "follow-up tracking": ("follow-up tracking", "follow-ups", "chasing", "Follow-up tracking"),
-    "further children": ("further children", "additional children"),
     "the vault": ("vault", "Documents tab"),
     "the summary": ("summary",),
     "the employer packet": ("employer packet",),
@@ -202,8 +208,8 @@ def check_description(text: str) -> None:
     # which named the summary and the employer packet in that section while
     # calling them free.
     paragraphs = text.split("\n\n")
-    adds = next((p for p in paragraphs if p.startswith("Plus adds")), "")
-    free = next((p for p in paragraphs if "is free, for one child" in p), "")
+    adds = next((p for p in paragraphs if p.startswith("Plus is") or p.startswith("Plus adds")), "")
+    free = next((p for p in paragraphs if "is free, for every child" in p), "")
     check("description names what Plus adds", "found" if adds else "MISSING", bool(adds))
     for feature, aliases in PAID_FEATURES.items():
         in_adds = any(alias in adds for alias in aliases)

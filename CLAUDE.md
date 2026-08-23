@@ -49,7 +49,7 @@ the property a merge needs.
 
 `Shared/Rules/` is the product.
 
-- `RequirementCatalog.swift` — twenty rules, each a value with an `applies`,
+- `RequirementCatalog.swift`: twenty-three rules, each a value with an `applies`,
   a `deadline`, a `detail`, a document checklist, an official link and a
   **source citation with the date someone last read it**. Rules are pure
   functions of `RuleInput`, a plain struct, so the whole catalog is testable
@@ -83,11 +83,17 @@ the property a merge needs.
   writes nothing.
 - `TaskPlanner.swift` — bucketing, sorting, the home-screen overview and the one
   place a deadline is phrased in words.
+- `PlanTimeline.swift`: the same tasks read as an order rather than as dates.
+  Pure, and deliberately separate: `TaskPlanner` answers "when does this close",
+  which is always somebody else's date, and this answers "what should I do this
+  week", which is the app's own opinion and is labelled as one.
 
 `Shared/Services/`: `StoreService`, `NotificationService` (local only),
-`DeadlineReminderScheduler`, `PlanExporter` (summary + employer packet),
-`PlanSeed` (the shareable link), `VaultStore` (document photographs),
-`LocationLookup` (one-shot state/county prefill), `BabyModelStore`.
+`DeadlineReminderScheduler`, `ReminderPreferences` (what else may speak, Plus
+only), `PlanExporter` (summary + employer packet), `CalendarExporter` (the dates
+as an `.ics`, and nothing a parent typed), `PlanSeed` (the shareable link),
+`VaultStore` (document photographs), `LocationLookup` (one-shot state/county
+prefill), `BabyModelStore`.
 
 `BabyDocs/Views/` is the UI. `BabyDocs/Support/SampleData.swift` seeds previews
 with a family whose answers switch on the awkward rules (unmarried parents not
@@ -111,10 +117,19 @@ thing sent and overdue back) rather than one that triggers nothing.
   accident. `PlanExporter` (summary *and* employer packet) prints the status and
   never a number, and `SourceIntegrityTests` asserts it.
 - **Two dates are hard, the rest are not.** Job-based health plans must allow at
-  least 30 days after a birth; the Marketplace is 60. Those are the
-  only deadlines `DeadlineReminderScheduler` will schedule a notification for. A
-  suggestion that fires at 9am is what teaches someone to switch the whole
-  category off, and then they miss the one that mattered.
+  least 30 days after a birth; the Marketplace is 60. Those are the only
+  deadlines `DeadlineReminderScheduler` warns about unprompted, and the warnings
+  are **free forever**: a reminder for the two dates that legally close, behind a
+  paywall, would make the app the cause of the miss. Everything else it can say
+  is opt-in and comes with Plus (`Options`): the suggested dates three days out,
+  a Sunday digest that stays silent on an empty week, and a reminder the parent
+  set themselves. A suggestion that fires at 9am *unbidden* is what teaches
+  someone to switch the whole category off, and then they miss the one that
+  mattered.
+  - Hard deadlines claim the platform's pending-notification budget first
+    (`maxScheduled`). Sorting everything by date and taking the first two dozen
+    looks fair and lets a fortnight of suggestions push the 60-day Marketplace
+    warning off the end of the queue.
   - The rule is enforced at the catalog, not at the scheduler, because the
     scheduler schedules everything marked `hard`. The dependent care FSA broke
     it once: 30 days after the birth, drawn red, with a notification, while its
@@ -158,11 +173,24 @@ thing sent and overdue back) rather than one that triggers nothing.
     with a real deadline behaves differently. **Compute
     `conversions / (conversions + expirations)`** before comparing, because RC's
     headline number includes pending trials and understates by ~11pp.
-- **Free is every deadline, every link, every document list, and sending the plan
-  to the other parent.** A deadline behind a paywall is a deadline the app caused
-  someone to miss. Plus is the work *around* the deadlines: the vault beyond the
-  first twelve weeks, follow-up tracking, the employer packet, the printable
-  summary, and further children.
+- **Free is every deadline, every link, every document list, every child, the
+  warnings for the two windows that legally close, and sending the plan to the
+  other parent.** A deadline behind a paywall is a deadline the app caused
+  someone to miss. **Plus is timing and order**: reminders for the dates the app
+  suggests, a reminder the parent sets, the Sunday digest, the timeline
+  (`PlanTimeline`), and a calendar export. It also keeps the older gates: the
+  vault beyond the first twelve weeks, follow-up tracking, the employer packet
+  and the printable summary.
+  - **Further children were gated once and must not be again.** Twins are one
+    birth, one household and one set of answers, so the bill landed on the
+    family that had the harder delivery. It is a fact about the household rather
+    than a moment of value, and a paywall in front of a fact reads as a toll.
+  - The timeline is the app's *own* opinion and says so. `StartAdvice` on a rule
+    produces sequencing and nothing else: it never sets `dueAt`, never makes a
+    suggestion `hard`, and phrases itself in words ("once the certified copy
+    arrives") rather than in a date nobody's name is on. The blocked cases are
+    the point: the passport is the birth certificate wearing a hat, and the
+    $1,000 election is the Social Security card wearing one.
 - **Vault access survives a lapse.** Lapsing stops you *adding*; it never takes
   back a photograph already there. The paywall says so. Anything else is holding
   a parent's documents hostage, and Apple's refund team would agree.
@@ -200,13 +228,50 @@ thing sent and overdue back) rather than one that triggers nothing.
     thing ratings are supposed to measure. `FeedbackSheet` is what survived, and
     it is support, open to everyone from Settings at any time, leading nowhere
     near the App Store.
-- **What Plus gates lives in four places that drift apart.** The binary
-  (`SummaryShareControl`, `TaskDetailView`, `DocumentsView.addButton` and
-  `ChildrenView`) charges for follow-up tracking, further children, the vault
-  after twelve weeks, the printable summary and the employer packet. The
-  description and the App Review notes have to say the same thing, and both
-  once said the summary and the packet were free. `asc-readiness.py` now asserts
-  it, because nothing recompiles when a `.txt` file changes.
+- **What Plus gates lives in several places that drift apart.** The binary
+  (`SummaryShareControl`, `TaskDetailView`, `DocumentsView.addButton`,
+  `PlusToolsView` and `DeadlineReminderScheduler.Options`) charges for the
+  suggested-date reminders and the digest, the parent's own reminders, the
+  timeline, the calendar export, follow-up tracking, the vault after twelve
+  weeks, the printable summary and the employer packet. The description and the
+  App Review notes have to say the same thing, and both once said the summary
+  and the packet were free. `asc-readiness.py` asserts it, because nothing
+  recompiles when a `.txt` file changes, and its `PAID_FEATURES` list is also
+  where "further children" is documented as deliberately absent.
+- **The pitch is a tab, not only a locked door.** `PlusPurchaseView` is one view
+  shown in three places (`PaywallView`'s sheet, the Plus tab, the last page of
+  the intake), because three copies of a benefit list is how a paywall ends up
+  promising something the build does not do. The tab is the offer before
+  purchase and the tools after it: a customer who has paid should not watch a
+  fifth of their tab bar keep advertising what they own.
+  - The intake's offer comes **after** the plan is built, never before the
+    questions: a pitch in front of an empty app sells a promise rather than a
+    thing. Its button says "Get started" because in the intake the trial is the
+    way forward, with the price, period and renewal printed directly above it
+    and Apple's own sheet still to confirm. "Continue with the free plan" is
+    always there.
+- **A ticked task stays where it is.** It used to drop out of its section into a
+  collapsed disclosure at the bottom of the plan, which makes ticking
+  indistinguishable from deleting: the row a parent just dealt with vanishes
+  from the only place they would look for it. `TaskPlanner.CompletedPlacement`
+  is `.inPlace` for the screen and `.ownBucket` for the exporter, where a flat
+  DONE list at the end is the right shape for a page read start to finish.
+  Ticked rows bucket by `completedAt`, **not** by today, or a task finished
+  comfortably inside its window reappears weeks later under "Past due" and tells
+  a parent they missed something they did not. Dismissed is different and does
+  leave the plan: "does not apply to us" is a statement about the rule.
+- **Every question in the intake is the same shape.** `OnboardingStep` is hero
+  (icon, question, one line), form, pinned footer, and `OnboardingFooter` holds
+  two footnote lines of space open whether or not there is a note. Half the
+  questions used to open with a hero and half straight into a form header, which
+  moved the first row about eighty points between screens, and the note
+  appearing with a validation error moved Continue *within* one screen. What
+  should move between two questions is the words and the glyph.
+  - `RootView` keeps the intake on screen until `OnboardingFlow` says it is
+    finished, rather than until a child exists. The child is written by
+    `finish()`, so the root used to swap itself for the tab bar in the same
+    instant: the plan-is-ready page and the one prompt for notification
+    permission were drawn for a fraction of a frame and never seen by anybody.
 - **A ticked document does not disappear.** The Documents tab was one list,
   "still to find", so ticking a row was indistinguishable from deleting it. That
   is the worst possible feedback for the one gesture the screen exists for: the

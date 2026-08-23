@@ -1,7 +1,7 @@
 {
   "filename": "06-keep-papers-close.png",
   "path": "navy-paperwork/06-keep-papers-close.png",
-  "output_sha256": "d3a404bb7edfadccdc4476e98c4c2072a4864d91b13437639fe769d6e7e160e4",
+  "output_sha256": "52032f15a1565b0dffdde439708d05ba054f1ed42ffee7ad676750b34155cd70",
   "output_size": [
     1320,
     2868
@@ -20,13 +20,13 @@
     ],
     "proof": "The literal Baby Docs Plus capture shows the document vault as the work around the free deadline and checklist surfaces."
   },
-  "source": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/05-paywall.png",
-  "source_sha256": "d5af044ef421129701dd1a0a656e77fab052388d208eb300f9c959c699719c2f",
+  "source": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/05-plus.png",
+  "source_sha256": "4918e3ff05fa0a5bbcddeb9cc64a7c72a3a88a8b0360609b131d42c81d7264e6",
   "background_asset": null,
   "background_asset_sha256": null,
-  "background_override": "icon",
+  "background_override": null,
   "foreground": "manifests/navy-paperwork/06-keep-papers-close.foreground.png",
-  "foreground_sha256": "2287aa646e3ff1f5109b535ff95465b990c1c3093ab6192864c2340eddc9da63",
+  "foreground_sha256": "802fcca638f00fc0e1d72806e829eb4fb62d9af9978fef9fb0ac65608569afbb",
   "ui_mask": "manifests/navy-paperwork/06-keep-papers-close.ui-mask.png",
   "ui_coverage": 0.6066,
   "imagegen_received_ui_source": false,
@@ -35,30 +35,11 @@
     1320,
     2868
   ],
-  "background_mode": "icon-derived",
-  "background_id": "icon:#031336",
-  "background_top": "#051f57",
-  "background_bottom": "#083391",
+  "background_mode": "theme",
+  "background_id": "theme",
+  "background_top": "#071630",
+  "background_bottom": "#123d76",
   "background_asset_applied": false,
-  "background_source": "/Users/jackwallner/babydocs/BabyDocs/Assets.xcassets/AppIcon.appiconset/icon-1024.png",
-  "background_source_sha256": "9dd6d40867b43d317d88688dba9a2b69f8435787c80e42554d879afb45293e59",
-  "background_source_hex": "#031336",
-  "background_extraction": {
-    "rgb": [
-      3,
-      19,
-      54
-    ],
-    "hex": "#031336",
-    "method": "dominant-edge-swatch-quantized-8",
-    "edge_sample_count": 245760,
-    "swatch_sample_count": 241759,
-    "quantized_bucket": [
-      0,
-      16,
-      48
-    ]
-  },
   "phone": {
     "x": 126,
     "y": 560,
@@ -82,6 +63,6 @@
     1221,
     467
   ],
-  "source_evidence": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/05-paywall.png",
-  "source_evidence_sha256": "d5af044ef421129701dd1a0a656e77fab052388d208eb300f9c959c699719c2f"
+  "source_evidence": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/05-plus.png",
+  "source_evidence_sha256": "4918e3ff05fa0a5bbcddeb9cc64a7c72a3a88a8b0360609b131d42c81d7264e6"
 }

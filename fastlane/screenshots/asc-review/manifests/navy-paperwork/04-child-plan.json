@@ -1,7 +1,7 @@
 {
   "filename": "04-child-plan.png",
   "path": "navy-paperwork/04-child-plan.png",
-  "output_sha256": "cfffaee814f91f6239262c4940a80bd062e740312552fbacfa3cfffce225de03",
+  "output_sha256": "8d80b330f9063388fcbd31d89462c6337154f1fdc7ad0533d9ccb08fb778f2e5",
   "output_size": [
     1320,
     2868
@@ -21,12 +21,12 @@
     "proof": "The literal Children capture shows the child-specific open-task count and the household answers that rebuild the plan."
   },
   "source": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/04-children.png",
-  "source_sha256": "23d042f1fbab4c7c92a59ec8e32ce38ddcbca01ce96f65836093a4a574781c09",
+  "source_sha256": "b9a433d5ac29e7e4a230473fb70b50b6287db11b020e63cf7cf411d4c6cc6bf9",
   "background_asset": null,
   "background_asset_sha256": null,
-  "background_override": "icon",
+  "background_override": null,
   "foreground": "manifests/navy-paperwork/04-child-plan.foreground.png",
-  "foreground_sha256": "5f7c8af00379c292d224a67c9a0677a5c221bb1a6133efa816f889b569c3e427",
+  "foreground_sha256": "6ef78d6bad9b38e7fb590754b7ce0d0565346016f5686bff0cfcf66e62b15e60",
   "ui_mask": "manifests/navy-paperwork/04-child-plan.ui-mask.png",
   "ui_coverage": 0.6066,
   "imagegen_received_ui_source": false,
@@ -35,30 +35,11 @@
     1320,
     2868
   ],
-  "background_mode": "icon-derived",
-  "background_id": "icon:#031336",
-  "background_top": "#051f57",
-  "background_bottom": "#083391",
+  "background_mode": "theme",
+  "background_id": "theme",
+  "background_top": "#071630",
+  "background_bottom": "#123d76",
   "background_asset_applied": false,
-  "background_source": "/Users/jackwallner/babydocs/BabyDocs/Assets.xcassets/AppIcon.appiconset/icon-1024.png",
-  "background_source_sha256": "9dd6d40867b43d317d88688dba9a2b69f8435787c80e42554d879afb45293e59",
-  "background_source_hex": "#031336",
-  "background_extraction": {
-    "rgb": [
-      3,
-      19,
-      54
-    ],
-    "hex": "#031336",
-    "method": "dominant-edge-swatch-quantized-8",
-    "edge_sample_count": 245760,
-    "swatch_sample_count": 241759,
-    "quantized_bucket": [
-      0,
-      16,
-      48
-    ]
-  },
   "phone": {
     "x": 126,
     "y": 560,
@@ -83,5 +64,5 @@
     441
   ],
   "source_evidence": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/04-children.png",
-  "source_evidence_sha256": "23d042f1fbab4c7c92a59ec8e32ce38ddcbca01ce96f65836093a4a574781c09"
+  "source_evidence_sha256": "b9a433d5ac29e7e4a230473fb70b50b6287db11b020e63cf7cf411d4c6cc6bf9"
 }

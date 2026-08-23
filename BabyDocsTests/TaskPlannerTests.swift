@@ -119,6 +119,18 @@ struct TaskPlannerTests {
         #expect(TaskPlanner.duePhrase(for: task(dueInDays: -4, kind: .hard), now: now) == "4 days past due")
     }
 
+    @Test("A task cannot be completed and dismissed at the same time")
+    func taskStatesAreMutuallyExclusive() {
+        let task = RequirementTask(title: "Birth certificate")
+        task.setDismissed(true)
+        #expect(task.isDismissed)
+        #expect(!task.isDone)
+
+        task.setCompleted(true)
+        #expect(task.isDone)
+        #expect(!task.isDismissed)
+    }
+
     /// The failure this guards against is a screenshot, not a crash: a
     /// suggestion and a legal window both saying "10 days left" in a list a
     /// parent triages in four seconds, separated only by a colour.

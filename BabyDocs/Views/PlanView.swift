@@ -146,26 +146,30 @@ struct PlanView: View {
                         PlanSectionHeader(
                             title: group.bucket.title,
                             blurb: group.bucket.blurb,
-                            count: group.tasks.count
+                            // What is *left* here, not how many rows are drawn.
+                            // The ticked ones stay on screen, and a count that
+                            // includes them turns the one number on the header
+                            // into a number nobody can act on.
+                            count: group.tasks.filter { !$0.isDone }.count
                         )
                     }
                 }
 
-                if doneTasks.isEmpty == false {
+                if dismissedTasks.isEmpty == false {
                     Section {
                         DisclosureGroup(isExpanded: $showingDoneSection) {
-                            ForEach(doneTasks) { task in
+                            ForEach(dismissedTasks) { task in
                                 TaskRow(task: task, showChildName: children.count > 1) {
                                     toggle(task)
                                 }
                             }
                         } label: {
-                            Text("Done and dismissed (\(doneTasks.count))")
+                            Text("Does not apply to us (\(dismissedTasks.count))")
                         }
                     }
                 }
 
-                if openBuckets.isEmpty && doneTasks.isEmpty {
+                if openBuckets.isEmpty && dismissedTasks.isEmpty {
                     Section {
                         EmptyStateView(
                             symbol: "checklist",
@@ -236,6 +240,12 @@ struct PlanView: View {
                     SharePlanSheet(child: child)
                 }
             }
+            .onChange(of: children.map { $0.id }) { _, _ in
+                normalizeSelection()
+            }
+            .task {
+                normalizeSelection()
+            }
             .refreshable {
                 RequirementEngine.reconcileAll(in: context)
                 await DeadlineReminderScheduler.reschedule(in: context)
@@ -262,25 +272,44 @@ struct PlanView: View {
         navigator.pendingTaskID = nil
     }
 
+    private func normalizeSelection() {
+        guard let selectedChildID else {
+            if children.count == 1 {
+                self.selectedChildID = children.first?.id
+            }
+            return
+        }
+        guard children.contains(where: { $0.id == selectedChildID }) else {
+            self.selectedChildID = children.count == 1 ? children.first?.id : nil
+            return
+        }
+    }
+
+    /// **A ticked task stays where it was.**
+    ///
+    /// It used to drop out of its section and into a collapsed disclosure at
+    /// the bottom of the screen, which makes ticking a row indistinguishable
+    /// from deleting it: the row the parent just dealt with vanishes from the
+    /// only place they would look for it. Struck through and dimmed, in place,
+    /// answers both of the questions actually being asked at a records-office
+    /// counter, which are "what is left" and "did I already do this one".
     private var openBuckets: [(bucket: TaskPlanner.Bucket, tasks: [RequirementTask])] {
         let late = Set(lateTasks.map(\.id))
-        return TaskPlanner.buckets(for: tasks)
+        return TaskPlanner.buckets(for: tasks, completed: .inPlace)
             .filter { $0.bucket != .done }
             .map { (bucket: $0.bucket, tasks: $0.tasks.filter { !late.contains($0.id) }) }
             .filter { !$0.tasks.isEmpty }
     }
 
-    private var doneTasks: [RequirementTask] {
-        TaskPlanner.buckets(for: tasks).first { $0.bucket == .done }?.tasks ?? []
+    /// Only the ones a parent said do not apply to them. Those are a statement
+    /// about the rule rather than about the work, so they do leave the plan.
+    private var dismissedTasks: [RequirementTask] {
+        TaskPlanner.sorted(tasks.filter { $0.isDismissed })
     }
 
     private func toggle(_ task: RequirementTask) {
         let wasDone = task.isDone
-        if task.isDone {
-            task.completedAt = nil
-        } else {
-            task.completedAt = Date()
-        }
+        task.setCompleted(!wasDone)
         let saved = task.recordLocalChange(in: context)
         if saved && !wasDone {
             ReviewPromptTracker.recordCompletion(of: task)

@@ -1,0 +1,212 @@
+{
+  "status": "ok",
+  "manifest": "/Users/jackwallner/babydocs/fastlane/screenshots/manifest.json",
+  "app": "babydocs",
+  "mode": "command",
+  "lease": "babydocs",
+  "output": "/Users/jackwallner/babydocs/fastlane/screenshots/raw",
+  "proof_only": false,
+  "checkout_options": [],
+  "lease_checked_in": true,
+  "screenshots": [
+    "00-welcome.png",
+    "01-baby.png",
+    "01-plan.png",
+    "02-household.png",
+    "02-task-detail.png",
+    "03-coverage.png",
+    "03-task-documents.png",
+    "04-children.png",
+    "04-coverage-employer.png",
+    "05-leave.png",
+    "05-plus.png",
+    "06-documents.png",
+    "06-explained-choice.png",
+    "06b-documents-photos.png",
+    "07-settings.png"
+  ],
+  "screenshot_records": [
+    {
+      "name": "00-welcome.png",
+      "path": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/00-welcome.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGB",
+      "sha256": "84ecb307b3cde1fe82004c278b1ee83a7690003c17689f7b7fd14835d368d6de"
+    },
+    {
+      "name": "01-baby.png",
+      "path": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/01-baby.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGB",
+      "sha256": "1fb9dda871007e8e518dd26652647c693ccdb2c49821ce1f97cffa44f943763f"
+    },
+    {
+      "name": "01-plan.png",
+      "path": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/01-plan.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGB",
+      "sha256": "644d0ef55ec6b49d2eb87811d403f3a7ebdb8525066978e15d3899e78957fbd6"
+    },
+    {
+      "name": "02-household.png",
+      "path": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/02-household.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGB",
+      "sha256": "2e5f1dc0c5704eb02ab5128bf4369e2cd56351efc23b9c9d37ec5e90d2ed69cd"
+    },
+    {
+      "name": "02-task-detail.png",
+      "path": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/02-task-detail.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGB",
+      "sha256": "664a2ab638399196ae80722ad7e8f1b97671c3bb501e525fc339d880428dda2a"
+    },
+    {
+      "name": "03-coverage.png",
+      "path": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/03-coverage.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGB",
+      "sha256": "c497fada414aaff66a2b4e78a6a12afb0aa4d587a05ec68c3fb3b5f237281c10"
+    },
+    {
+      "name": "03-task-documents.png",
+      "path": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/03-task-documents.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGB",
+      "sha256": "a5664e927c6f512a979a8ce3790bb00a3ebf2d81b3df0dc612fe96e6147c5f16"
+    },
+    {
+      "name": "04-children.png",
+      "path": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/04-children.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGB",
+      "sha256": "b9a433d5ac29e7e4a230473fb70b50b6287db11b020e63cf7cf411d4c6cc6bf9"
+    },
+    {
+      "name": "04-coverage-employer.png",
+      "path": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/04-coverage-employer.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGB",
+      "sha256": "75955c875fc983c42f5d98a1f66b110927eaa490cbc6404f65cec3cc4f44faa8"
+    },
+    {
+      "name": "05-leave.png",
+      "path": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/05-leave.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGB",
+      "sha256": "423ec2de4c56dc7661e5bb02246a325ae81d82d5e80411f49f80685c4fad6058"
+    },
+    {
+      "name": "05-plus.png",
+      "path": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/05-plus.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGB",
+      "sha256": "4918e3ff05fa0a5bbcddeb9cc64a7c72a3a88a8b0360609b131d42c81d7264e6"
+    },
+    {
+      "name": "06-documents.png",
+      "path": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/06-documents.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGB",
+      "sha256": "e7625dd222e5527f4db7eff58e56471e0923eefc8723ae3ac46b34b5625b399d"
+    },
+    {
+      "name": "06-explained-choice.png",
+      "path": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/06-explained-choice.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGB",
+      "sha256": "e303b7eb0a4728af29db0cdc7bc319bd3409e1723e9c1eb35a0f490663988f5c"
+    },
+    {
+      "name": "06b-documents-photos.png",
+      "path": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/06b-documents-photos.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGB",
+      "sha256": "8dcaef1b91a275444c999a0149122fab63b4176ace50e5a558caedc4ef8ed6ca"
+    },
+    {
+      "name": "07-settings.png",
+      "path": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/07-settings.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGB",
+      "sha256": "c7019fde4407424216971614ab25d1f17458ecfa72b653253ea9e4e703fe3a6b"
+    }
+  ],
+  "flows": [
+    {
+      "id": "repo-command",
+      "screenshots": [
+        "00-welcome.png",
+        "01-baby.png",
+        "01-plan.png",
+        "02-household.png",
+        "02-task-detail.png",
+        "03-coverage.png",
+        "03-task-documents.png",
+        "04-children.png",
+        "04-coverage-employer.png",
+        "05-leave.png",
+        "05-plus.png",
+        "06-documents.png",
+        "06-explained-choice.png",
+        "06b-documents-photos.png",
+        "07-settings.png"
+      ]
+    }
+  ],
+  "app_repo": {
+    "path": "/Users/jackwallner/babydocs",
+    "git_commit": "918d73c42f2f2582a8a674ca04a3ab6c4917a67d"
+  },
+  "device": {
+    "udid": "2C7A80C1-1228-411A-B9AD-A7DEED683F79",
+    "name": "agent-sim-1",
+    "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-26-5",
+    "device_type": "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro"
+  }
+}

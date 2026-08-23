@@ -56,14 +56,13 @@ final class ScreenshotUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Children"].waitForExistence(timeout: 5))
         capture(name: "04-children")
 
-        // The paywall, reached the way a free user actually reaches it. Also the
-        // only proof that the price, the billing period and the renewal
-        // disclosure all render together: a subscription sold without them is a
-        // rejection at review and a refund request afterwards.
-        app.buttons["Add another child"].tap()
+        // The offer, reached the way anybody reaches it now: its own tab, which
+        // is also the only proof that the price, the billing period and the
+        // renewal disclosure all render together. A subscription sold without
+        // them is a rejection at review and a refund request afterwards.
+        app.tabBars.buttons["Plus"].tap()
         XCTAssertTrue(app.navigationBars["Baby Docs Plus"].waitForExistence(timeout: 10))
-        capture(name: "05-paywall")
-        app.buttons["Close"].tap()
+        capture(name: "05-plus")
 
         // Where a parent goes when someone is waiting at a counter: what is
         // still to find, gathered across every task, and the copies they keep.
@@ -105,7 +104,7 @@ final class ScreenshotUITests: XCTestCase {
         let dateConfirmation = app.switches["I checked this date"].firstMatch
         XCTAssertTrue(dateConfirmation.waitForExistence(timeout: 5))
         dateConfirmation.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
-        app.buttons["US citizen"].firstMatch.tap()
+        tapScrolling(app.buttons["US citizen"].firstMatch, in: app)
         choose(state: "California", labelled: "State of birth", in: app)
         app.buttons["Continue"].firstMatch.tap()
 
@@ -137,10 +136,31 @@ final class ScreenshotUITests: XCTestCase {
     /// tappable static text. Querying the label directly finds an element that
     /// exists and is not hittable, which fails in a way that reads like the
     /// screen is wrong rather than the query.
+    /// Taps something the intake may have pushed under the pinned footer.
+    ///
+    /// Scrolled clear of the Continue bar rather than merely hittable: the
+    /// footer is a safe-area inset the form scrolls beneath, so a row can sit
+    /// visually behind it, report itself hittable, and hand the tap to the bar.
+    /// That is what made this whole flow fail silently on the citizenship
+    /// question, with a red "choose the citizenship" note nobody read.
+    private func tapScrolling(_ element: XCUIElement, in app: XCUIApplication) {
+        XCTAssertTrue(element.waitForExistence(timeout: 5))
+        let footer = app.buttons["Continue"].firstMatch
+        for _ in 0..<8 {
+            let clear = element.exists && element.isHittable
+                && (!footer.exists || element.frame.maxY <= footer.frame.minY)
+            if clear { break }
+            app.swipeUp()
+        }
+        element.tap()
+    }
+
     private func choose(state: String, labelled label: String, in app: XCUIApplication) {
         let row = app.cells.containing(.staticText, identifier: label).firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 5), "No picker row labelled \(label)")
-        row.tap()
+        // Every question opens with the same hero block now, so the longest of
+        // them puts its last field under the pinned Continue bar.
+        tapScrolling(row, in: app)
 
         let option = app.buttons[state].firstMatch
         XCTAssertTrue(option.waitForExistence(timeout: 5), "\(state) never appeared in the picker")

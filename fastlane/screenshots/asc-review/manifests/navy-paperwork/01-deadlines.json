@@ -1,7 +1,7 @@
 {
   "filename": "01-deadlines.png",
   "path": "navy-paperwork/01-deadlines.png",
-  "output_sha256": "45b6d3a9cdf7f97c841894456ea578f38d846639df0cedac06c5bc62e617d20c",
+  "output_sha256": "e4a291703e85db8bba45f284ccba19e80bacf7ea477293f0c78eb34f1c0a0a4e",
   "output_size": [
     1320,
     2868
@@ -21,12 +21,12 @@
     "proof": "The literal Plan capture shows the job-based enrollment window, an overdue birth-certificate follow-up, and the next open tasks."
   },
   "source": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/01-plan.png",
-  "source_sha256": "de74a662edb03f5cb2aeb156ea345cab4b42f6bfa648e7939210029083bd8c8f",
+  "source_sha256": "644d0ef55ec6b49d2eb87811d403f3a7ebdb8525066978e15d3899e78957fbd6",
   "background_asset": null,
   "background_asset_sha256": null,
-  "background_override": "icon",
+  "background_override": null,
   "foreground": "manifests/navy-paperwork/01-deadlines.foreground.png",
-  "foreground_sha256": "9d99fbc8c5b06c273a4ca8376d550b57c8b7c5396112677b9b9a1c14c76aa260",
+  "foreground_sha256": "e4dc7970f55e3b29059be7909e23217fe6927c737155c6bef92650219ad80257",
   "ui_mask": "manifests/navy-paperwork/01-deadlines.ui-mask.png",
   "ui_coverage": 0.6066,
   "imagegen_received_ui_source": false,
@@ -35,30 +35,11 @@
     1320,
     2868
   ],
-  "background_mode": "icon-derived",
-  "background_id": "icon:#031336",
-  "background_top": "#051f57",
-  "background_bottom": "#083391",
+  "background_mode": "theme",
+  "background_id": "theme",
+  "background_top": "#071630",
+  "background_bottom": "#123d76",
   "background_asset_applied": false,
-  "background_source": "/Users/jackwallner/babydocs/BabyDocs/Assets.xcassets/AppIcon.appiconset/icon-1024.png",
-  "background_source_sha256": "9dd6d40867b43d317d88688dba9a2b69f8435787c80e42554d879afb45293e59",
-  "background_source_hex": "#031336",
-  "background_extraction": {
-    "rgb": [
-      3,
-      19,
-      54
-    ],
-    "hex": "#031336",
-    "method": "dominant-edge-swatch-quantized-8",
-    "edge_sample_count": 245760,
-    "swatch_sample_count": 241759,
-    "quantized_bucket": [
-      0,
-      16,
-      48
-    ]
-  },
   "phone": {
     "x": 126,
     "y": 560,
@@ -83,5 +64,5 @@
     438
   ],
   "source_evidence": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/01-plan.png",
-  "source_evidence_sha256": "de74a662edb03f5cb2aeb156ea345cab4b42f6bfa648e7939210029083bd8c8f"
+  "source_evidence_sha256": "644d0ef55ec6b49d2eb87811d403f3a7ebdb8525066978e15d3899e78957fbd6"
 }

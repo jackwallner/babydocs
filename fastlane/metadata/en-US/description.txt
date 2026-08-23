@@ -1,6 +1,6 @@
 The paperwork after a baby is not hard. The hard part is knowing what applies, and which dates actually close.
 
-Baby Docs asks seven screens of questions, and every answer changes the list. Married or not. A job-based plan or the Marketplace. Born in one state, living in another. Then it gives you the tasks that apply to your family, in the order they close.
+Baby Docs asks a short set of questions, then gives you the tasks that fit your household, in the order they close. Married or not. A job-based plan or the Marketplace. Born in one state, living in another.
 
 WHAT YOU GET
 
@@ -10,36 +10,36 @@ WHAT YOU GET
 - Where to actually go. Birth certificates come from state and county offices with their own forms and fees.
 - Somewhere to put the confirmation number, and a nudge based on what the office told you, not a turnaround time the app guessed.
 - A place for the paperwork itself. Photograph the certified copy and the enrollment form; they never leave this phone.
-- Reminders that fire only for deadlines that genuinely close, so you do not end up muting the app.
-- Works with no signal, no household-data account and no household-data server to be down.
+- Free reminders for the deadlines that genuinely close, and nothing else unprompted, so you do not end up muting the app.
+- Works with no signal, no household-data account and no household-data server.
 
 SEND IT TO THE OTHER PARENT
 
-One link. They tap it, and their phone builds the same plan from the same answers, with their own reminders. The answers travel in the link itself when you choose to send it, not through a background upload.
+One link. They tap it, and their phone builds the same plan from the same answers, with their own reminders. The answers travel in the link itself when you choose to send it, not through a background upload. The two plans do not update each other.
 
 IT SHOWS ITS WORKING
 
-Every sourced rule links to the government page it came from, with the date that page was last read, right there on the task. Where there is no honest source to cite, the task explains that limit. An app that asks you to trust it about dates that cost money should show you where the date came from.
+Every sourced rule links to the government page it came from, with the date that page was last read. Where there is no honest source to cite, the task explains that limit.
 
 WHAT IT DOES NOT DO
 
 It never files anything for you. No form is submitted or signed on your behalf, and it never logs in to any account of yours. It takes you to the official page and gets out of the way.
 
-It never asks for a Social Security number. It tracks whether the number has been requested and the card has arrived, and there is no field for the number.
+It never asks for a Social Security number. It tracks whether the number was requested and whether the card arrived, never the number itself.
 
-It is not a baby tracker. No feeds, no weights, no growth charts.
+It is not a baby tracker. No feeds, weights, growth charts or sleep logs.
 
 BABY DOCS PLUS
 
-Every task, deadline, document checklist and official link is free, for one child. So is sending the plan to the other parent. Nothing with a date on it is ever behind a paywall.
+Every task, deadline, document checklist and official link is free, for every child. So is sending the plan to the other parent and the reminders for the two deadlines that legally close.
 
-Plus adds the work around the deadlines: follow-up tracking for things you sent and are waiting on; any further children, so a second baby inherits your household answers instead of asking again; the document vault after the first twelve weeks; the printable one-page summary; and the employer packet HR asks for.
+Plus is timing and order: suggested-date reminders, a reminder you set yourself, a Sunday digest, and the recommended order, including what is waiting on something else. It also adds the calendar export, follow-up tracking, the document vault after the first twelve weeks, the printable summary and the employer packet.
 
 If Plus lapses you stop adding new photographs. The ones already there stay, and stay openable.
 
 Baby Docs Plus is a weekly or yearly auto-renewable subscription, the weekly with a 3-day free trial for eligible new subscribers, or a one-time lifetime purchase with no subscription. Prices are shown in the app and vary by region.
 
-Payment is charged to your Apple ID at confirmation. A subscription renews automatically unless it is cancelled at least 24 hours before the end of the current period, and the renewal is charged within 24 hours of that end. Any unused portion of a free trial is forfeited when a subscription is purchased. Manage or cancel in Settings > Apple ID > Subscriptions.
+Payment is charged to your Apple Account at confirmation. A subscription renews automatically unless cancelled at least 24 hours before the end of the current period, and the renewal is charged within 24 hours of that end. An unused trial is forfeited when a subscription is purchased. Manage or cancel in Settings > Apple Account > Subscriptions.
 
 Privacy Policy: https://jackwallner.com/ios/babydocs/privacy-policy.html
 Terms of Use: https://jackwallner.com/ios/babydocs/terms.html

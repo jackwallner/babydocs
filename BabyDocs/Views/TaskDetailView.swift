@@ -52,6 +52,7 @@ struct TaskDetailView: View {
             }
 
             ownerSection
+            reminderSection
             documentsSection
             if task.isPostedAway {
                 if store.isPro {
@@ -158,9 +159,91 @@ struct TaskDetailView: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            // When to *start* is a different sentence from when it is due, and
+            // on the tasks that wait on something else it is the only one worth
+            // reading. Free as well as paid: it costs nothing to say that a
+            // passport cannot begin until the certificate arrives, and letting
+            // somebody discover that at the counter would be indefensible.
+            if !startAdvice.isEmpty && !task.isDone {
+                Label {
+                    Text(startAdvice)
+                        .font(.footnote)
+                        .fixedSize(horizontal: false, vertical: true)
+                } icon: {
+                    Image(systemName: startIsBlocked ? "hourglass" : "arrow.turn.down.right")
+                        .font(.footnote)
+                }
+                .foregroundStyle(.secondary)
+            }
         } header: {
             Text(headerText)
         }
+    }
+
+    private var timelineStep: PlanTimeline.Step {
+        let siblings = task.child?.liveTasks ?? [task]
+        let completed = Set(siblings.filter(\.isDone).map(\.catalogKey))
+        return PlanTimeline.step(for: task, completedKeys: completed)
+    }
+
+    private var startAdvice: String { timelineStep.reason }
+
+    private var startIsBlocked: Bool { timelineStep.isBlocked }
+
+    /// A reminder the family set, on a task that has no date of its own or one
+    /// they would rather be told about sooner.
+    ///
+    /// Plus, because it is the same machinery as the suggested-date nudges, and
+    /// because nothing here can cost anyone a legal window: the two that close
+    /// are announced for everybody whatever this says.
+    @ViewBuilder
+    private var reminderSection: some View {
+        Section {
+            if store.isPro {
+                if let reminder = task.customReminderAt {
+                    DatePicker(
+                        "Remind me on",
+                        selection: Binding(
+                            get: { reminder },
+                            set: { setCustomReminder($0) }
+                        ),
+                        in: DeadlineReminderScheduler.minimumCustomReminderDate()...,
+                        displayedComponents: .date
+                    )
+                    Button("Remove this reminder", role: .destructive) { setCustomReminder(nil) }
+                        .font(.footnote)
+                } else {
+                    Button("Remind me about this one") {
+                        setCustomReminder(
+                            Calendar.current.date(byAdding: .day, value: 3, to: Date()) ?? Date()
+                        )
+                    }
+                }
+            } else {
+                Button {
+                    navigator.requestUpgrade()
+                } label: {
+                    HStack {
+                        Label("Remind me about this one", systemImage: "bell.badge")
+                        Spacer(minLength: AppTheme.tightSpacing)
+                        PlusBadge()
+                    }
+                }
+                .accessibilityLabel("Remind me about this one. Included with Plus.")
+            }
+        } header: {
+            Text("Your own reminder")
+        } footer: {
+            Text(task.deadlineKind == .hard
+                 ? "This task already has a warning seven days and one day before it closes, for everybody, free. This is an extra one at a date you pick."
+                 : "A notification at 9am on the day you pick. Baby Docs never invents a date here: nothing fires unless you set one.")
+        }
+    }
+
+    private func setCustomReminder(_ date: Date?) {
+        task.customReminderAt = date
+        guard task.recordLocalChange(in: context) else { return }
+        Task { await DeadlineReminderScheduler.reschedule(in: context) }
     }
 
     private var headerText: String {
@@ -445,8 +528,7 @@ struct TaskDetailView: View {
 
     private func toggleDone() {
         let wasDone = task.isDone
-        task.completedAt = wasDone ? nil : Date()
-        if !wasDone { task.dismissedAt = nil }
+        task.setCompleted(!wasDone)
         let saved = task.recordLocalChange(in: context)
         if saved && !wasDone {
             ReviewPromptTracker.recordCompletion(of: task)
@@ -456,8 +538,7 @@ struct TaskDetailView: View {
 
     private func toggleDismissed() {
         let wasDismissed = task.isDismissed
-        task.dismissedAt = wasDismissed ? nil : Date()
-        if !wasDismissed { task.completedAt = nil }
+        task.setDismissed(!wasDismissed)
         if task.recordLocalChange(in: context) {
             rescheduleReminders()
         }

@@ -18,7 +18,7 @@
     </nav>
 
     <h1>Baby Docs Privacy Policy</h1>
-    <p class="date">Last updated: August 15, 2026</p>
+    <p class="date">Last updated: August 23, 2026</p>
 
     <h2>Overview</h2>
     <p>
@@ -37,12 +37,12 @@
     <p>
       There is one exception, and it is worth stating at the top rather than
       burying it:
-      <strong
-        >if you buy Baby Docs Plus, purchase information goes to Apple and to
-        RevenueCat</strong
-      >, the service that tells the app whether a purchase is still valid. That
-      is the only thing about you that ever reaches a server of ours, it
-      contains nothing about your family, and it is described in full under
+      <strong>the app checks purchase status with Apple and RevenueCat</strong>.
+      RevenueCat can receive an anonymous app identifier and purchase-status
+      information even before a purchase, because the app needs to know whether
+      Plus is already active. That is the only thing about you that ever reaches
+      a server of ours, it contains nothing about your family, and it is
+      described in full under
       <a href="#purchases">Purchases and Baby Docs Plus</a>.
     </p>
 
@@ -54,8 +54,9 @@
       >, for your child or for you. The app tracks whether the number has been
       requested and whether the card has arrived. It has no field for the number
       itself, and neither the one-page summary nor the employer packet ever
-      prints one. If you type a number into a free-text note, it is saved as
-      ordinary text on your phone like any other note, so please do not.
+      prints one. Free-text fields reject common Social Security-number
+      patterns, so a number entered in a note, receipt or household field is not
+      saved.
     </p>
     <p>
       One clarification, because it matters. If you photograph a Social Security
@@ -88,6 +89,10 @@
         Photographs you choose to add to the document vault, and nothing about
         them beyond what you named them.
       </li>
+      <li>
+        If you leave setup unfinished, the answers needed to resume it are kept
+        in the app's local preferences for up to seven days, then removed.
+      </li>
     </ul>
     <p>
       The local database is encrypted at rest by iOS until the first unlock
@@ -101,8 +106,9 @@
     <h2>What leaves your iPhone, and when</h2>
     <p>
       Only what you deliberately send, and only to whoever you send it to, plus
-      one Apple system-service request if you tap the location helper. There is
-      no background upload, no account and no Baby Docs server copy.
+      purchase-status requests to Apple and RevenueCat, and one Apple
+      system-service request if you tap the location helper. There is no
+      household-data upload, no account and no Baby Docs server copy.
     </p>
     <ul>
       <li>
@@ -113,10 +119,12 @@
         are covered &mdash; so their phone can rebuild the same plan. The
         answers travel in the part of a web address that browsers never send to
         a server, so even though the link opens a page on our site, that page
-        receives nothing. It carries no completed tasks, no notes, no
-        confirmation numbers and no photographs. Anyone the link is forwarded to
-        can read what is in it, so send it the way you would send a page of a
-        form.
+        receives nothing. If you entered them, the link also carries the
+        job-based plan name and benefits contact because the other phone needs
+        those answers to rebuild the same plan. It carries no completed tasks,
+        no notes, no confirmation numbers and no photographs. Anyone the link is
+        forwarded to can read what is in it, so send it the way you would send a
+        page of a form.
       </li>
       <li>
         <strong>The one-page summary and the employer packet.</strong> Plain
@@ -124,24 +132,27 @@
         contains a Social Security number or a vault photograph.
       </li>
       <li>
-        <strong>Your purchase status</strong>, handled by Apple and RevenueCat.
+        <strong>Your purchase status</strong>, checked by Apple and RevenueCat.
         We never see a card number or any payment detail. The next section says
-        exactly what those two receive.
+        exactly what those two receive and when.
       </li>
     </ul>
 
     <h2 id="purchases">Purchases and Baby Docs Plus</h2>
     <p>
       Everything the plan itself is made of is free: every task, every deadline,
-      every document list, every official link, every reminder, and sending the
-      plan to the other parent. None of it involves a network. If you never buy
-      Plus, nothing in this section happens at all.
+      every document list, every official link, the two hard-deadline warnings,
+      and sending the plan to the other parent. Optional suggested-date
+      reminders, the Sunday digest and reminders you set yourself are Plus
+      features. The purchase-status check described here can happen whether or
+      not you buy Plus.
     </p>
     <p>
-      If you do buy Plus, the purchase is made with Apple, and Apple's own
-      privacy policy covers it. To know whether that purchase is still valid,
-      the app uses <a href="https://www.revenuecat.com/privacy/">RevenueCat</a>,
-      which acts as our processor. What RevenueCat receives is:
+      If you buy Plus, the purchase is made with Apple, and Apple's own privacy
+      policy covers it. To know whether Plus is active, the app uses
+      <a href="https://www.revenuecat.com/privacy/">RevenueCat</a>, which acts
+      as our processor. The app may make that check before a purchase so it can
+      restore an existing entitlement. What RevenueCat receives is:
     </p>
     <ul>
       <li>

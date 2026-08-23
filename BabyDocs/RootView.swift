@@ -15,6 +15,9 @@ struct RootView: View {
     @State private var hasAcknowledgedRecovery = false
     /// One ask per launch at most, whatever else happens.
     @State private var hasRequestedReviewThisSession = false
+    /// Set by the intake's own last page. Nil until the intake has been on
+    /// screen, so a launch with a plan already in the store never opens it.
+    @State private var hasFinishedIntake = true
     @Environment(\.requestReview) private var requestReview
 
     init() {
@@ -27,13 +30,23 @@ struct RootView: View {
                 StorageRecoveryView(location: recoveredStoreURL.lastPathComponent) {
                     hasAcknowledgedRecovery = true
                 }
-            } else if children.isEmpty && archivedChildren.isEmpty {
+            } else if isIntakeOpen {
                 // No child means no plan, and a plan is the entire app. The
                 // intake is not a wizard the user can be dropped into the
                 // middle of: every deadline in the app is derived from the
                 // birth date and the state, so there is nothing to show until
                 // those exist.
-                OnboardingFlow()
+                //
+                // **It stays open until the intake says it is finished**, which
+                // it did not used to. The last two screens are inserted the
+                // moment the first child exists, and this view swapped itself
+                // for the tab bar in the same instant that child was written:
+                // the plan-is-ready page and the one prompt for notification
+                // permission were drawn for a fraction of a frame and never
+                // seen by anybody. An intake that cannot show its own last page
+                // cannot ask for the permission the whole product depends on.
+                OnboardingFlow { hasFinishedIntake = true }
+                    .onAppear { hasFinishedIntake = false }
             } else if children.isEmpty {
                 ArchivedChildrenRecoveryView(children: archivedChildren)
             } else {
@@ -50,6 +63,15 @@ struct RootView: View {
                         .tabItem { Label("Documents", systemImage: "folder") }
                         .tag(AppNavigator.Tab.documents)
 
+                    // A permanent slot rather than a sheet nobody opens on
+                    // purpose. Before Plus is bought it is the pitch; after, it
+                    // is the timeline, the reminder switches and the pages that
+                    // leave the phone, so the tab is worth its place in the bar
+                    // to a customer who has already paid.
+                    PlusView()
+                        .tabItem { Label("Plus", systemImage: "sparkles") }
+                        .tag(AppNavigator.Tab.plus)
+
                     SettingsView()
                         .tabItem { Label("Settings", systemImage: "gearshape") }
                         .tag(AppNavigator.Tab.settings)
@@ -64,6 +86,17 @@ struct RootView: View {
                 // own material from whatever scrolls under it, and there are no
                 // gutters because there is no slab. `planPageBackground()` on
                 // each tab is what gives the glass something to refract.
+            }
+        }
+        .overlay {
+            if scenePhase != .active {
+                AppTheme.pageBackground
+                    .ignoresSafeArea()
+                    .overlay {
+                        Text("Baby Docs")
+                            .foregroundStyle(.secondary)
+                    }
+                    .accessibilityHidden(true)
             }
         }
         .onChange(of: selectedTab) { _, tab in
@@ -171,6 +204,16 @@ struct RootView: View {
         guard let documents = try? context.fetch(descriptor) else { return }
         let referenced = Set(documents.flatMap(\.pageFileNames))
         VaultStore.shared.removeOrphanedPages(referencedNames: referenced)
+    }
+
+    /// Whether the intake owns the screen.
+    ///
+    /// An empty store opens it, and it stays open until the intake's own last
+    /// page says otherwise, even though the child it created is in the store by
+    /// then. That gap is where the plan-is-ready page and the notification
+    /// prompt live.
+    private var isIntakeOpen: Bool {
+        (children.isEmpty && archivedChildren.isEmpty) || !hasFinishedIntake
     }
 
     /// The system ask, one beat after the tick.

@@ -48,7 +48,7 @@ final class OnboardingUITests: XCTestCase {
         let dateConfirmation = app.switches["I checked this date"].firstMatch
         XCTAssertTrue(dateConfirmation.waitForExistence(timeout: 5))
         dateConfirmation.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
-        app.buttons["US citizen"].firstMatch.tap()
+        tapScrolling(app.buttons["US citizen"].firstMatch, in: app)
         choose(state: "California", labelled: "State of birth", in: app)
         app.buttons["Continue"].firstMatch.tap()
 
@@ -90,10 +90,31 @@ final class OnboardingUITests: XCTestCase {
 
     /// A `Picker` row in a SwiftUI `Form` is a cell containing the label, not a
     /// tappable static text.
+    /// Taps something the intake may have pushed under the pinned footer.
+    ///
+    /// Scrolled clear of the Continue bar rather than merely hittable: the
+    /// footer is a safe-area inset the form scrolls beneath, so a row can sit
+    /// visually behind it, report itself hittable, and hand the tap to the bar.
+    /// That is what made this whole flow fail silently on the citizenship
+    /// question, with a red "choose the citizenship" note nobody read.
+    private func tapScrolling(_ element: XCUIElement, in app: XCUIApplication) {
+        XCTAssertTrue(element.waitForExistence(timeout: 5))
+        let footer = app.buttons["Continue"].firstMatch
+        for _ in 0..<8 {
+            let clear = element.exists && element.isHittable
+                && (!footer.exists || element.frame.maxY <= footer.frame.minY)
+            if clear { break }
+            app.swipeUp()
+        }
+        element.tap()
+    }
+
     private func choose(state: String, labelled label: String, in app: XCUIApplication) {
         let row = app.cells.containing(.staticText, identifier: label).firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 5), "No picker row labelled \(label)")
-        row.tap()
+        // Every question opens with the same hero block now, so the longest of
+        // them puts its last field under the pinned Continue bar.
+        tapScrolling(row, in: app)
 
         let option = app.buttons[state].firstMatch
         XCTAssertTrue(option.waitForExistence(timeout: 5), "\(state) never appeared in the picker")

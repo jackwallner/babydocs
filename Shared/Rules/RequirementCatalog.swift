@@ -89,13 +89,38 @@ struct DocumentSpec: Sendable, Equatable {
     var detail: String = ""
 }
 
+/// When it is worth *starting* a task, which is a different question from when
+/// it is due, and one the app is allowed to have an opinion about.
+///
+/// Every date in this catalog is somebody else's: a statute, a plan document, a
+/// state office. Order is the one thing the app knows on its own, because it is
+/// the only party that can see the whole plan at once, and it is exactly what a
+/// parent cannot work out at three in the morning. So sequencing is stated as
+/// sequencing and never dressed up as a deadline: it produces the timeline and
+/// nothing else, it never sets `dueAt`, and it never turns a suggestion `hard`.
+///
+/// `after` is the important case. A passport application that cannot be filed
+/// until a certified copy arrives is not "later", it is *blocked*, and a plan
+/// that shows it as a task like any other spends a parent's attention on
+/// something they cannot do today.
+enum StartAdvice: Sendable, Equatable {
+    /// Nothing is in the way. Most rules.
+    case straightAway
+    /// Worth leaving alone until the newborn fog lifts a little, or until the
+    /// thing it depends on exists in the world (a bill that has not been sent
+    /// yet cannot be checked).
+    case afterDays(Int, because: String)
+    /// Waits on another task in this catalog finishing.
+    case after(key: String, because: String)
+}
+
 // MARK: - Rule
 
 struct RequirementRule: Identifiable, Sendable {
     let key: String
     let title: String
     /// The title with this family's own words in it, when there are any worth
-    /// putting there. Defaults to `title`, which is what twenty of the twenty-two
+    /// putting there. Defaults to `title`, which is what twenty-one of the twenty-three
     /// rules use: a rule only overrides this when the family told the app
     /// something that makes the sentence more actionable, never to decorate it.
     var titleForFamily: (@Sendable (RuleInput) -> String)?
@@ -118,6 +143,11 @@ struct RequirementRule: Identifiable, Sendable {
     /// so the only trustworthy number is the one the office gave this family,
     /// and the app asks for that rather than guessing on their behalf.
     var isPostedAway: Bool = false
+    /// The app's own sequencing opinion. Read by `PlanTimeline` and by nothing
+    /// else: it cannot move a date, and a rule that says nothing gets
+    /// `.straightAway`, which is the honest default for a plan whose whole
+    /// point is that the clock started at the birth.
+    var start: StartAdvice = .straightAway
 
     /// Does this apply to this family at all?
     let applies: @Sendable (RuleInput) -> Bool
@@ -173,6 +203,7 @@ enum RequirementCatalog {
         medicaidCHIP,
         coverageUnknown,
         dependentCareFSA,
+        parentageUnknown,
         parentageAcknowledgment,
         birthRecordNameCheck,
         newbornScreeningResult,
@@ -274,7 +305,7 @@ enum RequirementCatalog {
             case .federalFallback:
                 verification = "We do not carry a specific office for this place yet, so the link goes to the national directory rather than to one we would be guessing at."
             }
-            return "Issued by \(where_), not by the hospital and not federally. Order two or three certified copies at once: the passport application keeps one, and a second request later costs the same fee and the same wait. Office: \(office.officeName). \(verification)"
+            return "Issued by \(where_), not by the hospital and not federally. Ask the issuing office how many certified copies your family needs and whether ordering them together is useful. Office: \(office.officeName). \(verification)"
         },
         deadline: { input in
             Deadline(
@@ -310,9 +341,10 @@ enum RequirementCatalog {
         documents: [
             DocumentSpec(key: "certified_copy", title: "The certified copy, in hand")
         ],
+        start: .after(key: "birth_certificate", because: "The certified copy has to be in your hands before anybody can read it against what you intended."),
         applies: { $0.hasBirthCertificate },
         detail: { input in
-            "Read the certified copy against what you intended: spelling of \(input.shortName)'s name, the date, and both parents' details. States usually correct a registration error at no charge within a limited window and charge for an amendment afterwards, and every document downstream is built from this one."
+            "Read the certified copy against what you intended: spelling of \(input.shortName)'s name, the date, and the parent details. Ask the issuing office how corrections, amendments, fees and time limits work where the record was issued. Every document downstream is built from this one."
         },
         deadline: { input in
             Deadline(
@@ -510,7 +542,7 @@ enum RequirementCatalog {
         ],
         applies: { $0.hasDependentCareFSA },
         detail: { _ in
-            "A birth is a qualifying life event for the dependent care FSA, and it is a separate election from the medical plan. This is the one people miss: they add the baby to the health plan and never touch the FSA, and the election is then locked until the next open enrollment."
+            "A birth may let your employer plan permit a dependent care FSA election change, and it is separate from the medical plan. Ask the benefits administrator for the plan's qualifying-event rule and window before assuming an election is available or locked until open enrollment."
         },
         // **Not a hard deadline, because the app does not know the date.**
         //
@@ -597,9 +629,10 @@ enum RequirementCatalog {
                 detail: "The appeal window and the address to send it to are printed on the notice itself."
             )
         ],
+        start: .afterDays(30, because: "The itemised bill and the plan's explanation of benefits usually turn up around a month after the birth, and checking one against the other before both have arrived is checking half of it."),
         applies: { $0.insuranceKind == .employer || $0.insuranceKind == .marketplace },
         detail: { input in
-            "A newborn's nursery and pediatric charges are billed against the baby's own coverage, not the birth parent's. Enrollment is backdated to the date of birth, so a bill that arrives showing \(input.shortName) as uninsured usually means the enrollment landed late in the insurer's system rather than that you owe it. Call the number on the bill before you pay it, and if a claim is refused you have a right to an internal appeal and an external review."
+            "Ask the insurer how newborn claims should be billed under this plan, then compare the explanation of benefits with the hospital bill. Do not assume that a bill showing \(input.shortName) as uninsured tells you who owes it or why. Call the insurer before paying, and follow the denial notice's instructions if a claim is refused."
         },
         deadline: { input in
             Deadline(
@@ -617,6 +650,39 @@ enum RequirementCatalog {
     )
 
     // MARK: Parentage
+
+    static let parentageUnknown = RequirementRule(
+        key: "parentage_unknown",
+        title: "Confirm whether parentage paperwork applies",
+        shortTitle: "Parentage question",
+        category: .parentage,
+        sortWeight: 14,
+        sourcing: .cite(key: "acf_new_parent_checklist", subject: .parentageEstablishment),
+        documents: [
+            DocumentSpec(
+                key: "birth_registrar",
+                title: "The hospital birth registrar or your state's vital records contact",
+                detail: "Ask whether a parentage acknowledgment or another document is needed for this birth record."
+            )
+        ],
+        applies: { $0.parentage == .unknown },
+        detail: { _ in
+            "You chose not to answer the parentage question. This task does not assume that paperwork applies. Ask the hospital birth registrar or your state's vital records or child-support agency whether anything is needed for this birth record, especially if a parent is not on the record or the situation is contested. This app will not prepare or file a legal form for you."
+        },
+        deadline: { _ in
+            Deadline(
+                date: nil,
+                kind: .none,
+                basis: "No date is invented here. The office handling the birth record can tell you whether a form applies and what its own timing is."
+            )
+        },
+        link: { _ in
+            OfficialLink(
+                label: "Find your state's child support agency",
+                urlString: "https://acf.gov/css/contact-information/state-and-tribal-child-support-agency-contacts"
+            )
+        }
+    )
 
     static let parentageAcknowledgment = RequirementRule(
         key: "parentage_acknowledgment",
@@ -687,10 +753,7 @@ enum RequirementCatalog {
         ],
         applies: { $0.takingParentalLeave },
         detail: { input in
-            let state = input.residenceStateCode.isEmpty
-                ? "Your state"
-                : USState.displayName(for: input.residenceStateCode)
-            var text = "FMLA protects the job but is unpaid. Whether anything is paid depends on your employer's policy and on whether \(state) runs a paid family leave programme, and the state programmes are the ones with real filing windows measured in weeks."
+            var text = "FMLA protects the job but is unpaid, and eligibility depends on the employee and employer. Whether anything is paid depends on the employer's policy and the paid-leave programme in the state where the parent works. Ask the employer which work-state programme, notice rule and form apply; this household residence answer is not enough to determine it."
             if input.parentalLeaveTakers == .bothParents {
                 text += " You said both parents are taking leave, so this is the first parent's claim and there is a second task for the other one: two employers, two sets of forms, and possibly two different windows."
             }
@@ -698,9 +761,9 @@ enum RequirementCatalog {
         },
         deadline: { input in
             Deadline(
-                date: addDays(30, to: input.birthDate),
-                kind: .recommended,
-                basis: "FMLA itself has no filing deadline for the employee, but state paid-leave programmes do, and several of them run from the first day of leave rather than from the birth."
+                date: nil,
+                kind: .none,
+                basis: "FMLA itself has no filing deadline for the employee. Ask the employer for the notice window and the work-state programme's own date before relying on one."
             )
         },
         link: { _ in
@@ -734,17 +797,14 @@ enum RequirementCatalog {
             )
         ],
         applies: { $0.parentalLeaveTakers == .bothParents },
-        detail: { input in
-            let state = input.residenceStateCode.isEmpty
-                ? "your state"
-                : USState.displayName(for: input.residenceStateCode)
-            return "A separate claim, with a separate employer and possibly a separate programme. Bonding leave for the non-birth parent is often governed by different rules than the birth parent's own leave, both in \(state)'s programme and in the employer's policy, so the two dates cannot be assumed to match. Assign this one to whoever is filing it."
+        detail: { _ in
+            "A separate claim, with a separate employer and possibly a separate work-state programme. Bonding leave for the non-birth parent can be governed by different rules than the birth parent's own leave, so the two dates cannot be assumed to match. Assign this one to whoever is filing it and ask that employer which jurisdiction and notice rule apply."
         },
         deadline: { input in
             Deadline(
-                date: addDays(30, to: input.birthDate),
-                kind: .recommended,
-                basis: "FMLA sets no filing deadline for the employee, but employer policies and state paid-leave programmes do, and bonding leave for a second parent commonly has to start inside the first year and be claimed far earlier than that."
+                date: nil,
+                kind: .none,
+                basis: "FMLA sets no filing deadline for the employee. Ask the second parent's employer for its notice window and the applicable work-state programme's own date."
             )
         },
         link: { _ in
@@ -762,6 +822,7 @@ enum RequirementCatalog {
         documents: [
             DocumentSpec(key: "payroll_portal", title: "Your payroll or HR portal sign-in")
         ],
+        start: .afterDays(14, because: "Payroll can be changed any week of the year. The first fortnight belongs to the things with doors closing on them."),
         applies: { _ in true },
         detail: { _ in
             "A dependent changes what should be withheld. Nothing is lost by leaving it, but the money sits with the IRS until you file instead of arriving in the paychecks you need it in."
@@ -801,6 +862,7 @@ enum RequirementCatalog {
             ),
             DocumentSpec(key: "account_details", title: "The account the contribution should go to")
         ],
+        start: .after(key: "ssn_card", because: "The election is made with the baby's Social Security number, so there is nothing to file until the card arrives."),
         applies: { input in
             guard input.isUSCitizen, input.wantsNewbornAccount else { return false }
             let year = Calendar.current.component(.year, from: input.birthDate)
@@ -853,6 +915,7 @@ enum RequirementCatalog {
             ),
             DocumentSpec(key: "childcare_receipts", title: "Childcare receipts and the provider's tax ID, if any")
         ],
+        start: .after(key: "ssn_card", because: "A dependent is claimed by Social Security number, so this waits on the card."),
         applies: { _ in true },
         detail: { input in
             let year = Calendar.current.component(.year, from: input.birthDate)
@@ -889,6 +952,7 @@ enum RequirementCatalog {
             DocumentSpec(key: "beneficiary_details", title: "The baby's full legal name and date of birth"),
             DocumentSpec(key: "funding", title: "The account you will fund it from")
         ],
+        start: .after(key: "ssn_card", because: "Opening the account asks for the beneficiary's Social Security number."),
         applies: { $0.wants529 },
         detail: { input in
             let state = input.residenceStateCode.isEmpty
@@ -916,11 +980,11 @@ enum RequirementCatalog {
         documents: [
             DocumentSpec(
                 key: "certified_birth_certificate",
-                title: "A certified birth certificate naming both parents",
-                detail: "The original is submitted and mailed back. An informational or hospital copy is not accepted."
+                title: "The child's certified birth certificate, if required for this application",
+                detail: "The original is submitted and mailed back. An informational or hospital copy is not accepted. Check the State Department's current exceptions if the record does not name both parents."
             ),
-            DocumentSpec(key: "both_parents", title: "Both parents present, or a notarized consent form from the absent one"),
-            DocumentSpec(key: "parent_ids", title: "Photo ID for each parent, plus a photocopy of each"),
+            DocumentSpec(key: "parent_consent_or_exception", title: "The consent, custody, guardianship or other exception document that fits your situation"),
+            DocumentSpec(key: "parent_ids", title: "Photo ID for each attending parent or guardian, plus a photocopy"),
             DocumentSpec(
                 key: "photo",
                 title: "A passport photo of the baby",
@@ -928,6 +992,7 @@ enum RequirementCatalog {
             )
         ],
         isPostedAway: true,
+        start: .after(key: "birth_certificate", because: "The application needs a certified copy of the birth certificate in the room with you, which is why this is the task to plan earliest and the one that can be started last."),
         applies: { $0.wantsPassport },
         detail: { input in
             input.hasBirthCertificate
@@ -957,6 +1022,7 @@ enum RequirementCatalog {
             DocumentSpec(key: "screening_letter", title: "The screening result letter or portal printout"),
             DocumentSpec(key: "hearing_result", title: "The hearing screening result")
         ],
+        start: .afterDays(7, because: "The state lab needs about a week before there is a result to ask about."),
         applies: { _ in true },
         // **A records errand, and it says where it stops.**
         //
@@ -965,7 +1031,7 @@ enum RequirementCatalog {
         // first screenful rather than in a disclaimer: an out-of-range result is
         // a phone call from a person, and it does not wait for a checklist.
         detail: { _ in
-            "Every state screens newborns for a panel of conditions, plus hearing and a heart-oxygen check, and the results go to the pediatrician rather than to you. Ask the practice for a copy for your own file, because the passport, some daycare enrollments and any specialist referral will want it. If anything is out of range, the practice or the state health department phones you and it is urgent: this task is not how you would find out, and Baby Docs does not read, hold or interpret a result."
+            "Every state screens newborns for a panel of conditions, plus hearing and a heart-oxygen check. Ask the pediatric practice or state programme where the results are held and how to obtain a copy for your own file. If anything is out of range, the practice or the state health department contacts you: this task is not how you would find out, and Baby Docs does not read, hold or interpret a result."
         },
         deadline: { input in
             Deadline(
@@ -1004,6 +1070,7 @@ enum RequirementCatalog {
                 detail: ssnWarning
             )
         ],
+        start: .afterDays(14, because: "Nothing here expires, and every form asks for details you may not have to hand in the first fortnight."),
         applies: { _ in true },
         detail: { _ in
             "Beneficiary designations on retirement accounts and life insurance override a will, so this is not covered by writing one. Naming a minor directly has consequences worth understanding first, which is usually why people name a trust or a custodian instead. Baby Docs is not a financial adviser and this is a prompt, not advice."
@@ -1033,6 +1100,7 @@ enum RequirementCatalog {
             DocumentSpec(key: "guardian_choice", title: "Who you have both agreed on, and a second choice"),
             DocumentSpec(key: "existing_will", title: "Any existing will")
         ],
+        start: .afterDays(30, because: "This is a decision worth making awake, and no window closes on it."),
         applies: { _ in true },
         detail: { _ in
             "The nomination of a guardian for a minor is made in a will, and without one a court chooses. Requirements for a valid will are state law. This app tracks the task and nothing else: it does not draft or store legal documents, and the questions this raises are for a lawyer."

@@ -78,6 +78,19 @@ struct RequirementEngineTests {
         #expect(second.total == first.total)
     }
 
+    @Test("Reconciliation refuses sensitive text before it reaches disk")
+    func sensitiveTextCannotBypassTheLocalWriteGuard() {
+        let context = makeContext()
+        let (child, profile) = seed(context)
+        profile.employerPlanName = "123-45-6789"
+
+        let result = RequirementEngine.reconcile(child: child, profile: profile, in: context)
+
+        #expect(!result.didPersist)
+        #expect(child.liveTasks.isEmpty)
+        #expect(!PlanSeed.containsSocialSecurityNumber(profile.employerPlanName))
+    }
+
     @Test("Generated rows use the reconciliation timestamp")
     func generatedRowsUseProvidedTime() throws {
         let context = makeContext()

@@ -29,7 +29,7 @@
       },
       {
         "claim": "The Plus surface shows the on-device document vault as work around the free deadline and checklist surfaces.",
-        "source": "raw/05-paywall.png"
+        "source": "raw/05-plus.png"
       }
     ]
   },
@@ -63,7 +63,7 @@
             "proof": "The literal Plan capture shows the job-based enrollment window, an overdue birth-certificate follow-up, and the next open tasks."
           },
           "capture_flow": "repo-command",
-          "evidence_status": "validated-staged",
+          "evidence_status": "canonical",
           "benefit": "See the next hard deadline and the work around it without sorting a generic checklist.",
           "generic_header_terms": [],
           "size": [
@@ -85,14 +85,14 @@
           ],
           "story_role": "problem",
           "story_focus": "what is due next",
-          "background_id": "icon:#031336",
-          "foreground_sha256": "9d99fbc8c5b06c273a4ca8376d550b57c8b7c5396112677b9b9a1c14c76aa260",
+          "background_id": "theme",
+          "foreground_sha256": "e4dc7970f55e3b29059be7909e23217fe6927c737155c6bef92650219ad80257",
           "background_contrast": {
-            "top": 14.94,
-            "bottom": 10.58
+            "top": 17.17,
+            "bottom": 10.24
           },
-          "thumbnail_ocr": "9:41 all > \u00a9 s) Plan Add the baby to the job-based health plan 001 17 done Order certified copies ofthe birth certificate Add the baby to the job-based health plan <= + & #",
-          "corner_contrast_vs_ink": 12.7
+          "thumbnail_ocr": "Know what is due next = [o) Plan Add the baby to the Acme PPO plan == Change household answers Order certified copies of the birth certificate",
+          "corner_contrast_vs_ink": 13.61
         },
         {
           "filename": "02-why-it-applies.png",
@@ -111,7 +111,7 @@
             "proof": "The literal birth-certificate detail capture shows the California office, timing explanation, official link, and the statement that Baby Docs never files it."
           },
           "capture_flow": "repo-command",
-          "evidence_status": "validated-staged",
+          "evidence_status": "canonical",
           "benefit": "Understand why a task belongs on your plan before you follow its official link.",
           "generic_header_terms": [],
           "size": [
@@ -133,14 +133,14 @@
           ],
           "story_role": "mechanism",
           "story_focus": "why each task applies",
-          "background_id": "icon:#031336",
-          "foreground_sha256": "bd37e6c4255a9e20240bb93e53442b215c96d16867fe7b87c44614c4c6d1637d",
+          "background_id": "theme",
+          "foreground_sha256": "6c78c67ef5dde222dd9b0b7ae34cc295c4b196adfab3c7ba0b34e221b60e8683",
           "background_contrast": {
-            "top": 14.94,
-            "bottom": 10.58
+            "top": 17.17,
+            "bottom": 10.24
           },
-          "thumbnail_ocr": "9:41 ah > < Birth certificate & identity Order certified copies of the birth certificate Issued by California, not by the hospital and not federally. Order two or three certified copies at once: the passport application keeps same fee and the same wait. Office: California Department of Public Health, Vital Records. We have read that office's own page. <= +t = &",
-          "corner_contrast_vs_ink": 12.7
+          "thumbnail_ocr": "oa ae < Birth certificate & ldentity Order certified copies of the birth certificate Issued by California, not by the hospital and not federally. Ask the issuing office how many certified copies your family needs and whether ordering them together is useful. Office: California Department of Public Health, Vital Records, We have read that office's own page = f} = +",
+          "corner_contrast_vs_ink": 13.61
         },
         {
           "filename": "03-documents.png",
@@ -159,7 +159,7 @@
             "proof": "The literal Documents capture shows the gathered checklist across the family's open tasks and the task link on every row."
           },
           "capture_flow": "repo-command",
-          "evidence_status": "validated-staged",
+          "evidence_status": "canonical",
           "benefit": "Gather the documents for each errand and see what is already in hand.",
           "generic_header_terms": [],
           "size": [
@@ -181,14 +181,14 @@
           ],
           "story_role": "proof",
           "story_focus": "every paper you need",
-          "background_id": "icon:#031336",
-          "foreground_sha256": "9d4a8ee8eda7784bf0cf6e4d9357893bbdb3ad4b28325648137148953b8fef4c",
+          "background_id": "theme",
+          "foreground_sha256": "1e821ef52954eccbad6f073ff4756ce06cfca4d9d7960a27038c2abc7c230172",
           "background_contrast": {
-            "top": 14.94,
-            "bottom": 10.58
+            "top": 17.17,
+            "bottom": 10.24
           },
-          "thumbnail_ocr": "9:41 all > Documents Your copy ofthe hospital birth- Photo IO for the parent applying Proof ofthe birth Photo ID forthe parent named on the record The state or county application form The per-copy fee Whether the baby's Social Security s= th = fod",
-          "corner_contrast_vs_ink": 12.7
+          "thumbnail_ocr": "Bring every paper you need Documents Proof of the birth Whether the baby's Social \u2018Security number has been issued",
+          "corner_contrast_vs_ink": 13.61
         },
         {
           "filename": "04-child-plan.png",
@@ -207,7 +207,7 @@
             "proof": "The literal Children capture shows the child-specific open-task count and the household answers that rebuild the plan."
           },
           "capture_flow": "repo-command",
-          "evidence_status": "validated-staged",
+          "evidence_status": "canonical",
           "benefit": "Keep one child's deadlines and household answers together as the work changes.",
           "generic_header_terms": [],
           "size": [
@@ -229,14 +229,14 @@
           ],
           "story_role": "support",
           "story_focus": "each baby's plan together",
-          "background_id": "icon:#031336",
-          "foreground_sha256": "5f7c8af00379c292d224a67c9a0677a5c221bb1a6133efa816f889b569c3e427",
+          "background_id": "theme",
+          "foreground_sha256": "6ef78d6bad9b38e7fb590754b7ce0d0565346016f5686bff0cfcf66e62b15e60",
           "background_contrast": {
-            "top": 14.94,
-            "bottom": 10.58
+            "top": 17.17,
+            "bottom": 10.24
           },
-          "thumbnail_ocr": "Keep each baby's plan together Children oh 8. &",
-          "corner_contrast_vs_ink": 12.7
+          "thumbnail_ocr": "Keep each baby's plan together Children ch St &",
+          "corner_contrast_vs_ink": 13.61
         },
         {
           "filename": "05-check-the-source.png",
@@ -255,7 +255,7 @@
             "proof": "The literal Settings capture shows the source review date, fifty states and DC coverage, and the source directory links."
           },
           "capture_flow": "repo-command",
-          "evidence_status": "validated-staged",
+          "evidence_status": "canonical",
           "benefit": "See when the rule set was checked and open the official source before relying on a date.",
           "generic_header_terms": [],
           "size": [
@@ -277,14 +277,14 @@
           ],
           "story_role": "support",
           "story_focus": "source before you act",
-          "background_id": "icon:#031336",
-          "foreground_sha256": "33d6eb39928c3feeebf4c0b4b5a505b9b6273f34821117adea3a7403a7d0291e",
+          "background_id": "theme",
+          "foreground_sha256": "e4f859cc698f79a3487a639fba0727e0d85c6a49d2601866fd01f13c72a6efd9",
           "background_contrast": {
-            "top": 14.94,
-            "bottom": 10.58
+            "top": 17.17,
+            "bottom": 10.24
           },
-          "thumbnail_ocr": "Check the source before you act Settings",
-          "corner_contrast_vs_ink": 12.7
+          "thumbnail_ocr": "Check the source before you act 9:41 all S G2 Settings ois source check ch mt F",
+          "corner_contrast_vs_ink": 13.61
         },
         {
           "filename": "06-keep-papers-close.png",
@@ -303,7 +303,7 @@
             "proof": "The literal Baby Docs Plus capture shows the document vault as the work around the free deadline and checklist surfaces."
           },
           "capture_flow": "repo-command",
-          "evidence_status": "validated-staged",
+          "evidence_status": "canonical",
           "benefit": "Keep protected photographs of the papers you need at the counter, without putting them in a server.",
           "generic_header_terms": [],
           "size": [
@@ -325,35 +325,31 @@
           ],
           "story_role": "support",
           "story_focus": "papers you will need",
-          "background_id": "icon:#031336",
-          "foreground_sha256": "2287aa646e3ff1f5109b535ff95465b990c1c3093ab6192864c2340eddc9da63",
+          "background_id": "theme",
+          "foreground_sha256": "802fcca638f00fc0e1d72806e829eb4fb62d9af9978fef9fb0ac65608569afbb",
           "background_contrast": {
-            "top": 14.94,
-            "bottom": 10.58
+            "top": 17.17,
+            "bottom": 10.24
           },
-          "thumbnail_ocr": "Keep the papers you will need 9:41 all F Close Baby Docs Plus For the weeks it is actually happening Yearly $29.99",
-          "corner_contrast_vs_ink": 12.7
+          "thumbnail_ocr": "Keep the papers you will need Baby Docs Plus For the weeks it is actually happening Weekly $4.99 Yearly, $29.99 Keep it forever $59.99",
+          "corner_contrast_vs_ink": 13.61
         }
       ],
       "errors": [],
       "warnings": [
-        "01-deadlines.png: thumbnail OCR missed header words ['know', 'what', 'due', 'next']",
-        "02-why-it-applies.png: thumbnail OCR missed header words ['see', 'why', 'each', 'task', 'applies']",
-        "03-documents.png: thumbnail OCR missed header words ['bring', 'every', 'paper', 'need']"
+        "02-why-it-applies.png: thumbnail OCR missed header words ['see', 'why', 'each', 'applies']"
       ],
       "status": "pass"
     }
   ],
   "errors": [],
   "warnings": [
-    "navy-paperwork: 01-deadlines.png: thumbnail OCR missed header words ['know', 'what', 'due', 'next']",
-    "navy-paperwork: 02-why-it-applies.png: thumbnail OCR missed header words ['see', 'why', 'each', 'task', 'applies']",
-    "navy-paperwork: 03-documents.png: thumbnail OCR missed header words ['bring', 'every', 'paper', 'need']"
+    "navy-paperwork: 02-why-it-applies.png: thumbnail OCR missed header words ['see', 'why', 'each', 'applies']"
   ],
-  "release_requested": false,
-  "release_ready": false,
-  "disposition": "staged",
-  "capture_status": "missing",
-  "canonical_submission_evidence": false,
+  "release_requested": true,
+  "release_ready": true,
+  "disposition": "release-ready",
+  "capture_status": "ok",
+  "canonical_submission_evidence": true,
   "status": "pass"
 }

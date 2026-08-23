@@ -9,11 +9,12 @@ options:
 packages:
   RevenueCat:
     url: https://github.com/RevenueCat/purchases-ios-spm.git
-    from: "5.72.0"
+    version: "5.83.1"
 
 settings:
   base:
     SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
     DEVELOPMENT_TEAM: YXG4MP6W39
     CODE_SIGN_STYLE: Automatic
     MARKETING_VERSION: "1.0.0"

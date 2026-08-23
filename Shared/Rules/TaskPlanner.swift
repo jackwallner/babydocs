@@ -39,19 +39,35 @@ enum TaskPlanner {
         }
     }
 
-    /// Groups open tasks into buckets, each already sorted.
+    /// Where a ticked task goes.
     ///
-    /// Completed and dismissed tasks are separated out rather than sorted to
-    /// the bottom: a plan whose top section is a wall of ticked boxes stops
-    /// answering the only question it is asked, which is what is left.
+    /// **`inPlace` is what the plan screen uses, and it is a correction.** A
+    /// ticked task used to drop out of its section and into a collapsed
+    /// disclosure at the bottom of the screen, which makes the one gesture the
+    /// screen exists for indistinguishable from deleting the row. The question
+    /// a parent asks at the counter is not only "what is left" but "did I
+    /// already deal with this one", and a list that answers only the first
+    /// sends them back to the drawer. Struck through, dimmed and still where
+    /// they left it answers both.
+    ///
+    /// `ownBucket` is kept for the exporter, where the page is read start to
+    /// finish by somebody who is not holding the phone and a flat DONE list at
+    /// the end is the right shape.
+    enum CompletedPlacement: Sendable {
+        case ownBucket
+        case inPlace
+    }
+
+    /// Groups tasks into buckets, each already sorted.
     static func buckets(
         for tasks: [RequirementTask],
-        now: Date = Date()
+        now: Date = Date(),
+        completed: CompletedPlacement = .ownBucket
     ) -> [(bucket: Bucket, tasks: [RequirementTask])] {
         var grouped: [Bucket: [RequirementTask]] = [:]
 
         for task in tasks where task.deletedAt == nil {
-            grouped[bucket(for: task, now: now), default: []].append(task)
+            grouped[bucket(for: task, now: now, completed: completed), default: []].append(task)
         }
 
         return Bucket.allCases.compactMap { bucket in
@@ -60,9 +76,31 @@ enum TaskPlanner {
         }
     }
 
-    static func bucket(for task: RequirementTask, now: Date = Date()) -> Bucket {
-        if task.isDone || task.isDismissed { return .done }
-        guard let days = task.daysRemaining(from: now) else { return .whenever }
+    static func bucket(
+        for task: RequirementTask,
+        now: Date = Date(),
+        completed: CompletedPlacement = .ownBucket
+    ) -> Bucket {
+        // Dismissed is not completed. "Does not apply to us" is a statement
+        // about the rule rather than about the work, so it leaves the plan
+        // whichever placement is in force.
+        if task.isDismissed { return .done }
+        if task.isDone {
+            guard completed == .inPlace else { return .done }
+            // **Bucketed as of the moment it was ticked, not as of today.**
+            //
+            // Read against `now`, a task finished comfortably inside its window
+            // reappears weeks later under "Past due", which tells a parent they
+            // missed something they did not. `completedAt` is the only reading
+            // that stays true: ticked in time stays where it was, and ticked
+            // late honestly says so.
+            return bucket(deadlineOf: task, asOf: task.completedAt ?? now)
+        }
+        return bucket(deadlineOf: task, asOf: now)
+    }
+
+    private static func bucket(deadlineOf task: RequirementTask, asOf date: Date) -> Bucket {
+        guard let days = task.daysRemaining(from: date) else { return .whenever }
         if days < 0 { return .overdue }
         if days <= 7 { return .thisWeek }
         if days <= 31 { return .thisMonth }
@@ -72,6 +110,12 @@ enum TaskPlanner {
     /// Soonest deadline first, then the catalog's own weight, then title. The
     /// weight tiebreak is what keeps the two insurance windows above the
     /// nice-to-haves when several tasks land on the same day.
+    ///
+    /// **A ticked task does not move.** Sinking them to the bottom of the
+    /// section was the first attempt at keeping them visible, and on a long
+    /// section it is the same bug in a smaller box: the row a parent has just
+    /// dealt with leaves the place they are looking at. Struck through, dimmed,
+    /// exactly where it was, is the whole of the feedback.
     static func sorted(_ tasks: [RequirementTask], now: Date = Date()) -> [RequirementTask] {
         tasks.sorted { left, right in
             switch (left.dueAt, right.dueAt) {

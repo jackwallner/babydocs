@@ -179,13 +179,13 @@ enum StateVitalRecords {
         "DE": VitalRecordsOffice(
             stateCode: "DE",
             officeName: "Delaware Division of Public Health, Office of Vital Statistics",
-            urlString: "https://www.dhss.delaware.gov/dhss/dph/ss/vitalstats.html",
+            urlString: "https://www.dhss.delaware.gov/services/vital-record-certificates/",
             orderingNote: """
             Delaware runs three walk-in locations as well as taking mailed \
             requests at the Dover office, and it offers parents a way to pre-order \
             a newborn's certificate rather than waiting to apply afterwards.
             """,
-            verifiedOn: checkedOn,
+            verifiedOn: RequirementCatalog.day(2026, 8, 23),
             check: .summaryChecked
         ),
         "DC": VitalRecordsOffice(
@@ -467,14 +467,14 @@ enum StateVitalRecords {
         "NH": VitalRecordsOffice(
             stateCode: "NH",
             officeName: "New Hampshire Department of State, Division of Vital Records Administration",
-            urlString: "https://sos.nh.gov/vital-records-0",
+            urlString: "https://www.sos.nh.gov/vital-records-0",
             orderingNote: """
             New Hampshire keeps vital records with the Secretary of State rather \
             than with the health department, which is worth knowing before \
             searching. City and town clerks issue certified copies as well as the \
             Concord office, and an application needs photo identification with it.
             """,
-            verifiedOn: checkedOn,
+            verifiedOn: RequirementCatalog.day(2026, 8, 23),
             check: .summaryChecked
         ),
         "NJ": VitalRecordsOffice(
@@ -544,14 +544,14 @@ enum StateVitalRecords {
         "OH": VitalRecordsOffice(
             stateCode: "OH",
             officeName: "Ohio Department of Health, Bureau of Vital Statistics",
-            urlString: "https://odh.ohio.gov/about-us/offices-bureaus-and-departments/bvs/bureau-of-vital-statistics",
+            urlString: "https://vital.odh.ohio.gov/",
             orderingNote: """
             Any local health district in Ohio can issue a certified copy of any \
             Ohio birth, not only of the ones registered in that district, and each \
             district sets its own fee. The state office in Columbus takes mail \
             orders.
             """,
-            verifiedOn: checkedOn,
+            verifiedOn: RequirementCatalog.day(2026, 8, 23),
             check: .summaryChecked
         ),
         "OK": VitalRecordsOffice(

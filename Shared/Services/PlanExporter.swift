@@ -24,7 +24,7 @@ enum PlanExporter {
     ) -> String {
         var lines: [String] = []
 
-        lines.append("NEWBORN PAPERWORK: \(child.displayName.uppercased())")
+        lines.append("NEWBORN PAPERWORK: \(safeExternalText(child.displayName).uppercased())")
         lines.append("Born \(dateOnlyString(child.birthDate))\(birthPlaceSuffix(child))")
         if !profile.residenceStateCode.isEmpty {
             lines.append("Living in \(USState.displayName(for: profile.residenceStateCode))")
@@ -62,7 +62,7 @@ enum PlanExporter {
         } else {
             for task in TaskPlanner.sorted(done, now: now) {
                 let by = task.completedByName.isEmpty ? "" : " by \(safeExternalText(task.completedByName))"
-                lines.append("  \(task.title)\(by)")
+                lines.append("  \(safeExternalText(task.title))\(by)")
                 for receipt in task.liveReceipts where !receipt.value.isEmpty {
                     lines.append("    \(receipt.kind.label): \(safeReceiptValue(receipt.value))")
                 }
@@ -101,7 +101,7 @@ enum PlanExporter {
         lines.append("Event: birth")
         lines.append("Date of event: \(dateOnlyString(child.birthDate))")
         if !child.name.trimmingCharacters(in: .whitespaces).isEmpty {
-            lines.append("Dependent: \(child.name)")
+            lines.append("Dependent: \(safeExternalText(child.name))")
         }
         lines.append("Dependent's date of birth: \(dateOnlyString(child.birthDate))")
         lines.append("Relationship: child")
@@ -123,7 +123,7 @@ enum PlanExporter {
             lines.append("  (see the plan's own document list)")
         } else {
             for document in documents {
-                lines.append("  \(document.isOnHand ? "[x]" : "[ ]") \(document.title)")
+                lines.append("  \(document.isOnHand ? "[x]" : "[ ]") \(safeExternalText(document.title))")
             }
         }
         lines.append("")
@@ -182,7 +182,7 @@ enum PlanExporter {
         var lines: [String] = []
         let marker = task.deadlineKind == .hard ? "!" : " "
         let due = task.dueAt.map { " (\(dateOnlyString($0)), \(TaskPlanner.duePhrase(for: task, now: now)))" } ?? ""
-        lines.append("  \(marker) \(task.title)\(due)")
+        lines.append("  \(marker) \(safeExternalText(task.title))\(due)")
 
         if !task.assigneeName.isEmpty {
             lines.append("      with \(safeExternalText(task.assigneeName))")
@@ -200,7 +200,7 @@ enum PlanExporter {
         if outstanding.isEmpty {
             lines.append("      documents: all gathered")
         } else {
-            lines.append("      still need: \(outstanding.map(\.title).joined(separator: "; "))")
+            lines.append("      still need: \(outstanding.map { safeExternalText($0.title) }.joined(separator: "; "))")
         }
         if !task.officialURLString.isEmpty {
             lines.append("      \(task.officialURLString)")
@@ -231,7 +231,7 @@ enum PlanExporter {
 
     private static func birthPlaceSuffix(_ child: Child) -> String {
         var parts: [String] = []
-        if !child.birthCounty.isEmpty { parts.append(child.birthCounty) }
+        if !child.birthCounty.isEmpty { parts.append(safeExternalText(child.birthCounty)) }
         if !child.birthStateCode.isEmpty { parts.append(USState.displayName(for: child.birthStateCode)) }
         return parts.isEmpty ? "" : " in \(parts.joined(separator: ", "))"
     }

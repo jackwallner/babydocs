@@ -117,8 +117,8 @@ final class VaultStore {
             }
             return true
         } catch {
-            lastError = error.localizedDescription
-            log.error("Could not remove vault page: \(error.localizedDescription)")
+            lastError = "The document could not be removed from this phone. Try again."
+            log.error("Could not remove vault page: \(error.localizedDescription, privacy: .private(mask: .hash))")
             return false
         }
     }

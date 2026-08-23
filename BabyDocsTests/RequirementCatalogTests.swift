@@ -107,6 +107,17 @@ struct RequirementCatalogTests {
         #expect(!rule.noSourceReason.isEmpty)
     }
 
+    @Test("An unanswered parentage question becomes a neutral confirmation task")
+    func unknownParentageIsNotSilent() {
+        let family = input(parentage: .unknown)
+        let firing = [RequirementCatalog.parentageUnknown, RequirementCatalog.parentageAcknowledgment]
+            .filter { $0.applies(family) }
+
+        #expect(firing.count == 1)
+        #expect(firing.first?.key == "parentage_unknown")
+        #expect(RequirementCatalog.parentageUnknown.deadline(family).date == nil)
+    }
+
     /// The rule's own basis says the number belongs to the employer's plan
     /// document rather than to the IRS. It shipped as a hard 30-day deadline
     /// anyway, which drew a red date and scheduled a notification from a window
@@ -297,6 +308,7 @@ struct RequirementCatalogTests {
     func keysAreUnique() {
         let keys = RequirementCatalog.all.map(\.key)
         #expect(Set(keys).count == keys.count)
+        #expect(RequirementCatalog.all.count == 23)
     }
 
     @Test("Every rule either cites a source or says why it cannot")

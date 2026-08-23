@@ -40,8 +40,18 @@ struct RemindersAndExportTests {
             ],
             now: now
         )
-        #expect(plans.allSatisfy { $0.body.contains("Insurance") })
+        #expect(plans.allSatisfy { !$0.body.contains("Insurance") })
         #expect(plans.count == DeadlineReminderScheduler.leadDays.count)
+    }
+
+    @Test("Notifications never put household-entered task text on the lock screen")
+    func notificationsUseGenericText() {
+        let one = task(title: "Add the baby to Acme PPO", dueInDays: 30, kind: .hard)
+        one.detail = "Call Dana at 123-45-6789"
+        let plans = DeadlineReminderScheduler.plans(for: [one], now: now)
+
+        #expect(plans.allSatisfy { !$0.body.contains("Acme PPO") })
+        #expect(plans.allSatisfy { !$0.body.contains("123-45-6789") })
     }
 
     @Test("A completed task schedules nothing")
@@ -109,7 +119,7 @@ struct RemindersAndExportTests {
             return
         }
         let payload: [AnyHashable: Any] = [
-            DeadlineReminderScheduler.taskRouteKey: plan.taskID.uuidString
+            DeadlineReminderScheduler.taskRouteKey: plan.taskID?.uuidString ?? ""
         ]
         #expect(DeadlineReminderScheduler.taskID(fromUserInfo: payload) == one.id)
         #expect(DeadlineReminderScheduler.taskID(fromUserInfo: [:]) == nil)

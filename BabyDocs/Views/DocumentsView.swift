@@ -628,7 +628,7 @@ struct AddVaultDocumentSheet: View {
         } catch {
             if inserted { context.delete(document) }
             _ = VaultStore.shared.removePages(named: names)
-            errorMessage = error.localizedDescription
+            errorMessage = "The document could not be saved. Nothing was kept. Try again after freeing some space."
         }
     }
 }

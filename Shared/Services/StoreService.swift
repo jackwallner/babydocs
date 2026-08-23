@@ -79,15 +79,14 @@ enum RevenueCatConfig {
 
 /// Freemium gate.
 ///
-/// Everything that makes the plan worth having is free for one baby: every task,
-/// every deadline, every document list, every official link, every reminder, and
-/// sending the plan to the other parent. A deadline hidden behind a paywall is a
-/// deadline the app caused someone to miss, so no date in this app is ever
-/// behind one.
+/// Everything that makes the plan worth having is free for every child: every
+/// task, every deadline, every document list, every official link, the two hard
+/// deadline warnings and sending the plan to the other parent. A deadline hidden
+/// behind a paywall is a deadline the app caused someone to miss.
 ///
-/// Plus is the work *around* the deadlines: keeping copies of the documents,
-/// chasing the things that were sent and have not come back, the printable plan
-/// and the employer packet, and further children.
+/// Plus is the work *around* the deadlines: optional timing and order, calendar
+/// export, keeping copies of documents, chasing things that were sent and have
+/// not come back, the printable plan and the employer packet.
 @MainActor
 @Observable
 final class StoreService: NSObject {
@@ -181,8 +180,8 @@ final class StoreService: NSObject {
             plans = loadedPlans
             loadError = plans.isEmpty ? "No plans came back from the store." : nil
         } catch {
-            log.error("refresh failed: \(error.localizedDescription, privacy: .public)")
-            loadError = error.localizedDescription
+            log.error("refresh failed: \(error.localizedDescription, privacy: .private(mask: .hash))")
+            loadError = "The store could not be reached. Check your connection and try again."
         }
     }
 
@@ -215,7 +214,7 @@ final class StoreService: NSObject {
         guard !plan.isLifetime, !plan.period.isEmpty else {
             return "One payment. No subscription, nothing to cancel."
         }
-        let renewal = "Renews at \(plan.price) \(plan.period) until cancelled. Cancel any time in Settings."
+        let renewal = "Renews automatically at \(plan.price) \(plan.period) until cancelled. Cancel any time in Settings."
         guard let intro = plan.introOffer, intro.hasSuffix("free") else { return renewal }
         return "\(intro), then \(plan.price) \(plan.period). \(renewal)"
     }
@@ -251,8 +250,8 @@ final class StoreService: NSObject {
                 }
             loadError = plans.isEmpty ? "No plans came back from the store." : nil
         } catch {
-            log.error("StoreKit Testing load failed: \(error.localizedDescription, privacy: .public)")
-            loadError = error.localizedDescription
+            log.error("StoreKit Testing load failed: \(error.localizedDescription, privacy: .private(mask: .hash))")
+            loadError = "The purchase options could not be loaded. Try again."
         }
 
         #if DEBUG

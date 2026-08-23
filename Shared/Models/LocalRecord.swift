@@ -57,7 +57,7 @@ final class SaveFailureReporter {
     /// an alert can be screenshotted into a support email, and a child's name in
     /// a diagnostic is a small leak this app has no reason to take.
     func report(_ error: Error) {
-        log.error("Local save failed: \(error.localizedDescription, privacy: .public)")
+        log.error("Local save failed: \(error.localizedDescription, privacy: .private(mask: .hash))")
         // The tick has already animated back out by the time the alert is drawn,
         // and a row that quietly un-ticks itself reads as the app losing the tap.
         // The buzz is what says "that failed" in the moment the finger is still
@@ -70,6 +70,12 @@ final class SaveFailureReporter {
         """
     }
 
+    func reportSensitiveText() {
+        log.error("Rejected sensitive text in a local record")
+        Haptics.failed()
+        message = "That text looks like a Social Security number. Baby Docs never needs the number, so it was not saved. Use the status or a non-sensitive reference instead."
+    }
+
     func clear() { message = nil }
 }
 
@@ -79,6 +85,13 @@ extension LocalRecord {
     @discardableResult
     func recordLocalChange(in context: ModelContext) -> Bool {
         updatedAt = Date()
+        guard !containsSensitiveText else {
+            redactSensitiveText()
+            context.rollback()
+            redactSensitiveText()
+            SaveFailureReporter.shared.reportSensitiveText()
+            return false
+        }
         do {
             try context.save()
             return true
@@ -89,6 +102,74 @@ extension LocalRecord {
             context.rollback()
             SaveFailureReporter.shared.report(error)
             return false
+        }
+    }
+
+    /// The shared persistence boundary uses the same check as an individual
+    /// record save. Keeping it visible here prevents a bulk reconciliation from
+    /// becoming a way around the rule.
+    var containsSensitiveText: Bool {
+        switch self {
+        case let profile as FamilyProfile:
+            return [profile.employerPlanName, profile.benefitsContactNote]
+                .contains(where: PlanSeed.containsSocialSecurityNumber)
+        case let child as Child:
+            return [child.name, child.birthCounty, child.notes]
+                .contains(where: PlanSeed.containsSocialSecurityNumber)
+        case let task as RequirementTask:
+            return [
+                task.title, task.detail, task.deadlineBasis, task.assigneeName,
+                task.completedByName, task.parentNotes
+            ].contains(where: PlanSeed.containsSocialSecurityNumber)
+        case let receipt as Receipt:
+            return [receipt.value, receipt.recordedByName]
+                .contains(where: PlanSeed.containsSocialSecurityNumber)
+        case let note as ChildNote:
+            return [note.title, note.body, note.createdByName]
+                .contains(where: PlanSeed.containsSocialSecurityNumber)
+        case let document as VaultDocument:
+            return [document.customTitle, document.notes]
+                .contains(where: PlanSeed.containsSocialSecurityNumber)
+        default:
+            return false
+        }
+    }
+
+    /// Rollback does not reliably restore an edited SwiftData object in memory
+    /// when the object was inserted or changed through a binding. Redact after
+    /// the rollback as well, so a later unrelated save can never write the
+    /// rejected value.
+    func redactSensitiveText() {
+        switch self {
+        case let profile as FamilyProfile:
+            profile.employerPlanName = PlanSeed.safeExternalText(profile.employerPlanName)
+            profile.benefitsContactNote = PlanSeed.safeExternalText(profile.benefitsContactNote)
+        case let child as Child:
+            child.name = PlanSeed.safeExternalText(child.name)
+            child.birthCounty = PlanSeed.safeExternalText(child.birthCounty)
+            child.notes = PlanSeed.safeExternalText(child.notes)
+        case let task as RequirementTask:
+            task.title = PlanSeed.safeExternalText(task.title)
+            task.detail = PlanSeed.safeExternalText(task.detail)
+            task.deadlineBasis = PlanSeed.safeExternalText(task.deadlineBasis)
+            task.assigneeName = PlanSeed.safeExternalText(task.assigneeName)
+            task.completedByName = PlanSeed.safeExternalText(task.completedByName)
+            task.parentNotes = PlanSeed.safeExternalText(task.parentNotes)
+        case let document as DocumentItem:
+            document.title = PlanSeed.safeExternalText(document.title)
+            document.detail = PlanSeed.safeExternalText(document.detail)
+        case let receipt as Receipt:
+            receipt.value = PlanSeed.safeExternalText(receipt.value)
+            receipt.recordedByName = PlanSeed.safeExternalText(receipt.recordedByName)
+        case let note as ChildNote:
+            note.title = PlanSeed.safeExternalText(note.title)
+            note.body = PlanSeed.safeExternalText(note.body)
+            note.createdByName = PlanSeed.safeExternalText(note.createdByName)
+        case let document as VaultDocument:
+            document.customTitle = PlanSeed.safeExternalText(document.customTitle)
+            document.notes = PlanSeed.safeExternalText(document.notes)
+        default:
+            break
         }
     }
 

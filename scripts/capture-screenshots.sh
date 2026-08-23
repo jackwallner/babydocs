@@ -37,16 +37,19 @@ xcrun simctl status_bar "$UDID" override \
   --wifiBars 3
 
 xcodegen generate >/dev/null
+DERIVED="$(mktemp -d "${TMPDIR:-/tmp}/babydocs-screenshot-derived.XXXXXX")"
+RESULT="$DERIVED/capture.xcresult"
 xcodebuild test \
   -project BabyDocs.xcodeproj \
   -scheme BabyDocs \
   -destination "id=$UDID" \
   -only-testing:BabyDocsUITests/ScreenshotUITests \
+  -derivedDataPath "$DERIVED" \
+  -resultBundlePath "$RESULT" \
   >/dev/null
 
-RESULT=$(ls -dt ~/Library/Developer/Xcode/DerivedData/BabyDocs-*/Logs/Test/*.xcresult | head -1)
 STAGE=$(mktemp -d)
-trap 'rm -rf "$STAGE"' EXIT
+trap 'rm -rf "$STAGE" "$DERIVED"' EXIT
 xcrun xcresulttool export attachments --path "$RESULT" --output-path "$STAGE" >/dev/null
 
 mkdir -p "$RAW"

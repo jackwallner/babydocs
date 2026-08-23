@@ -17,6 +17,12 @@ import UIKit
 /// it will actually be read, or genuinely worth a tap on a question a reader
 /// has never heard of, like the $1,000 newborn account.
 struct OnboardingFlow: View {
+    /// Called by the last page. `RootView` keeps the intake on screen until
+    /// this fires, which is what makes the last two pages reachable at all: the
+    /// child exists in the store from `finish()` onward, and the root used to
+    /// swap itself for the tab bar the instant it appeared.
+    var onFinish: () -> Void = {}
+
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
     @State private var step: Step = .welcome
@@ -66,11 +72,15 @@ struct OnboardingFlow: View {
 
     @State private var result: RequirementEngine.Result?
     @State private var didLoadDraft = false
+    /// One ask, and never a second one on the same page: iOS shows the system
+    /// prompt once, so a button that stays put afterwards does nothing and
+    /// reads as broken.
+    @State private var hasAskedForReminders = false
 
     enum Step: Int, CaseIterable {
         case welcome, baby, household, coverage
         case leave, newbornAccount, plan529, passport
-        case done
+        case done, plus
     }
 
     var body: some View {
@@ -86,11 +96,12 @@ struct OnboardingFlow: View {
                 case .plan529: plan529Step
                 case .passport: passportStep
                 case .done: doneStep
+                case .plus: plusStep
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                if step != .welcome && step != .done {
+                if step != .welcome && step != .done && step != .plus {
                     ToolbarItem(placement: .topBarLeading) {
                         Button("Back") { back() }
                     }
@@ -150,7 +161,15 @@ struct OnboardingFlow: View {
     // MARK: - Baby
 
     private var babyStep: some View {
-        Form {
+        OnboardingStep(
+            symbol: "figure.child",
+            title: "Who is the plan for?",
+            subtitle: "Every deadline counts from the date of birth, and the state that registered it issues the certificate.",
+            navigationTitle: "Your baby",
+            enabled: birthDateConfirmed && !birthStateCode.isEmpty && isUSCitizen != nil,
+            note: babyContinueNote,
+            onContinue: { step = .household }
+        ) {
             Section {
                 TextField("First name (optional)", text: $name)
                 DatePicker(
@@ -171,9 +190,9 @@ struct OnboardingFlow: View {
                 Toggle("I checked this date", isOn: $birthDateConfirmed)
                     .accessibilityLabel("I checked this date")
             } header: {
-                Text("Your baby")
+                Text("Date of birth")
             } footer: {
-                Text("Every deadline in the app counts from this date, so it is the one answer worth double-checking.")
+                Text("The one answer worth double-checking, because every other date in the app is derived from it.")
             }
 
             Section {
@@ -192,27 +211,28 @@ struct OnboardingFlow: View {
                     required: true
                 )
                 countyPicker(stateCode: birthStateCode, selection: $birthCounty)
-                Picker("Citizenship", selection: $isUSCitizen) {
-                    Text("Choose").tag(nil as Bool?)
-                    Text("US citizen").tag(true as Bool?)
-                    Text("Not a US citizen").tag(false as Bool?)
-                }
-                .pickerStyle(.inline)
-                .labelsHidden()
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel("Citizenship")
             } header: {
                 Text("Where the birth was registered")
             } footer: {
                 Text(birthFooter)
             }
-        }
-        .navigationTitle("Your baby")
-        .safeAreaInset(edge: .bottom) {
-            OnboardingFooter(
-                enabled: birthDateConfirmed && !birthStateCode.isEmpty && isUSCitizen != nil,
-                note: babyContinueNote
-            ) { step = .household }
+
+            // Its own section, and a header that says what the two rows are.
+            // Two bare options reading "US citizen" and "Not a US citizen" under
+            // a heading about where the birth was registered is a question with
+            // no question on it.
+            Section {
+                OnboardingOptionRow(label: "US citizen", isSelected: isUSCitizen == true) {
+                    isUSCitizen = true
+                }
+                OnboardingOptionRow(label: "Not a US citizen", isSelected: isUSCitizen == false) {
+                    isUSCitizen = false
+                }
+            } header: {
+                RequiredLabel("Citizenship")
+            } footer: {
+                Text("Only one rule turns on this: the $1,000 federal newborn account is for US citizen children.")
+            }
         }
     }
 
@@ -294,7 +314,15 @@ struct OnboardingFlow: View {
     // MARK: - Household
 
     private var householdStep: some View {
-        Form {
+        OnboardingStep(
+            symbol: "house",
+            title: "Where do you live, and who is on the record?",
+            subtitle: "Where you live helps route the agency. Leave rules also depend on the employer and the state where that parent works. Who is on the record decides one legally significant task.",
+            navigationTitle: "Your household",
+            enabled: !residenceStateCode.isEmpty && parentageConfirmed,
+            note: householdContinueNote,
+            onContinue: { step = .coverage }
+        ) {
             Section {
                 statePicker("State you live in", selection: $residenceStateCode, required: true)
             } header: {
@@ -311,24 +339,18 @@ struct OnboardingFlow: View {
             // was false. A false value is worse than no value: it is what turns
             // the legally significant parentage task on or off.
             Section {
-                Picker("Situation", selection: Binding(
-                    get: { parentage },
-                    set: {
-                        parentage = $0
+                ForEach(ParentageSituation.allCases, id: \.self) { value in
+                    OnboardingOptionRow(
+                        label: value.label,
+                        isSelected: parentageConfirmed && parentage == value
+                    ) {
+                        parentage = value
                         parentageConfirmed = true
-                        if $0 != .unmarriedBothParents {
+                        if value != .unmarriedBothParents {
                             secondParentOnRecord = false
                         }
                     }
-                )) {
-                    ForEach(ParentageSituation.allCases, id: \.self) { value in
-                        Text(value.label).tag(value)
-                    }
                 }
-                .pickerStyle(.inline)
-                .labelsHidden()
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel("Parents' situation")
 
                 if parentage == .unmarriedBothParents {
                     Toggle("Both parents already on the birth record", isOn: $secondParentOnRecord)
@@ -338,13 +360,6 @@ struct OnboardingFlow: View {
             } footer: {
                 Text(parentageFooter)
             }
-        }
-        .navigationTitle("Your household")
-        .safeAreaInset(edge: .bottom) {
-            OnboardingFooter(
-                enabled: !residenceStateCode.isEmpty && parentageConfirmed,
-                note: householdContinueNote
-            ) { step = .coverage }
         }
     }
 
@@ -359,7 +374,7 @@ struct OnboardingFlow: View {
     private var parentageFooter: String {
         switch parentage {
         case .unknown:
-            return "This decides one task: establishing a second parent who is not automatically on the birth record. Left as it is, that task stays off, and you can turn it on later without redoing anything."
+            return "A neutral task will remind you to ask the birth registrar whether parentage paperwork applies. Baby Docs will not assume a legal situation or tell you to sign a form."
         case .unmarriedBothParents where !secondParentOnRecord:
             return "In most states marriage puts the second parent on the record automatically and an unmarried second parent has to establish it deliberately. Your plan will carry that task and your state's own form. Baby Docs will not prepare or file it for you."
         default:
@@ -376,30 +391,32 @@ struct OnboardingFlow: View {
     // MARK: - Coverage
 
     private var coverageStep: some View {
-        Form {
+        OnboardingStep(
+            symbol: "cross.case",
+            title: "How is the family covered?",
+            subtitle: "This sets the only two dates in the app that legally close.",
+            navigationTitle: "Coverage",
+            enabled: coverageConfirmed,
+            note: coverageConfirmed ? "" : "Choose a coverage answer, including Not sure yet, to carry on.",
+            onContinue: { step = .leave }
+        ) {
             Section {
-                Picker("Coverage", selection: Binding(
-                    get: { insuranceKind },
-                    set: {
-                        insuranceKind = $0
+                ForEach(InsuranceKind.allCases, id: \.self) { value in
+                    OnboardingOptionRow(
+                        label: value.label,
+                        isSelected: coverageConfirmed && insuranceKind == value
+                    ) {
+                        insuranceKind = value
                         coverageConfirmed = true
-                        if $0 != .marketplace { marketplaceKind = .unknown }
-                        if $0 != .employer {
+                        if value != .marketplace { marketplaceKind = .unknown }
+                        if value != .employer {
                             employerPlanName = ""
                             benefitsContactNote = ""
                         }
                     }
-                )) {
-                    ForEach(InsuranceKind.allCases, id: \.self) { value in
-                        Text(value.label).tag(value)
-                    }
                 }
-                .pickerStyle(.inline)
-                .labelsHidden()
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel("Coverage")
             } header: {
-                Text("How is the family covered?")
+                Text("Where the coverage comes from")
             } footer: {
                 // The single most important sentence in the intake, so it is
                 // printed rather than folded away behind a disclosure. A job
@@ -416,15 +433,14 @@ struct OnboardingFlow: View {
             // does not stop for it.
             if insuranceKind == .marketplace {
                 Section {
-                    Picker("Marketplace", selection: $marketplaceKind) {
-                        ForEach(MarketplaceKind.allCases, id: \.self) { value in
-                            Text(value.label).tag(value)
+                    ForEach(MarketplaceKind.allCases, id: \.self) { value in
+                        OnboardingOptionRow(
+                            label: value.label,
+                            isSelected: marketplaceKind == value
+                        ) {
+                            marketplaceKind = value
                         }
                     }
-                    .pickerStyle(.inline)
-                    .labelsHidden()
-                    .accessibilityElement(children: .contain)
-                    .accessibilityLabel("Marketplace")
                 } header: {
                     Text("Which marketplace?")
                 } footer: {
@@ -454,13 +470,6 @@ struct OnboardingFlow: View {
                 Text("A separate election from the health plan, with its own window, and the one most often missed. Your employer sets that window rather than the law, so it is shown as a suggestion to confirm.")
             }
         }
-        .navigationTitle("Coverage")
-        .safeAreaInset(edge: .bottom) {
-            OnboardingFooter(
-                enabled: coverageConfirmed,
-                note: coverageConfirmed ? "" : "Choose a coverage answer, including Not sure yet, to carry on."
-            ) { step = .leave }
-        }
     }
 
     private var coverageFooter: String {
@@ -481,47 +490,20 @@ struct OnboardingFlow: View {
     /// the second parent's claim is the one that gets forgotten precisely
     /// because nothing ever asked about it.
     private var leaveStep: some View {
-        Form {
-            Section {
-                VStack(alignment: .leading, spacing: AppTheme.spacing) {
-                    Image(systemName: "briefcase")
-                        .font(.system(size: 28))
-                        .foregroundStyle(Color.accentColor)
-                    Text("Who is taking parental leave?")
-                        .font(.title2.weight(.bold))
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text("Paid or unpaid time off after the birth, whether it comes from an employer, from a state programme, or from unpaid job protection under federal law.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(.vertical, AppTheme.tightSpacing)
-            }
-            .listRowBackground(Color.clear)
-
+        OnboardingStep(
+            symbol: "briefcase",
+            title: "Who is taking parental leave?",
+            subtitle: "Paid or unpaid time off after the birth, from an employer, a state programme, or federal job protection.",
+            navigationTitle: "Leave",
+            enabled: leaveTakers != nil,
+            note: leaveTakers == nil ? "Pick one to carry on. \"Nobody\" is a real answer here." : "",
+            onContinue: { step = isUSCitizen == true ? .newbornAccount : .plan529 }
+        ) {
             Section {
                 ForEach(ParentalLeaveTakers.allCases, id: \.self) { value in
-                    Button {
-                        guard leaveTakers != value else { return }
+                    OnboardingOptionRow(label: value.label, isSelected: leaveTakers == value) {
                         leaveTakers = value
-                        Haptics.selected()
-                    } label: {
-                        HStack {
-                            Text(value.label)
-                            Spacer(minLength: AppTheme.tightSpacing)
-                            if leaveTakers == value {
-                                Image(systemName: "checkmark")
-                                    .font(.body.weight(.semibold))
-                                    .foregroundStyle(Color.accentColor)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
                     }
-                    .pressableCard()
-                    .foregroundStyle(.primary)
-                    .accessibilityLabel(value.label)
-                    .accessibilityAddTraits(leaveTakers == value ? .isSelected : [])
                 }
             } header: {
                 Text("Parental leave")
@@ -535,14 +517,6 @@ struct OnboardingFlow: View {
                     text: "The states that run paid family leave mostly require the claim inside a window measured in weeks, and it is the one piece of newborn paperwork that pays you rather than costing you. Federal job protection under FMLA is separate again and has its own notice rules. Nobody hands you this: you file for it, with your own employer."
                 )
             }
-        }
-        .navigationTitle("Leave")
-        .navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .bottom) {
-            OnboardingFooter(
-                enabled: leaveTakers != nil,
-                note: leaveTakers == nil ? "Pick one to carry on. \"Nobody\" is a real answer here." : ""
-            ) { step = isUSCitizen == true ? .newbornAccount : .plan529 }
         }
     }
 
@@ -563,6 +537,7 @@ struct OnboardingFlow: View {
         ExplainedChoice(
             symbol: "dollarsign.circle",
             title: "Claim the $1,000 newborn account?",
+            navigationTitle: "Newborn account",
             what: "A one-time $1,000 federal contribution into an investment account for children born between 2025 and 2028. The IRS calls these Trump Accounts, which is the name you will see on irs.gov and on the form itself.",
             detailLabel: "Why almost nobody claims this",
             detail: "It is a thousand dollars, most US citizen newborns can qualify, and it is claimed by election rather than automatically, so a family that has not heard of it simply does not get it. The election needs the baby's Social Security number first, which is why that task sits at the top of your plan. Baby Docs cannot tell you whether you qualify: there are conditions beyond citizenship and a birth year, and the instructions are the only thing that settles them.",
@@ -571,33 +546,32 @@ struct OnboardingFlow: View {
             isAvailable: isUSCitizen == true,
             unavailableNote: "This one is for US citizen children only, and you said this baby is not one, so it stays off your plan."
         ) { step = .plan529 }
-        .navigationTitle("Newborn account")
     }
 
     private var plan529Step: some View {
         ExplainedChoice(
             symbol: "graduationcap",
             title: "Open a 529?",
+            navigationTitle: "529",
             what: "A tax-advantaged savings account for education. Most states run their own, several give residents a state tax deduction for paying into it, and you can use another state's if theirs is better.",
             detailLabel: "Why now rather than in a year",
             detail: "Nothing about a 529 is urgent, and this app will not pretend otherwise: there is no deadline and no penalty for opening one next year. It is here because it is far easier to do in the same fortnight you are already gathering a birth certificate and a Social Security number than it is to come back to in eighteen months. Saying yes adds one unhurried task with your state's own plan and what opening an account asks for.",
             isOn: $wants529,
             toggleLabel: "Add this to my plan"
         ) { step = .passport }
-        .navigationTitle("529")
     }
 
     private var passportStep: some View {
         ExplainedChoice(
             symbol: "airplane",
             title: "Will the baby need a passport?",
+            navigationTitle: "Passport",
             what: "A US passport for a child under 16. Both parents have to appear in person with the child, or the absent one has to send a notarised consent form.",
             detailLabel: "Why this one has to start earliest",
             detail: "The application needs a certified birth certificate, so it cannot start until that has arrived, and the in-person rule is what catches people out. If there is a trip in the first year, this is the task that has to be started earliest and is almost always started last. It stays blocked on your plan until the certificate is in hand, then explains the appointment and who has to be at it.",
             isOn: $wantsPassport,
             toggleLabel: "Add this to my plan"
         ) { finish() }
-        .navigationTitle("Passport")
     }
 
     // MARK: - Done
@@ -626,7 +600,7 @@ struct OnboardingFlow: View {
         }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: AppTheme.tightSpacing) {
-                if canOfferReminders {
+                if canOfferReminders && !hasAskedForReminders {
                     Button {
                         Task {
                             // Asked here, and only here, because this is the first
@@ -634,6 +608,7 @@ struct OnboardingFlow: View {
                             // about. Asked on launch it reads as noise and gets
                             // refused permanently, and a refused prompt is the one
                             // thing the app cannot undo.
+                            hasAskedForReminders = true
                             await NotificationService.shared.requestAuthorization()
                             await DeadlineReminderScheduler.reschedule(for: allTasks())
                         }
@@ -642,14 +617,54 @@ struct OnboardingFlow: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
+                    Text("Two dates in your plan legally close. This is how the app tells you before they do, and it is free.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
+                // Prominent unless the reminder ask is still on screen above
+                // it, where two filled buttons stacked would give a parent no
+                // idea which one the page wants.
+                if canOfferReminders && !hasAskedForReminders {
+                    Button { step = .plus } label: {
+                        Text("See my plan").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                } else {
+                    Button { step = .plus } label: {
+                        Text("See my plan").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                }
             }
             .padding(.horizontal, AppTheme.margin)
             .padding(.top, AppTheme.spacing)
             .padding(.bottom, AppTheme.tightSpacing)
             .background(.bar)
         }
+    }
+
+    // MARK: - Plus
+
+    /// The offer, once, at the only moment it can be honest.
+    ///
+    /// It comes *after* the plan is built rather than before the questions,
+    /// because a pitch in front of an empty app is selling a promise instead of
+    /// a thing. By this page the parent has seen how many tasks apply to their
+    /// household, which is the whole argument for wanting the order and the
+    /// reminders, and skipping costs one tap and loses nothing they were shown.
+    private var plusStep: some View {
+        PlusPurchaseView(
+            placement: .onboarding,
+            onPurchased: { onFinish() },
+            onSkip: { onFinish() }
+        )
+        .navigationTitle("Baby Docs Plus")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     // MARK: - Pieces
@@ -757,8 +772,8 @@ struct OnboardingFlow: View {
             insuranceKind: insuranceKind.rawValue,
             coverageConfirmed: coverageConfirmed,
             marketplaceKind: marketplaceKind.rawValue,
-            employerPlanName: employerPlanName,
-            benefitsContactNote: benefitsContactNote,
+            employerPlanName: PlanSeed.safeExternalText(employerPlanName),
+            benefitsContactNote: PlanSeed.safeExternalText(benefitsContactNote),
             hasDependentCareFSA: hasDependentCareFSA,
             leaveTakers: leaveTakers?.rawValue,
             wantsNewbornAccount: wantsNewbornAccount,
@@ -768,7 +783,7 @@ struct OnboardingFlow: View {
     }
 
     private func persistDraft() {
-        guard didLoadDraft, step != .done else { return }
+        guard didLoadDraft, step != .done, step != .plus else { return }
         OnboardingDraftStore.save(draftSnapshot)
     }
 
@@ -781,7 +796,7 @@ struct OnboardingFlow: View {
         }
         guard let draft = OnboardingDraftStore.load(),
               let restoredStep = Step(rawValue: draft.step),
-              restoredStep != .done else { return }
+              restoredStep != .done, restoredStep != .plus else { return }
         step = restoredStep
         name = draft.name
         birthDate = DateOnly.canonicalFromUTC(draft.birthDate)
@@ -818,6 +833,7 @@ struct OnboardingFlow: View {
 
 struct OnboardingDraft: Codable, Equatable {
     var version = 1
+    var savedAt: Date? = Date()
     var step: Int
     var name: String
     var birthDate: Date
@@ -843,19 +859,85 @@ struct OnboardingDraft: Codable, Equatable {
 
 enum OnboardingDraftStore {
     private static let key = "babydocs.onboarding-draft"
+    private static let retention: TimeInterval = 7 * 24 * 60 * 60
 
     static func load() -> OnboardingDraft? {
         guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
-        return try? JSONDecoder().decode(OnboardingDraft.self, from: data)
+        guard var draft = try? JSONDecoder().decode(OnboardingDraft.self, from: data),
+              let savedAt = draft.savedAt,
+              Date().timeIntervalSince(savedAt) <= retention
+        else {
+            clear()
+            return nil
+        }
+        let sanitized = draft.sanitized
+        if sanitized != draft {
+            save(sanitized)
+            draft = sanitized
+        }
+        return draft
     }
 
     static func save(_ draft: OnboardingDraft) {
-        guard let data = try? JSONEncoder().encode(draft) else { return }
+        guard let data = try? JSONEncoder().encode(draft.sanitized) else { return }
         UserDefaults.standard.set(data, forKey: key)
     }
 
     static func clear() {
         UserDefaults.standard.removeObject(forKey: key)
+    }
+}
+
+private extension OnboardingDraft {
+    var sanitized: OnboardingDraft {
+        var copy = self
+        copy.name = PlanSeed.safeExternalText(name)
+        copy.birthCounty = PlanSeed.safeExternalText(birthCounty)
+        copy.employerPlanName = PlanSeed.safeExternalText(employerPlanName)
+        copy.benefitsContactNote = PlanSeed.safeExternalText(benefitsContactNote)
+        return copy
+    }
+}
+
+
+/// One answer, in a row, ticked only once somebody has actually chosen it.
+///
+/// The intake had two ways of asking the same kind of question. The leave page
+/// used buttons with nothing selected until a parent picked; the coverage,
+/// parentage and citizenship pages used an inline `Picker`, which draws a
+/// checkmark against whatever the model happens to hold. On a screen whose
+/// Continue button then refuses to work, that tick is the worst possible thing
+/// to show: it says an answer has been given, next to a button that says one
+/// has not, and the answer it claims is "not sure", which is the one that
+/// changes what the plan does.
+struct OnboardingOptionRow: View {
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button {
+            guard !isSelected else { return }
+            action()
+            Haptics.selected()
+        } label: {
+            HStack {
+                Text(label)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: AppTheme.tightSpacing)
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(Color.accentColor)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .pressableCard()
+        .foregroundStyle(.primary)
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
@@ -872,6 +954,9 @@ enum OnboardingDraftStore {
 struct ExplainedChoice: View {
     let symbol: String
     let title: String
+    /// The nav bar's own short label. A full question truncates to nothing
+    /// useful up there.
+    let navigationTitle: String
     let what: String
     let detailLabel: String
     let detail: String
@@ -882,24 +967,15 @@ struct ExplainedChoice: View {
     let onContinue: () -> Void
 
     var body: some View {
-        Form {
-            Section {
-                VStack(alignment: .leading, spacing: AppTheme.spacing) {
-                    Image(systemName: symbol)
-                        .font(.system(size: 28))
-                        .foregroundStyle(Color.accentColor)
-                    Text(title)
-                        .font(.title2.weight(.bold))
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(what)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(.vertical, AppTheme.tightSpacing)
-            }
-            .listRowBackground(Color.clear)
-
+        OnboardingStep(
+            symbol: symbol,
+            title: title,
+            subtitle: what,
+            navigationTitle: navigationTitle,
+            enabled: true,
+            note: "",
+            onContinue: onContinue
+        ) {
             Section {
                 if isAvailable {
                     Toggle(toggleLabel, isOn: $isOn)
@@ -909,6 +985,8 @@ struct ExplainedChoice: View {
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+            } header: {
+                Text("Your answer")
             } footer: {
                 Text("You can change this later in the household answers without redoing any of this.")
             }
@@ -916,10 +994,6 @@ struct ExplainedChoice: View {
             Section {
                 OnboardingDisclosure(label: detailLabel, text: detail)
             }
-        }
-        .navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .bottom) {
-            OnboardingFooter(enabled: true, action: onContinue)
         }
     }
 }
@@ -982,18 +1056,105 @@ struct OnboardingFooter: View {
             .controlSize(.large)
             .disabled(!enabled)
 
-            if !note.isEmpty {
-                Text(note)
+            // **The note's space is reserved whether or not there is a note.**
+            //
+            // It used to appear and disappear with the answer, which moved the
+            // Continue button up and down by two lines *within a single
+            // question*, and moved it to a different height on every question in
+            // the intake. Nothing in that motion is information: the button did
+            // not change, the page did not change, and a control that will not
+            // hold still is read as an unfinished app. Two footnote lines are
+            // held open here, and a longer note grows the block rather than
+            // being truncated.
+            ZStack {
+                // Two footnote lines of height and nothing else: hidden from
+                // VoiceOver as well as from the eye, because a blank string
+                // read out under the only button on the page is worse than the
+                // jump it exists to prevent.
+                Text(" \n ")
                     .font(.footnote)
-                    .foregroundStyle(enabled ? .secondary : Color.red)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .hidden()
+                    .accessibilityHidden(true)
+                if !note.isEmpty {
+                    Text(note)
+                        .font(.footnote)
+                        .foregroundStyle(enabled ? .secondary : Color.red)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
         .padding(.horizontal, AppTheme.margin)
         .padding(.top, AppTheme.spacing)
         .padding(.bottom, AppTheme.tightSpacing)
         .background(.bar)
+    }
+}
+
+/// The top of every question, in the same place, at the same size.
+///
+/// The intake had two page shapes: half the questions opened with an icon, a
+/// bold question and a line of explanation, and half opened straight into a form
+/// section header. Flipping between them moved the first row of the form by
+/// about eighty points, question to question, so the whole intake read as a
+/// series of unrelated screens rather than one thing being filled in. What
+/// should move between two questions is the words and the glyph. Nothing else.
+struct OnboardingHero: View {
+    let symbol: String
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.spacing) {
+            Image(systemName: symbol)
+                .font(.system(size: 28))
+                .foregroundStyle(Color.accentColor)
+            Text(title)
+                .font(.title2.weight(.bold))
+                .fixedSize(horizontal: false, vertical: true)
+            Text(subtitle)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, AppTheme.tightSpacing)
+    }
+}
+
+/// One question: hero, form, pinned footer. Every step in the intake is one of
+/// these, which is the only way the shape stays the same as the questions
+/// change.
+struct OnboardingStep<Content: View>: View {
+    let symbol: String
+    let title: String
+    let subtitle: String
+    let navigationTitle: String
+    var continueTitle = "Continue"
+    var enabled = true
+    var note = ""
+    let onContinue: () -> Void
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        Form {
+            Section {
+                OnboardingHero(symbol: symbol, title: title, subtitle: subtitle)
+            }
+            .listRowBackground(Color.clear)
+
+            content
+        }
+        .navigationTitle(navigationTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom) {
+            OnboardingFooter(
+                title: continueTitle,
+                enabled: enabled,
+                note: note,
+                action: onContinue
+            )
+        }
     }
 }
 
@@ -1066,7 +1227,7 @@ struct StepDots: View {
     let current: OnboardingFlow.Step
 
     private var steps: [OnboardingFlow.Step] {
-        OnboardingFlow.Step.allCases.filter { $0 != .welcome && $0 != .done }
+        OnboardingFlow.Step.allCases.filter { $0 != .welcome && $0 != .done && $0 != .plus }
     }
 
     private var currentIndex: Int {

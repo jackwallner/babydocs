@@ -29,6 +29,17 @@ struct BabyDocsApp: App {
             }
         }
 
+        // Plus, without a purchase. Debug only, and never a path a shipping
+        // build can take: the Plus tab is a different screen once it is bought
+        // (the timeline, the reminder switches, the pages that leave the
+        // phone), and none of that is inspectable on a simulator otherwise,
+        // because RevenueCat is deliberately never configured there.
+        if ProcessInfo.processInfo.arguments.contains("-uitest-pro") {
+            MainActor.assumeIsolated {
+                StoreService.shared.setLocalOverride(isPro: true)
+            }
+        }
+
         // Opens straight onto one task's detail, by catalog key.
         //
         // For the layout tests, which are about what a screen looks like at a

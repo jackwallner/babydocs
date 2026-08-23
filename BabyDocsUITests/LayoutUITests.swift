@@ -20,19 +20,29 @@ final class LayoutUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Plan"].waitForExistence(timeout: 15))
 
-        let row = app.staticTexts["Order certified copies of the birth certificate"]
+        let row = app.buttons.matching(
+            NSPredicate(
+                format: "label BEGINSWITH %@",
+                "Order certified copies of the birth certificate"
+            )
+        ).firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.tap()
         XCTAssertTrue(app.staticTexts["Timing"].waitForExistence(timeout: 5))
 
         let footnote = app.staticTexts["Where this comes from"]
-        for _ in 0..<8 where !footnote.isHittable {
+        let tabBar = app.tabBars.firstMatch
+        for _ in 0..<12 {
+            guard footnote.exists else {
+                app.swipeUp()
+                continue
+            }
+            guard footnote.frame.maxY > tabBar.frame.minY else { break }
             app.swipeUp()
         }
 
         XCTAssertTrue(footnote.isHittable, "The source footnote never became reachable")
 
-        let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.exists)
         XCTAssertLessThanOrEqual(
             footnote.frame.maxY,
@@ -139,13 +149,29 @@ final class TabBarClearanceUITests: XCTestCase {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
-        for _ in 0..<10 where !element.isHittable {
+        let tabBar = app.tabBars.firstMatch
+        XCTAssertTrue(tabBar.exists, file: file, line: line)
+        // Scrolled until it clears the bar, not until it is merely hittable.
+        // A row can report itself hittable while its last few points sit under
+        // the glass, so stopping at the first `isHittable` made this assertion
+        // depend on how long the page above it happened to be, and it failed
+        // the day a paragraph in Settings got two lines longer.
+        for _ in 0..<12 {
+            // A row far down a long list does not exist as an element until it
+            // has been scrolled near, so "does not exist yet" has to keep the
+            // loop going rather than end it.
+            guard element.exists else {
+                app.swipeUp()
+                continue
+            }
+            let frame = element.frame
+            let reachable = element.isHittable
+                && frame.height > 0
+                && frame.maxY <= tabBar.frame.minY
+            if reachable { break }
             app.swipeUp()
         }
         XCTAssertTrue(element.isHittable, "\(what) never became reachable", file: file, line: line)
-
-        let tabBar = app.tabBars.firstMatch
-        XCTAssertTrue(tabBar.exists, file: file, line: line)
         XCTAssertLessThanOrEqual(
             element.frame.maxY,
             tabBar.frame.minY,
@@ -194,6 +220,62 @@ final class TabBarClearanceUITests: XCTestCase {
     func testPlanShowsHouseholdAnswersOutsideTheOptionsMenu() {
         let app = launchSeeded()
         XCTAssertTrue(app.buttons["Change household answers"].waitForExistence(timeout: 10))
+    }
+
+    /// Adding a second baby is free, and this is the assertion that keeps it
+    /// that way. Twins are one birth and one household: charging for the second
+    /// child billed the family that had the harder delivery.
+    func testAddingASecondChildIsNotPaywalled() {
+        let app = launchSeeded()
+        app.tabBars.buttons["Children"].tap()
+        XCTAssertTrue(app.navigationBars["Children"].waitForExistence(timeout: 10))
+        app.buttons["Add another child"].tap()
+
+        XCTAssertFalse(
+            app.navigationBars["Baby Docs Plus"].waitForExistence(timeout: 3),
+            "Adding a further child must never open the paywall"
+        )
+    }
+
+    func testPlusTabPurchaseButtonClearsTheTabBar() {
+        let app = launchSeeded()
+        app.tabBars.buttons["Plus"].tap()
+        XCTAssertTrue(app.navigationBars["Baby Docs Plus"].waitForExistence(timeout: 10))
+
+        let restore = app.buttons["Restore purchases"]
+        XCTAssertTrue(restore.waitForExistence(timeout: 10))
+        let tabBar = app.tabBars.firstMatch
+        XCTAssertLessThanOrEqual(
+            restore.frame.maxY,
+            tabBar.frame.minY,
+            "The purchase bar on the Plus tab sits under the floating tab bar"
+        )
+    }
+
+    /// The other half of the Plus tab: what a customer who has paid sees there.
+    /// The offer and the tools share one slot in the bar, so both halves have to
+    /// be looked at, and the timeline is the part that carries the pitch.
+    func testPlusToolsShowTheTimelineAndClearTheTabBar() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-uitest-wipe-store", "-uitest-seed", "-uitest-pro"]
+        app.launch()
+        XCTAssertTrue(app.navigationBars["Plan"].waitForExistence(timeout: 15))
+
+        app.tabBars.buttons["Plus"].tap()
+        XCTAssertTrue(app.navigationBars["Baby Docs Plus"].waitForExistence(timeout: 10))
+        XCTAssertTrue(
+            app.staticTexts["Start this week"].waitForExistence(timeout: 10),
+            "The timeline never rendered for a customer who has Plus"
+        )
+        XCTAssertFalse(
+            app.buttons["Start my free trial"].exists,
+            "A customer who has paid is still being sold to"
+        )
+        assertClearsTabBar(
+            app.buttons["Restore purchases"].firstMatch,
+            in: app,
+            "The last control on the Plus tools"
+        )
     }
 
     func testChildDetailShareFooterClearsTheTabBar() {
@@ -256,12 +338,12 @@ final class PaywallLayoutUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.navigationBars["Plan"].waitForExistence(timeout: 15))
-        app.tabBars.buttons["Children"].tap()
-        XCTAssertTrue(app.navigationBars["Children"].waitForExistence(timeout: 10))
-        app.buttons["Add another child"].tap()
+        // The pitch is a tab of its own now rather than only a locked door, so
+        // this is the route somebody takes when they are choosing to read it.
+        app.tabBars.buttons["Plus"].tap()
         XCTAssertTrue(app.navigationBars["Baby Docs Plus"].waitForExistence(timeout: 10))
 
-        let lastBenefit = app.staticTexts["Every child"]
+        let lastBenefit = app.staticTexts["Free, and staying free"]
         let purchaseButton = app.buttons["Start my free trial"]
         XCTAssertTrue(lastBenefit.waitForExistence(timeout: 10))
         XCTAssertTrue(purchaseButton.waitForExistence(timeout: 10))

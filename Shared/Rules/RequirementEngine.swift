@@ -58,6 +58,16 @@ enum RequirementEngine {
             result.didPersist = false
             return result
         }
+        switch sensitiveTextStatus(in: context) {
+        case .some(true):
+            rejectSensitiveText(in: context, result: &result)
+            return result
+        case .some(false):
+            break
+        case .none:
+            result.didPersist = false
+            return result
+        }
         let input = makeInput(child: child, profile: profile)
         // Tombstoned rows are included deliberately. The id of a generated task
         // is derived from (child, catalog key), so a rule that becomes
@@ -120,7 +130,7 @@ enum RequirementEngine {
         if save {
             persist(&result, in: context)
         }
-        log.info("Reconciled \(child.displayName): \(result.created) new, \(result.updated) changed, \(result.retired) retired")
+        log.info("Reconciled plan: \(result.created) new, \(result.updated) changed, \(result.retired) retired")
         return result
     }
 
@@ -345,12 +355,78 @@ enum RequirementEngine {
                 || result.updated > 0
                 || result.retired > 0
                 || context.hasChanges else { return }
+        switch sensitiveTextStatus(in: context) {
+        case .some(true):
+            rejectSensitiveText(in: context, result: &result)
+            return
+        case .some(false):
+            break
+        case .none:
+            context.rollback()
+            result.didPersist = false
+            return
+        }
         do {
             try context.save()
         } catch {
             context.rollback()
             result.didPersist = false
             SaveFailureReporter.shared.report(error)
+        }
+    }
+
+    private static func rejectSensitiveText(in context: ModelContext, result: inout Result) {
+        redactSensitiveText(in: context)
+        context.rollback()
+        redactSensitiveText(in: context)
+        result.didPersist = false
+        SaveFailureReporter.shared.reportSensitiveText()
+    }
+
+    private static func redactSensitiveText(in context: ModelContext) {
+        do {
+            let profiles = try context.fetch(FetchDescriptor<FamilyProfile>())
+            let children = try context.fetch(FetchDescriptor<Child>())
+            let tasks = try context.fetch(FetchDescriptor<RequirementTask>())
+            let documents = try context.fetch(FetchDescriptor<DocumentItem>())
+            let receipts = try context.fetch(FetchDescriptor<Receipt>())
+            let notes = try context.fetch(FetchDescriptor<ChildNote>())
+            let vaultDocuments = try context.fetch(FetchDescriptor<VaultDocument>())
+            profiles.forEach { $0.redactSensitiveText() }
+            children.forEach { $0.redactSensitiveText() }
+            tasks.forEach { $0.redactSensitiveText() }
+            documents.forEach { $0.redactSensitiveText() }
+            receipts.forEach { $0.redactSensitiveText() }
+            notes.forEach { $0.redactSensitiveText() }
+            vaultDocuments.forEach { $0.redactSensitiveText() }
+        } catch {
+            SaveFailureReporter.shared.report(error)
+        }
+    }
+
+    /// Reconciliation saves the profile, child, generated rows and any edits
+    /// already sitting in the same context together. Inspect every local text
+    /// model before that one save, so onboarding and household edits cannot
+    /// bypass `LocalRecord.recordLocalChange`.
+    private static func sensitiveTextStatus(in context: ModelContext) -> Bool? {
+        do {
+            let profiles = try context.fetch(FetchDescriptor<FamilyProfile>())
+            let children = try context.fetch(FetchDescriptor<Child>())
+            let tasks = try context.fetch(FetchDescriptor<RequirementTask>())
+            let documents = try context.fetch(FetchDescriptor<DocumentItem>())
+            let receipts = try context.fetch(FetchDescriptor<Receipt>())
+            let notes = try context.fetch(FetchDescriptor<ChildNote>())
+            let vaultDocuments = try context.fetch(FetchDescriptor<VaultDocument>())
+            return profiles.contains(where: { $0.containsSensitiveText })
+                || children.contains(where: { $0.containsSensitiveText })
+                || tasks.contains(where: { $0.containsSensitiveText })
+                || documents.contains(where: { $0.containsSensitiveText })
+                || receipts.contains(where: { $0.containsSensitiveText })
+                || notes.contains(where: { $0.containsSensitiveText })
+                || vaultDocuments.contains(where: { $0.containsSensitiveText })
+        } catch {
+            SaveFailureReporter.shared.report(error)
+            return nil
         }
     }
 

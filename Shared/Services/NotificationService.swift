@@ -51,7 +51,7 @@ final class NotificationService: NSObject {
             await refreshStatus()
             return granted
         } catch {
-            log.error("Authorization request failed: \(error.localizedDescription)")
+            log.error("Authorization request failed: \(error.localizedDescription, privacy: .private(mask: .hash))")
             return false
         }
     }

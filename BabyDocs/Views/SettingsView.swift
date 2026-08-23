@@ -70,7 +70,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Reminders")
                 } footer: {
-                    Text("Only the two dates that are real doors closing get a notification: the job-based health plan and the Marketplace. A suggestion that fires at 9am is what teaches someone to switch the whole category off, and then they miss the one that mattered.")
+                    Text("The two dates that are real doors closing are announced for everybody, free, whatever else is switched off: the job-based health plan and the Marketplace. The rest of the plan is dates Baby Docs suggests, and those stay quiet unless you turn them on in Plus, because a suggestion that fires at 9am unbidden is what teaches someone to switch the whole category off, and then they miss the one that mattered.")
                 }
 
                 Section {
@@ -87,8 +87,8 @@ struct SettingsView: View {
                     LabeledContent("Status") {
                         Text(store.isPro ? "Active" : "Free")
                     }
-                    if !store.isPro {
-                        Button("See what Plus adds") { navigator.requestUpgrade() }
+                    Button(store.isPro ? "Open the Plus tab" : "See what Plus adds") {
+                        navigator.showPlusTab()
                     }
                     if store.isPro {
                         Link("Manage subscription", destination: URL(string: "https://apps.apple.com/account/subscriptions")!)
@@ -105,7 +105,7 @@ struct SettingsView: View {
                                     errorMessage = "Purchases cannot be restored in this build."
                                 }
                             } catch {
-                                errorMessage = error.localizedDescription
+                                errorMessage = "Purchases could not be restored right now. Check your Apple Account and try again."
                             }
                         }
                     }

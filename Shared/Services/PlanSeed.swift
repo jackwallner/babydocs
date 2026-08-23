@@ -68,10 +68,10 @@ struct PlanSeed: Codable, Equatable, Sendable {
     static func make(child: Child, profile: FamilyProfile) -> PlanSeed {
         PlanSeed(
             childID: child.id,
-            name: child.name,
+            name: safeExternalText(child.name),
             birthDate: DateOnly.canonicalFromUTC(child.birthDate),
             birthStateCode: child.birthStateCode,
-            birthCounty: child.birthCounty,
+            birthCounty: safeExternalText(child.birthCounty),
             isUSCitizen: child.isUSCitizen,
             residenceStateCode: profile.residenceStateCode,
             parentage: profile.parentageRaw,
@@ -143,6 +143,10 @@ struct PlanSeed: Codable, Equatable, Sendable {
         decoder.dateDecodingStrategy = .iso8601
         guard var seed = try? decoder.decode(PlanSeed.self, from: data) else { return nil }
         seed.birthDate = DateOnly.canonicalFromUTC(seed.birthDate)
+        seed.name = safeExternalText(seed.name)
+        seed.birthCounty = safeExternalText(seed.birthCounty)
+        seed.employerPlanName = seed.employerPlanName.map(safeExternalText)
+        seed.benefitsContactNote = seed.benefitsContactNote.map(safeExternalText)
         guard seed.version >= 1, seed.version <= currentVersion else { return nil }
         guard seed.isSemanticallyValid else { return nil }
         return seed
@@ -178,13 +182,21 @@ struct PlanSeed: Codable, Equatable, Sendable {
     /// words while preventing a common Social Security number shape from
     /// leaving the phone in a shared link.
     static func safeExternalText(_ value: String) -> String {
-        let pattern = #"(?<![0-9])[0-9]{3}[- .]?[0-9]{2}[- .]?[0-9]{4}(?![0-9])"#
+        let pattern = SensitiveText.socialSecurityNumberPattern
         return value.replacingOccurrences(
             of: pattern,
             with: "[redacted Social Security number]",
             options: .regularExpression
         )
     }
+
+    static func containsSocialSecurityNumber(_ value: String) -> Bool {
+        value.range(of: SensitiveText.socialSecurityNumberPattern, options: .regularExpression) != nil
+    }
+}
+
+enum SensitiveText {
+    static let socialSecurityNumberPattern = #"(?<![0-9])[0-9]{3}[- .]?[0-9]{2}[- .]?[0-9]{4}(?![0-9])"#
 }
 
 // MARK: - base64url

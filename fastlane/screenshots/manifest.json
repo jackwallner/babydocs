@@ -1,6 +1,7 @@
 {
   "app": "babydocs",
   "display_name": "Baby Docs: Newborn Paperwork",
+  "capture_report": "raw/capture-report.json",
   "target": "iphone_69",
   "copy_contract": "single-header-benefit-story-v3",
   "market": {
@@ -26,7 +27,7 @@
       },
       {
         "claim": "The Plus surface shows the on-device document vault as work around the free deadline and checklist surfaces.",
-        "source": "raw/05-paywall.png"
+        "source": "raw/05-plus.png"
       }
     ]
   },
@@ -45,7 +46,7 @@
     "mode": "command",
     "lease": "babydocs",
     "project_root": "/Users/jackwallner/babydocs",
-    "expected_screenshot_count": 16,
+    "expected_screenshot_count": 15,
     "command": ["bash", "scripts/capture-screenshots.sh", "{udid}", "{output}"]
   },
   "sets": [
@@ -78,7 +79,7 @@
           "source": "raw/01-plan.png",
           "source_evidence": "raw/01-plan.png",
           "capture_flow": "repo-command",
-          "evidence_status": "validated-staged",
+          "evidence_status": "canonical",
           "device": "iphone",
           "layout": {
             "header_top": 110,
@@ -113,7 +114,7 @@
           "source": "raw/02-task-detail.png",
           "source_evidence": "raw/02-task-detail.png",
           "capture_flow": "repo-command",
-          "evidence_status": "validated-staged",
+          "evidence_status": "canonical",
           "device": "iphone",
           "layout": {
             "header_top": 110,
@@ -148,7 +149,7 @@
           "source": "raw/06-documents.png",
           "source_evidence": "raw/06-documents.png",
           "capture_flow": "repo-command",
-          "evidence_status": "validated-staged",
+          "evidence_status": "canonical",
           "device": "iphone",
           "layout": {
             "header_top": 110,
@@ -183,7 +184,7 @@
           "source": "raw/04-children.png",
           "source_evidence": "raw/04-children.png",
           "capture_flow": "repo-command",
-          "evidence_status": "validated-staged",
+          "evidence_status": "canonical",
           "device": "iphone",
           "layout": {
             "header_top": 110,
@@ -218,7 +219,7 @@
           "source": "raw/07-settings.png",
           "source_evidence": "raw/07-settings.png",
           "capture_flow": "repo-command",
-          "evidence_status": "validated-staged",
+          "evidence_status": "canonical",
           "device": "iphone",
           "layout": {
             "header_top": 110,
@@ -250,10 +251,10 @@
             ],
             "proof": "The literal Baby Docs Plus capture shows the document vault as the work around the free deadline and checklist surfaces."
           },
-          "source": "raw/05-paywall.png",
-          "source_evidence": "raw/05-paywall.png",
+          "source": "raw/05-plus.png",
+          "source_evidence": "raw/05-plus.png",
           "capture_flow": "repo-command",
-          "evidence_status": "validated-staged",
+          "evidence_status": "canonical",
           "device": "iphone",
           "layout": {
             "header_top": 110,

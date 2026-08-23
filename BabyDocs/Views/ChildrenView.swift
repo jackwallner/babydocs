@@ -13,8 +13,6 @@ struct ChildrenView: View {
     /// `addChild()`.
     @State private var draftChildID: UUID?
     @State private var isEditingHousehold = false
-    @State private var store = StoreService.shared
-    @State private var navigator = AppNavigator.shared
 
     var body: some View {
         NavigationStack {
@@ -58,9 +56,16 @@ struct ChildrenView: View {
                         Label("Add another child", systemImage: "plus")
                     }
                 } footer: {
-                    if !store.isPro {
-                        Text("The first baby is free, with every deadline, link and document list. Plus covers any further children.")
-                    }
+                    // **Never gated, and it used to be.**
+                    //
+                    // Twins are one birth, one household and one set of
+                    // answers, so charging for the second baby billed the
+                    // family that had the harder delivery. It is not a moment
+                    // of value either: it is a fact about the household, and a
+                    // paywall in front of a fact reads as a toll. Plus is the
+                    // timeline, the reminders and the vault, all of which
+                    // apply to however many children are here.
+                    Text("A second baby inherits your household answers, so the questions are not asked twice. Every child is free.")
                 }
 
                 Section {
@@ -111,10 +116,6 @@ struct ChildrenView: View {
     /// right most of the time and it is silent, and the times it is wrong are a
     /// parent sent to the wrong state's vital records office for a fortnight.
     private func addChild() {
-        guard store.isPro || children.isEmpty else {
-            navigator.requestUpgrade()
-            return
-        }
         let child = Child(birthDate: Date())
         child.colorIndex = children.count
         child.isEphemeralDraft = true

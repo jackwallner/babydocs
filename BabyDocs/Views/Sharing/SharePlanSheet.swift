@@ -39,7 +39,7 @@ struct SharePlanSheet: View {
                 } header: {
                     Text("The other parent")
                 } footer: {
-                    Text("They tap the link and their phone builds the same plan: the same tasks, the same dates, their own reminders. Their copy starts blank on who has done what.\n\nThe link carries the answers that build a plan and nothing else: \(child.displayName)'s first name and date of birth, where the birth was registered, where you live, and your household answers. No completed tasks, no notes, no confirmation numbers and no photographs. Anyone the link is forwarded to can read it, so send it the way you would send a page of a form.")
+                    Text("They tap the link and their phone builds the same plan: the same tasks, the same dates, their own reminders. Their copy starts blank on who has done what.\n\nThe link carries the answers that build a plan: \(child.displayName)'s first name and date of birth, where the birth was registered, where you live, your household answers, and, for a job-based plan, the plan name and benefits contact if you entered them. No completed tasks, no notes, no confirmation numbers and no photographs. Anyone the link is forwarded to can read it, so send it the way you would send a page of a form.")
                 }
 
                 Section {

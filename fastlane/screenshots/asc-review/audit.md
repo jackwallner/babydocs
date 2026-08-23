@@ -1,17 +1,15 @@
 # Screenshot audit: babydocs
 
 Status: **PASS**
-Disposition: **STAGED**
+Disposition: **RELEASE-READY**
 Target: `iphone_69` at `1320x2868`
-Capture status: `missing`
+Capture status: `ok`
 
 This report combines file-spec checks with an independent thumbnail and OCR pass. Open each `contact-sheet.png` and `search-grid.png` before approving a set.
 
 ## Warnings
 
-- navy-paperwork: 01-deadlines.png: thumbnail OCR missed header words ['know', 'what', 'due', 'next']
-- navy-paperwork: 02-why-it-applies.png: thumbnail OCR missed header words ['see', 'why', 'each', 'task', 'applies']
-- navy-paperwork: 03-documents.png: thumbnail OCR missed header words ['bring', 'every', 'paper', 'need']
+- navy-paperwork: 02-why-it-applies.png: thumbnail OCR missed header words ['see', 'why', 'each', 'applies']
 
 ## Market brief
 
