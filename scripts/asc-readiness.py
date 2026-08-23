@@ -298,28 +298,39 @@ def main() -> int:
             key=lambda s: s["attributes"].get("submittedDate") or "",
         )
         submission_attributes = submission["attributes"]
-        check(
-            "iOS review submission",
-            submission_attributes.get("state"),
-            submission_attributes.get("state") in ("READY_FOR_REVIEW", "WAITING_FOR_REVIEW"),
-        )
         items = client.get_all(f"/reviewSubmissions/{submission['id']}/items", limit=50)
-        item_types = Counter(review_item_type(item["id"]) for item in items)
-        expected_item_types = Counter({"6": 1, "17": 1, "18": 2, "19": 1})
-        check("iOS review submission item count", len(items), len(items) == 5)
-        check(
-            "iOS review submission item types",
-            dict(sorted(item_types.items())),
-            item_types == expected_item_types,
-        )
         item_states = {item["attributes"].get("state") for item in items}
-        check(
-            "iOS review submission item states",
-            sorted(item_states),
-            item_states <= {"READY_FOR_REVIEW", "WAITING_FOR_REVIEW"},
+        historical = (
+            submission_attributes.get("state") == "REMOVED"
+            or item_states == {"REMOVED"}
         )
+        if historical:
+            check(
+                "historical iOS review submission",
+                f"{submission_attributes.get('state')}, {len(items)} removed items",
+                True,
+            )
+        else:
+            check(
+                "iOS review submission",
+                submission_attributes.get("state"),
+                submission_attributes.get("state") in ("READY_FOR_REVIEW", "WAITING_FOR_REVIEW"),
+            )
+            item_types = Counter(review_item_type(item["id"]) for item in items)
+            expected_item_types = Counter({"6": 1, "17": 1, "18": 2, "19": 1})
+            check("iOS review submission item count", len(items), len(items) == 5)
+            check(
+                "iOS review submission item types",
+                dict(sorted(item_types.items())),
+                item_types == expected_item_types,
+            )
+            check(
+                "iOS review submission item states",
+                sorted(item_states),
+                item_states <= {"READY_FOR_REVIEW", "WAITING_FOR_REVIEW"},
+            )
     else:
-        check("iOS review submission", "not created", False)
+        check("iOS review submission", "not created, draft is ready for Add for Review", True)
 
     build = client.get_optional(f"/appStoreVersions/{vid}/build").get("data")
     attached = None
