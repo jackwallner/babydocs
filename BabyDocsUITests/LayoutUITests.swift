@@ -159,7 +159,10 @@ final class TabBarClearanceUITests: XCTestCase {
         let app = launchSeeded()
         app.tabBars.buttons["Settings"].tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 10))
-        assertClearsTabBar(app.buttons["Support"], in: app, "The last link in Settings")
+        let support = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", "Support"))
+            .firstMatch
+        assertClearsTabBar(support, in: app, "The last link in Settings")
     }
 
     func testDocumentsLastControlClearsTheTabBar() {
