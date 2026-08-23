@@ -5,10 +5,10 @@ import OSLog
 /// One-shot "where am I" for the household questions, and nothing else.
 ///
 /// Deliberately not a long-lived manager. It is created when a parent taps a
-/// button, asks for a single fix, reverse-geocodes it into a state and county,
-/// and is thrown away. Nothing here starts on launch, nothing runs in the
-/// background, no coordinate is written to disk, and the only thing that
-/// survives the call is two strings the parent can see and correct.
+/// button, asks for a single fix, asks Apple's geocoder to resolve it into a
+/// state and county, and is thrown away. Nothing here starts on launch, nothing
+/// runs in the background, no coordinate is written to disk, and the only thing
+/// that survives the call is two strings the parent can see and correct.
 ///
 /// The result is a *suggestion* on the birth-state question and a *prefill* on
 /// the residence one. That asymmetry is the whole reason this type exists rather

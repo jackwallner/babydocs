@@ -24,6 +24,15 @@ struct PlanView: View {
         return children.filter { $0.id == selectedChildID }
     }
 
+    /// Sharing and exporting are one-child operations. Never let the combined
+    /// view silently choose the first child, which is especially dangerous for
+    /// twins who share a birth date and state.
+    private var shareableChild: Child? {
+        if children.count == 1 { return children.first }
+        guard let selectedChildID else { return nil }
+        return children.first { $0.id == selectedChildID }
+    }
+
     private var tasks: [RequirementTask] {
         visibleChildren.flatMap(\.liveTasks)
     }
@@ -55,6 +64,38 @@ struct PlanView: View {
                         .planCardRow()
                 }
 
+                Section {
+                    Button {
+                        isEditingHousehold = true
+                    } label: {
+                        HStack(alignment: .top, spacing: AppTheme.spacing) {
+                            Image(systemName: "slider.horizontal.3")
+                                .font(.title3)
+                                .foregroundStyle(Color.accentColor)
+                            VStack(alignment: .leading, spacing: AppTheme.hairSpacing) {
+                                Text("Change household answers")
+                                    .font(.subheadline.weight(.semibold))
+                                Text("Update the answers that shape every deadline in this plan.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .planCard(padding: AppTheme.spacing)
+                    }
+                    .pressableCard()
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Change household answers")
+                    .accessibilityHint("Opens the household answers used to build every child's plan")
+                    .planCardRow()
+                }
+
                 if !lateTasks.isEmpty {
                     Section {
                         ForEach(lateTasks) { task in
@@ -73,7 +114,7 @@ struct PlanView: View {
 
                 if children.count > 1 {
                     Section {
-                        Picker("Child", selection: $selectedChildID) {
+                    Picker("Child", selection: $selectedChildID) {
                             Text("Everyone").tag(UUID?.none)
                             ForEach(children) { child in
                                 Text(child.displayName).tag(UUID?.some(child.id))
@@ -85,6 +126,13 @@ struct PlanView: View {
                     .listRowInsets(EdgeInsets(
                         top: 0, leading: AppTheme.margin, bottom: AppTheme.tightSpacing, trailing: AppTheme.margin
                     ))
+                    if selectedChildID == nil {
+                        Text("Choose one child before sending or exporting a plan.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .listRowBackground(Color.clear)
+                    }
                 }
 
                 ForEach(openBuckets, id: \.bucket) { group in
@@ -139,9 +187,17 @@ struct PlanView: View {
                 }
             }
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        isEditingHousehold = true
+                    } label: {
+                        Label("Change household answers", systemImage: "slider.horizontal.3")
+                    }
+                    .accessibilityLabel("Change household answers")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        if let child = visibleChildren.first ?? children.first {
+                        if let child = shareableChild {
                             Button {
                                 isSharingPlan = true
                             } label: {
@@ -153,6 +209,8 @@ struct PlanView: View {
                                     profile: FamilyProfileStore.current(in: context)
                                 )
                             }
+                        } else {
+                            Label("Choose one child before sharing", systemImage: "person.crop.circle.badge.questionmark")
                         }
                         Divider()
                         Button {
@@ -174,7 +232,7 @@ struct PlanView: View {
                 HouseholdEditorView()
             }
             .sheet(isPresented: $isSharingPlan) {
-                if let child = visibleChildren.first ?? children.first {
+                if let child = shareableChild {
                     SharePlanSheet(child: child)
                 }
             }
@@ -227,8 +285,10 @@ struct PlanView: View {
         if saved && !wasDone {
             ReviewPromptTracker.recordCompletion(of: task)
         }
-        Task {
-            await DeadlineReminderScheduler.reschedule(for: children.flatMap(\.liveTasks))
+        if saved {
+            Task {
+                await DeadlineReminderScheduler.reschedule(for: children.flatMap(\.liveTasks))
+            }
         }
     }
 }

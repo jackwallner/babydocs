@@ -5,18 +5,24 @@ struct RootView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
     @Query(filter: #Predicate<Child> { $0.deletedAt == nil }) private var children: [Child]
-    @Query(filter: #Predicate<Child> { $0.deletedAt != nil }, sort: \Child.birthDate)
+    @Query(filter: #Predicate<Child> { $0.deletedAt != nil && !$0.isEphemeralDraft }, sort: \Child.birthDate)
     private var archivedChildren: [Child]
 
     @State private var navigator = AppNavigator.shared
     @State private var saveFailures = SaveFailureReporter.shared
+    @State private var recoveredStoreURL: URL?
+    @State private var hasAcknowledgedRecovery = false
     /// One ask per launch at most, whatever else happens.
     @State private var hasRequestedReviewThisSession = false
     @Environment(\.requestReview) private var requestReview
 
     var body: some View {
         Group {
-            if children.isEmpty && archivedChildren.isEmpty {
+            if let recoveredStoreURL, !hasAcknowledgedRecovery {
+                StorageRecoveryView(location: recoveredStoreURL.lastPathComponent) {
+                    hasAcknowledgedRecovery = true
+                }
+            } else if children.isEmpty && archivedChildren.isEmpty {
                 // No child means no plan, and a plan is the entire app. The
                 // intake is not a wizard the user can be dropped into the
                 // middle of: every deadline in the app is derived from the
@@ -102,6 +108,56 @@ struct RootView: View {
                 break
             }
         }
+        .task {
+            recoveredStoreURL = BabyModelStore.recoveredStoreURL
+            purgeUnconfirmedChildDrafts()
+            purgeTombstonedVaultDocuments()
+            purgeOrphanedVaultPages()
+        }
+    }
+
+    /// A process can die while the add-child sheet is open. Those rows are
+    /// intentionally marked as scaffolding, so they must never become an
+    /// archived child on the next launch.
+    private func purgeUnconfirmedChildDrafts() {
+        let descriptor = FetchDescriptor<Child>(predicate: #Predicate { $0.isEphemeralDraft })
+        guard let drafts = try? context.fetch(descriptor), !drafts.isEmpty else { return }
+        for draft in drafts {
+            context.delete(draft)
+        }
+        do {
+            try context.save()
+        } catch {
+            context.rollback()
+            SaveFailureReporter.shared.report(error)
+        }
+    }
+
+    /// A deletion can be interrupted between the model tombstone and the file
+    /// cleanup. Keep the filenames on the tombstone until every file is gone,
+    /// then retry on the next launch. This prevents sensitive photos becoming
+    /// orphaned just because the phone was backgrounded at the wrong moment.
+    private func purgeTombstonedVaultDocuments() {
+        let descriptor = FetchDescriptor<VaultDocument>(
+            predicate: #Predicate { $0.deletedAt != nil }
+        )
+        guard let documents = try? context.fetch(descriptor) else { return }
+        for document in documents where !document.pageFileNames.isEmpty {
+            let remaining = VaultStore.shared.removePages(named: document.pageFileNames)
+            guard remaining != document.pageFileNames else { continue }
+            document.pageFileNames = remaining
+            document.recordLocalChange(in: context)
+        }
+    }
+
+    /// A crash can leave a private image after the write but before its model
+    /// row. Remove those files at launch so the vault never accumulates hidden
+    /// copies that no screen can open.
+    private func purgeOrphanedVaultPages() {
+        let descriptor = FetchDescriptor<VaultDocument>()
+        guard let documents = try? context.fetch(descriptor) else { return }
+        let referenced = Set(documents.flatMap(\.pageFileNames))
+        VaultStore.shared.removeOrphanedPages(referencedNames: referenced)
     }
 
     /// The system ask, one beat after the tick.
@@ -142,6 +198,40 @@ struct RootView: View {
             && ReviewPromptTracker.shouldRequestAfterPositiveMoment()
     }
 
+}
+
+private struct StorageRecoveryView: View {
+    let location: String
+    let continueAction: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppTheme.spacing) {
+                    Image(systemName: "externaldrive.badge.exclamationmark")
+                        .font(.system(size: 42))
+                        .foregroundStyle(.orange)
+                    Text("Your saved plan needs attention")
+                        .font(.title2.weight(.bold))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("Baby Docs could not open the file that contains your household answers and completed work. Nothing was deleted. The previous file is still on this phone as \(location).")
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("Before starting again, contact support so the saved plan can be checked. A new plan will not repair the old file.")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Link("Contact support", destination: URL(string: "https://jackwallner.com/ios/babydocs/support.html")!)
+                        .buttonStyle(.borderedProminent)
+                    Button("Set up a new plan anyway", action: continueAction)
+                        .buttonStyle(.bordered)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(AppTheme.margin)
+            }
+            .planPageBackground(underTabBar: false)
+            .navigationTitle("Storage")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
 }
 
 /// `sheet(item:)` needs an identity, and a seed's identity is its contents: two

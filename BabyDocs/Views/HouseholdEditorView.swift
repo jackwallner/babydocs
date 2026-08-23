@@ -11,6 +11,7 @@ struct HouseholdEditorView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var profile: FamilyProfile?
+    @State private var original: HouseholdSnapshot?
 
     var body: some View {
         NavigationStack {
@@ -24,23 +25,41 @@ struct HouseholdEditorView: View {
             .navigationTitle("Household")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { cancel() }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
-                        if let profile {
-                            profile.recordLocalChange(in: context)
-                            RequirementEngine.reconcileAll(in: context)
-                            Task {
-                                await DeadlineReminderScheduler.reschedule(in: context)
-                            }
+                        guard let profile, !profile.residenceStateCode.isEmpty else { return }
+                        let result = RequirementEngine.reconcileAll(in: context)
+                        guard result.didPersist else { return }
+                        Task {
+                            await DeadlineReminderScheduler.reschedule(in: context)
                         }
                         dismiss()
                     }
+                    .disabled(profile?.residenceStateCode.isEmpty != false)
                 }
             }
             .interactiveDismissDisabled()
             .onAppear {
-                if profile == nil { profile = FamilyProfileStore.current(in: context) }
+                if profile == nil {
+                    let current = FamilyProfileStore.current(in: context)
+                    profile = current
+                    original = HouseholdSnapshot(profile: current)
+                }
             }
+        }
+    }
+
+    private func cancel() {
+        guard let profile, let original else {
+            dismiss()
+            return
+        }
+        original.apply(to: profile)
+        if profile.recordLocalChange(in: context) {
+            dismiss()
         }
     }
 
@@ -74,7 +93,12 @@ struct HouseholdEditorView: View {
             Section("Parents") {
                 Picker("Situation", selection: Binding(
                     get: { profile.parentage },
-                    set: { profile.parentage = $0 }
+                    set: {
+                        profile.parentage = $0
+                        if $0 != .unmarriedBothParents {
+                            profile.secondParentOnRecord = false
+                        }
+                    }
                 )) {
                     ForEach(ParentageSituation.allCases, id: \.self) { value in
                         Text(value.label).tag(value)
@@ -88,7 +112,16 @@ struct HouseholdEditorView: View {
             Section {
                 Picker("Coverage", selection: Binding(
                     get: { profile.insuranceKind },
-                    set: { profile.insuranceKind = $0 }
+                    set: {
+                        profile.insuranceKind = $0
+                        if $0 != .marketplace {
+                            profile.marketplaceKind = .unknown
+                        }
+                        if $0 != .employer {
+                            profile.employerPlanName = ""
+                            profile.benefitsContactNote = ""
+                        }
+                    }
                 )) {
                     ForEach(InsuranceKind.allCases, id: \.self) { value in
                         Text(value.label).tag(value)
@@ -151,5 +184,50 @@ struct HouseholdEditorView: View {
                 Text("Both parents taking leave means two claims, with two employers and two windows, so it puts two tasks on the plan rather than one.")
             }
         }
+    }
+}
+
+private struct HouseholdSnapshot {
+    let residenceStateCode: String
+    let parentage: ParentageSituation
+    let secondParentOnRecord: Bool
+    let insuranceKind: InsuranceKind
+    let marketplaceKind: MarketplaceKind
+    let employerPlanName: String
+    let benefitsContactNote: String
+    let hasDependentCareFSA: Bool
+    let parentalLeaveTakers: ParentalLeaveTakers
+    let wantsNewbornAccount: Bool
+    let wants529: Bool
+    let wantsPassport: Bool
+
+    init(profile: FamilyProfile) {
+        residenceStateCode = profile.residenceStateCode
+        parentage = profile.parentage
+        secondParentOnRecord = profile.secondParentOnRecord
+        insuranceKind = profile.insuranceKind
+        marketplaceKind = profile.marketplaceKind
+        employerPlanName = profile.employerPlanName
+        benefitsContactNote = profile.benefitsContactNote
+        hasDependentCareFSA = profile.hasDependentCareFSA
+        parentalLeaveTakers = profile.parentalLeaveTakers
+        wantsNewbornAccount = profile.wantsNewbornAccount
+        wants529 = profile.wants529
+        wantsPassport = profile.wantsPassport
+    }
+
+    func apply(to profile: FamilyProfile) {
+        profile.residenceStateCode = residenceStateCode
+        profile.parentage = parentage
+        profile.secondParentOnRecord = secondParentOnRecord
+        profile.insuranceKind = insuranceKind
+        profile.marketplaceKind = marketplaceKind
+        profile.employerPlanName = employerPlanName
+        profile.benefitsContactNote = benefitsContactNote
+        profile.hasDependentCareFSA = hasDependentCareFSA
+        profile.parentalLeaveTakers = parentalLeaveTakers
+        profile.wantsNewbornAccount = wantsNewbornAccount
+        profile.wants529 = wants529
+        profile.wantsPassport = wantsPassport
     }
 }

@@ -26,6 +26,9 @@ struct PlanSeed: Codable, Equatable, Sendable {
     /// to say so rather than silently build the wrong plan.
     var version: Int = 1
 
+    /// Stable identity for a child shared between two phones. Optional keeps
+    /// links made before this field shipped decodable.
+    var childID: UUID?
     var name: String
     var birthDate: Date
     var birthStateCode: String
@@ -41,6 +44,11 @@ struct PlanSeed: Codable, Equatable, Sendable {
     /// older build knew. A link sits in an inbox for months and has to keep
     /// working when it is finally tapped.
     var marketplaceKind: String?
+    /// These are optional so links written before these answers were shared
+    /// still decode. They matter because the generated employer task names the
+    /// plan and tells the parent who to contact.
+    var employerPlanName: String?
+    var benefitsContactNote: String?
     var hasDependentCareFSA: Bool
     var wantsPassport: Bool
     var wants529: Bool
@@ -59,8 +67,9 @@ struct PlanSeed: Codable, Equatable, Sendable {
     @MainActor
     static func make(child: Child, profile: FamilyProfile) -> PlanSeed {
         PlanSeed(
+            childID: child.id,
             name: child.name,
-            birthDate: child.birthDate,
+            birthDate: DateOnly.canonicalFromUTC(child.birthDate),
             birthStateCode: child.birthStateCode,
             birthCounty: child.birthCounty,
             isUSCitizen: child.isUSCitizen,
@@ -69,6 +78,12 @@ struct PlanSeed: Codable, Equatable, Sendable {
             secondParentOnRecord: profile.secondParentOnRecord,
             insuranceKind: profile.insuranceKindRaw,
             marketplaceKind: profile.marketplaceKindRaw,
+            employerPlanName: profile.insuranceKind == .employer
+                ? safeExternalText(profile.employerPlanName)
+                : nil,
+            benefitsContactNote: profile.insuranceKind == .employer
+                ? safeExternalText(profile.benefitsContactNote)
+                : nil,
             hasDependentCareFSA: profile.hasDependentCareFSA,
             wantsPassport: profile.wantsPassport,
             wants529: profile.wants529,
@@ -101,7 +116,9 @@ struct PlanSeed: Codable, Equatable, Sendable {
     func encoded() -> String? {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        guard let data = try? encoder.encode(self) else { return nil }
+        var normalized = self
+        normalized.birthDate = DateOnly.canonicalFromUTC(birthDate)
+        guard let data = try? encoder.encode(normalized) else { return nil }
         return data.base64URLEncodedString()
     }
 
@@ -124,7 +141,8 @@ struct PlanSeed: Codable, Equatable, Sendable {
         guard let data = Data(base64URLEncoded: payload) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        guard let seed = try? decoder.decode(PlanSeed.self, from: data) else { return nil }
+        guard var seed = try? decoder.decode(PlanSeed.self, from: data) else { return nil }
+        seed.birthDate = DateOnly.canonicalFromUTC(seed.birthDate)
         guard seed.version >= 1, seed.version <= currentVersion else { return nil }
         guard seed.isSemanticallyValid else { return nil }
         return seed
@@ -136,16 +154,36 @@ struct PlanSeed: Codable, Equatable, Sendable {
         let validParentage = ParentageSituation(rawValue: parentage) != nil
         let validInsurance = InsuranceKind(rawValue: insuranceKind) != nil
         let validMarketplace = marketplaceKind.map { MarketplaceKind(rawValue: $0) != nil } ?? true
+        let validLeave: Bool
+        if let raw = parentalLeaveTakers, let takers = ParentalLeaveTakers(rawValue: raw) {
+            validLeave = (takers != .nobody) == takingParentalLeave
+        } else {
+            validLeave = parentalLeaveTakers == nil
+        }
 
+        let today = DateOnly.canonical(Date())
         return nameLength <= 120
             && countyLength <= 120
-            && birthDate <= Date()
+            && birthDate <= today
             && birthDate >= Date(timeIntervalSince1970: 0)
             && USState.named(birthStateCode) != nil
             && USState.named(residenceStateCode) != nil
             && validParentage
             && validInsurance
             && validMarketplace
+            && validLeave
+    }
+
+    /// A parent can paste arbitrary text into a benefits field. Keep the useful
+    /// words while preventing a common Social Security number shape from
+    /// leaving the phone in a shared link.
+    static func safeExternalText(_ value: String) -> String {
+        let pattern = #"(?<![0-9])[0-9]{3}[- .]?[0-9]{2}[- .]?[0-9]{4}(?![0-9])"#
+        return value.replacingOccurrences(
+            of: pattern,
+            with: "[redacted Social Security number]",
+            options: .regularExpression
+        )
     }
 }
 

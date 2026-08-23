@@ -3,6 +3,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.scenePhase) private var scenePhase
     @State private var store = StoreService.shared
     @State private var vault = VaultStore.shared
     @State private var notifications = NotificationService.shared
@@ -112,7 +113,7 @@ struct SettingsView: View {
 
                 Section {
                     Label {
-                        Text("Baby Docs has no account. Everything you enter, and every photograph you add, stays on this phone unless you choose to send it: nothing is uploaded on its own, so there is nothing for us to delete on your behalf and nothing for anyone to breach. Sending a plan to the other parent puts your household answers and the baby's first name in that link, deliberately, and only when you tap it. Photographs never travel at all. If you buy Plus, Apple and RevenueCat hold the purchase itself; that record carries nothing about your family. The privacy policy sets out exactly what it contains.")
+                        Text("Baby Docs has no account. Everything you enter, and every photograph you add, stays on this phone unless you choose to send it: nothing is uploaded on its own, so there is nothing for us to delete on your behalf and nothing for anyone to breach. Sending a plan to the other parent puts your household answers and the baby's first name in that link, deliberately, and only when you tap it. Photographs never travel at all. If you tap the location helper, iOS may send one position to Apple's geocoding service to name the state and county, and Baby Docs does not store that position. If you buy Plus, Apple and RevenueCat hold the purchase itself; that record carries nothing about your family. The privacy policy sets out exactly what it contains.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -148,6 +149,11 @@ struct SettingsView: View {
                 Button("OK", role: .cancel) { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "")
+            }
+            .task { await notifications.refreshStatus() }
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .active else { return }
+                Task { await notifications.refreshStatus() }
             }
         }
     }

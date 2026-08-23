@@ -30,7 +30,9 @@ final class ScreenshotUITests: XCTestCase {
         // top, once in its own row) and a label query finds both and refuses to
         // tap either.
         let title = "Order certified copies of the birth certificate"
-        let row = app.staticTexts[title]
+        let row = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH %@", title)
+        ).firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 5))
         row.tap()
 
@@ -100,12 +102,17 @@ final class ScreenshotUITests: XCTestCase {
         // required marks exist for: the first screen a parent sees has to say
         // which answers the plan cannot be built without.
         capture(name: "01-baby")
+        let dateConfirmation = app.switches["I checked this date"].firstMatch
+        XCTAssertTrue(dateConfirmation.waitForExistence(timeout: 5))
+        dateConfirmation.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        app.buttons["US citizen"].firstMatch.tap()
         choose(state: "California", labelled: "State of birth", in: app)
         app.buttons["Continue"].firstMatch.tap()
 
         XCTAssertTrue(app.navigationBars["Your household"].waitForExistence(timeout: 5))
         capture(name: "02-household")
         choose(state: "California", labelled: "State you live in", in: app)
+        app.buttons["Married to the other parent"].firstMatch.tap()
         app.buttons["Continue"].firstMatch.tap()
 
         XCTAssertTrue(app.navigationBars["Coverage"].waitForExistence(timeout: 5))

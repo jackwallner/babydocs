@@ -76,23 +76,31 @@ final class LayoutUITests: XCTestCase {
 
     private func assertSourceClearsTabBar(_ app: XCUIApplication) {
         let footnote = app.staticTexts["Where this comes from"]
+        let sourceEnd = app.staticTexts["source-limitations"]
+        let tabBar = app.tabBars.firstMatch
         // Twelve swipes was the budget, and at accessibility XXXL the task
         // detail is far longer than twelve swipes: the assertion was failing on
         // a screen where the footnote was reachable, just further down than the
         // loop was willing to go. A budget for the *largest* text size is what
         // this test needs, because that is the size it exists to check.
-        for _ in 0..<30 where !footnote.isHittable {
+        for _ in 0..<30 {
+            guard sourceEnd.exists else {
+                app.swipeUp()
+                continue
+            }
+            guard sourceEnd.frame.maxY > tabBar.frame.minY else { break }
             app.swipeUp()
         }
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         shot.name = "accessibility-bottom-of-task"
         shot.lifetime = .keepAlways
         add(shot)
-        XCTAssertTrue(footnote.isHittable, "The source footnote never became reachable at large text")
+        XCTAssertTrue(footnote.exists, "The source footnote never became reachable at large text")
+        XCTAssertTrue(sourceEnd.exists, "The source limitations never became reachable at large text")
         XCTAssertLessThanOrEqual(
-            footnote.frame.maxY,
-            app.tabBars.firstMatch.frame.minY,
-            "The source footnote sits under the floating tab bar at large text"
+            sourceEnd.frame.maxY,
+            tabBar.frame.minY,
+            "The end of the source footnote sits under the floating tab bar at large text"
         )
     }
 }
@@ -169,6 +177,22 @@ final class TabBarClearanceUITests: XCTestCase {
         )
     }
 
+    func testDocumentsChecklistLastItemClearsTheTabBar() {
+        let app = launchSeeded()
+        app.tabBars.buttons["Documents"].tap()
+        XCTAssertTrue(app.navigationBars["Documents"].waitForExistence(timeout: 10))
+        assertClearsTabBar(
+            app.staticTexts["The per-copy fee"].firstMatch,
+            in: app,
+            "The last checklist item on Documents"
+        )
+    }
+
+    func testPlanShowsHouseholdAnswersOutsideTheOptionsMenu() {
+        let app = launchSeeded()
+        XCTAssertTrue(app.buttons["Change household answers"].waitForExistence(timeout: 10))
+    }
+
     func testChildDetailShareFooterClearsTheTabBar() {
         let app = launchSeeded()
         app.tabBars.buttons["Children"].tap()
@@ -206,9 +230,48 @@ final class ArchiveRecoveryUITests: XCTestCase {
         app.buttons["Edit details"].tap()
         XCTAssertTrue(app.buttons["Archive this child"].waitForExistence(timeout: 10))
         app.buttons["Archive this child"].tap()
+        let confirmation = app.sheets.buttons["Archive this child"]
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 5))
+        confirmation.tap()
 
         XCTAssertTrue(app.staticTexts["This child is archived"].waitForExistence(timeout: 10))
         app.buttons["Restore Rosa"].tap()
         XCTAssertTrue(app.navigationBars["Plan"].waitForExistence(timeout: 10))
+    }
+}
+
+@MainActor
+final class PaywallLayoutUITests: XCTestCase {
+
+    override func setUp() {
+        continueAfterFailure = false
+    }
+
+    func testBenefitsNeverHideBehindPurchaseBar() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-uitest-wipe-store", "-uitest-seed"]
+        app.launch()
+
+        XCTAssertTrue(app.navigationBars["Plan"].waitForExistence(timeout: 15))
+        app.tabBars.buttons["Children"].tap()
+        XCTAssertTrue(app.navigationBars["Children"].waitForExistence(timeout: 10))
+        app.buttons["Add another child"].tap()
+        XCTAssertTrue(app.navigationBars["Baby Docs Plus"].waitForExistence(timeout: 10))
+
+        let lastBenefit = app.staticTexts["Every child"]
+        let purchaseButton = app.buttons["Start my free trial"]
+        XCTAssertTrue(lastBenefit.waitForExistence(timeout: 10))
+        XCTAssertTrue(purchaseButton.waitForExistence(timeout: 10))
+
+        for _ in 0..<10 where !lastBenefit.isHittable {
+            app.swipeUp()
+        }
+
+        XCTAssertTrue(lastBenefit.isHittable, "The last Plus benefit is not reachable")
+        XCTAssertLessThanOrEqual(
+            lastBenefit.frame.maxY,
+            purchaseButton.frame.minY,
+            "The last Plus benefit is hidden behind the purchase bar"
+        )
     }
 }

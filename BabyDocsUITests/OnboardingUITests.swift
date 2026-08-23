@@ -45,14 +45,32 @@ final class OnboardingUITests: XCTestCase {
         app.buttons["Get started"].tap()
 
         XCTAssertTrue(app.navigationBars["Your baby"].waitForExistence(timeout: 5))
+        let dateConfirmation = app.switches["I checked this date"].firstMatch
+        XCTAssertTrue(dateConfirmation.waitForExistence(timeout: 5))
+        dateConfirmation.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        app.buttons["US citizen"].firstMatch.tap()
         choose(state: "California", labelled: "State of birth", in: app)
         app.buttons["Continue"].firstMatch.tap()
 
         XCTAssertTrue(app.navigationBars["Your household"].waitForExistence(timeout: 5))
         choose(state: "California", labelled: "State you live in", in: app)
+        app.buttons["Prefer not to say"].firstMatch.tap()
+        XCTAssertTrue(
+            app.buttons["Continue"].firstMatch.isEnabled,
+            "Prefer not to say should be an explicit parentage answer"
+        )
         app.buttons["Continue"].firstMatch.tap()
 
         XCTAssertTrue(app.navigationBars["Coverage"].waitForExistence(timeout: 5))
+        XCTAssertFalse(
+            app.buttons["Continue"].firstMatch.isEnabled,
+            "Coverage should require an explicit answer, including Not sure yet"
+        )
+        app.buttons["Not sure yet"].firstMatch.tap()
+        XCTAssertTrue(
+            app.buttons["Continue"].firstMatch.isEnabled,
+            "Not sure yet should be an explicit coverage answer"
+        )
         app.buttons["Continue"].firstMatch.tap()
 
         XCTAssertTrue(app.navigationBars["Leave"].waitForExistence(timeout: 5))

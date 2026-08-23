@@ -5,7 +5,7 @@ struct ChildrenView: View {
     @Environment(\.modelContext) private var context
     @Query(filter: #Predicate<Child> { $0.deletedAt == nil }, sort: \Child.birthDate)
     private var children: [Child]
-    @Query(filter: #Predicate<Child> { $0.deletedAt != nil }, sort: \Child.birthDate)
+    @Query(filter: #Predicate<Child> { $0.deletedAt != nil && !$0.isEphemeralDraft }, sort: \Child.birthDate)
     private var archivedChildren: [Child]
 
     @State private var editingChild: Child?
@@ -117,10 +117,15 @@ struct ChildrenView: View {
         }
         let child = Child(birthDate: Date())
         child.colorIndex = children.count
+        child.isEphemeralDraft = true
         child.deletedAt = Date()
         context.insert(child)
         draftChildID = child.id
-        child.recordLocalChange(in: context)
+        guard child.recordLocalChange(in: context) else {
+            context.delete(child)
+            draftChildID = nil
+            return
+        }
         editingChild = child
     }
 
@@ -142,12 +147,12 @@ struct ChildrenView: View {
 
     private func restore(_ child: Child) {
         child.deletedAt = nil
-        child.recordLocalChange(in: context)
-        RequirementEngine.reconcile(
+        let result = RequirementEngine.reconcile(
             child: child,
             profile: FamilyProfileStore.current(in: context),
             in: context
         )
+        guard result.didPersist else { return }
         Task {
             await DeadlineReminderScheduler.reschedule(in: context)
         }
@@ -212,12 +217,12 @@ struct ArchivedChildrenRecoveryView: View {
 
     private func restore(_ child: Child) {
         child.deletedAt = nil
-        child.recordLocalChange(in: context)
-        RequirementEngine.reconcile(
+        let result = RequirementEngine.reconcile(
             child: child,
             profile: FamilyProfileStore.current(in: context),
             in: context
         )
+        guard result.didPersist else { return }
         Task {
             await DeadlineReminderScheduler.reschedule(in: context)
         }
@@ -294,6 +299,7 @@ struct ChildDetailView: View {
                     }
                 }
                 Toggle("Certified birth certificate in hand", isOn: certificateBinding)
+                    .accessibilityLabel("Certified birth certificate in hand")
                 if child.birthCertificateReceivedAt != nil {
                     Stepper(
                         "Certified copies: \(child.certifiedCopiesOnHand)",
@@ -308,7 +314,11 @@ struct ChildDetailView: View {
             }
 
             Section("Details") {
-                LabeledContent("Born", value: child.birthDate.formatted(date: .abbreviated, time: .omitted))
+                LabeledContent(
+                    "Born",
+                    value: DateOnly.canonicalFromUTC(child.birthDate)
+                        .formatted(date: .abbreviated, time: .omitted)
+                )
                 LabeledContent("Registered in", value: birthPlace)
                 Button("Edit details") { isEditing = true }
             }
@@ -348,7 +358,6 @@ struct ChildDetailView: View {
             set: { newValue in
                 child.ssnStatus = newValue
                 child.ssnReceivedAt = newValue == .cardReceived ? (child.ssnReceivedAt ?? Date()) : nil
-                child.recordLocalChange(in: context)
                 rebuild()
             }
         )
@@ -360,7 +369,6 @@ struct ChildDetailView: View {
             set: { newValue in
                 child.birthCertificateReceivedAt = newValue ? Date() : nil
                 if !newValue { child.certifiedCopiesOnHand = 0 }
-                child.recordLocalChange(in: context)
                 rebuild()
             }
         )
@@ -371,17 +379,18 @@ struct ChildDetailView: View {
             get: { child.certifiedCopiesOnHand },
             set: { newValue in
                 child.certifiedCopiesOnHand = newValue
-                child.recordLocalChange(in: context)
+                _ = child.recordLocalChange(in: context)
             }
         )
     }
 
     private func rebuild() {
-        RequirementEngine.reconcile(
+        let result = RequirementEngine.reconcile(
             child: child,
             profile: FamilyProfileStore.current(in: context),
             in: context
         )
+        guard result.didPersist else { return }
         Task {
             await DeadlineReminderScheduler.reschedule(in: context)
         }
@@ -399,12 +408,18 @@ struct ChildEditorSheet: View {
     var isDraft = false
     var onConfirm: (() -> Void)?
     @State private var originalBirthStateCode: String?
+    @State private var original: ChildSnapshot?
+    @State private var isShowingArchiveConfirmation = false
+    @State private var birthDateConfirmed = false
+    @State private var citizenship: Bool?
 
     /// The two answers every deadline in the app is derived from. A plan built
     /// on today's date and a blank state is not a weaker plan, it is a wrong
     /// one, so Done does not accept it.
     private var canSave: Bool {
         !child.birthStateCode.isEmpty
+            && citizenship != nil
+            && birthDateConfirmed
     }
 
     var body: some View {
@@ -414,21 +429,46 @@ struct ChildEditorSheet: View {
                     TextField("First name", text: $child.name)
                     DatePicker(
                         "Date of birth",
-                        selection: $child.birthDate,
+                        selection: Binding(
+                            get: { child.birthDate },
+                            set: { newValue in
+                                if !DateOnly.sameDay(newValue, child.birthDate) {
+                                    birthDateConfirmed = false
+                                }
+                                child.birthDate = newValue
+                            }
+                        ),
                         in: ...Date(),
                         displayedComponents: .date
                     )
+                    Toggle("I checked this date", isOn: $birthDateConfirmed)
                 }
 
                 Section {
-                    Picker("State of birth", selection: $child.birthStateCode) {
+                    Picker("State of birth", selection: Binding(
+                        get: { child.birthStateCode },
+                        set: { newValue in
+                            if newValue != child.birthStateCode {
+                                child.birthCounty = ""
+                            }
+                            child.birthStateCode = newValue
+                        }
+                    )) {
                         Text("Select").tag("")
                         ForEach(USState.all) { state in
                             Text(state.name).tag(state.code)
                         }
                     }
                     CountyField(stateCode: child.birthStateCode, county: $child.birthCounty)
-                    Toggle("US citizen", isOn: $child.isUSCitizen)
+                    Picker("Citizenship", selection: $citizenship) {
+                        Text("Choose").tag(nil as Bool?)
+                        Text("US citizen").tag(true as Bool?)
+                        Text("Not a US citizen").tag(false as Bool?)
+                }
+                .pickerStyle(.inline)
+                .labelsHidden()
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Citizenship")
                 } footer: {
                     let office = StateVitalRecords.office(for: child.birthStateCode)
                     if child.birthStateCode.isEmpty {
@@ -443,8 +483,7 @@ struct ChildEditorSheet: View {
                 if !isDraft {
                     Section {
                         Button("Archive this child", role: .destructive) {
-                            child.tombstone(in: context)
-                            dismiss()
+                            isShowingArchiveConfirmation = true
                         }
                     }
                 }
@@ -456,6 +495,13 @@ struct ChildEditorSheet: View {
                 if originalBirthStateCode == nil {
                     originalBirthStateCode = child.birthStateCode
                 }
+                if original == nil, !isDraft {
+                    original = ChildSnapshot(child: child)
+                    birthDateConfirmed = true
+                }
+                if citizenship == nil, !isDraft {
+                    citizenship = child.isUSCitizen
+                }
             }
             .toolbar {
                 // A sheet that can create a child and cannot cancel one is a
@@ -465,11 +511,25 @@ struct ChildEditorSheet: View {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") { dismiss() }
                     }
+                } else {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { cancel() }
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(isDraft ? "Add" : "Done", action: confirm)
                         .disabled(!canSave)
                 }
+            }
+            .confirmationDialog(
+                "Archive \(child.displayName)?",
+                isPresented: $isShowingArchiveConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Archive this child", role: .destructive) { archive() }
+                Button("Keep this child", role: .cancel) { }
+            } message: {
+                Text("The plan, completed work and receipts stay on this phone and can be restored from Children.")
             }
         }
     }
@@ -478,21 +538,64 @@ struct ChildEditorSheet: View {
     /// what makes it visible to every query and to the requirement engine, so a
     /// plan is generated from confirmed answers rather than from defaults.
     private func confirm() {
+        guard let citizenship else { return }
         if isDraft { child.deletedAt = nil }
+        child.birthDate = DateOnly.canonical(child.birthDate)
+        child.isUSCitizen = citizenship
+        child.isEphemeralDraft = false
         if originalBirthStateCode != child.birthStateCode {
             child.birthCounty = ""
         }
-        child.recordLocalChange(in: context)
-        RequirementEngine.reconcile(
+        let result = RequirementEngine.reconcile(
             child: child,
             profile: FamilyProfileStore.current(in: context),
             in: context
         )
+        guard result.didPersist else { return }
         Task {
             await DeadlineReminderScheduler.reschedule(in: context)
         }
         onConfirm?()
         dismiss()
+    }
+
+    private func cancel() {
+        guard let original else {
+            dismiss()
+            return
+        }
+        original.apply(to: child)
+        guard child.recordLocalChange(in: context) else { return }
+        dismiss()
+    }
+
+    private func archive() {
+        guard child.tombstone(in: context) else { return }
+        dismiss()
+    }
+}
+
+private struct ChildSnapshot {
+    let name: String
+    let birthDate: Date
+    let birthStateCode: String
+    let birthCounty: String
+    let isUSCitizen: Bool
+
+    init(child: Child) {
+        name = child.name
+        birthDate = child.birthDate
+        birthStateCode = child.birthStateCode
+        birthCounty = child.birthCounty
+        isUSCitizen = child.isUSCitizen
+    }
+
+    func apply(to child: Child) {
+        child.name = name
+        child.birthDate = birthDate
+        child.birthStateCode = birthStateCode
+        child.birthCounty = birthCounty
+        child.isUSCitizen = isUSCitizen
     }
 }
 

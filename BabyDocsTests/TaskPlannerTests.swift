@@ -75,6 +75,31 @@ struct TaskPlannerTests {
         #expect(overview.nextHardDeadlineTitle == "B")
     }
 
+    @Test("A dismissed task is not presented as completed progress")
+    func dismissedDoesNotInflateProgress() {
+        let dismissed = task(dueInDays: 2)
+        dismissed.dismissedAt = now
+
+        let overview = TaskPlanner.overview(for: [dismissed], now: now)
+
+        #expect(overview.openCount == 0)
+        #expect(overview.doneCount == 0)
+        #expect(overview.totalCount == 0)
+        #expect(overview.progress == 0)
+    }
+
+    @Test("A past hard deadline remains the prominent deadline")
+    func pastHardDeadlineIsRetained() {
+        let missed = task(title: "Add the baby to insurance", dueInDays: -1, kind: .hard)
+        let future = task(title: "Future window", dueInDays: 5, kind: .hard)
+
+        let overview = TaskPlanner.overview(for: [missed, future], now: now)
+
+        #expect(overview.pastHardDeadlineTitle == "Add the baby to insurance")
+        #expect(overview.nextHardDeadlineTitle == "Future window")
+        #expect(overview.hasPastHardDeadline)
+    }
+
     @Test("A finished plan reports no next hard deadline")
     func noDeadlineWhenDone() {
         let overview = TaskPlanner.overview(

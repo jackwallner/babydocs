@@ -23,21 +23,24 @@ struct PaywallView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: AppTheme.looseSpacing) {
-                    header
-                    // Put the decision in the first viewport. The fixed purchase
-                    // bar repeats the selected plan's terms, but it must never
-                    // be the thing covering the trial line a buyer is comparing.
-                    plans
-                    benefits
-                    subscriptionTerms
-                    footerLinks
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(spacing: AppTheme.looseSpacing) {
+                        header
+                        // Put the decision in the first viewport. The purchase
+                        // bar repeats the selected plan's terms, but it must
+                        // never cover the benefit list while it is being read.
+                        plans
+                        benefits
+                        subscriptionTerms
+                        footerLinks
+                    }
+                    .padding(.horizontal, AppTheme.margin)
+                    .padding(.bottom, AppTheme.looseSpacing)
                 }
-                .padding(.horizontal, AppTheme.margin)
-                .padding(.bottom, AppTheme.looseSpacing)
+                buyBar
+                    .safeAreaPadding(.bottom)
             }
-            .safeAreaInset(edge: .bottom) { buyBar }
             .navigationTitle("Baby Docs Plus")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -46,11 +49,7 @@ struct PaywallView: View {
                 }
             }
             .task {
-                await store.refresh()
-                if selection == nil {
-                    selection = store.plans.first { $0.id == ProProduct.weekly }?.id
-                        ?? store.plans.first?.id
-                }
+                await refreshStore()
             }
             .alert("Purchases", isPresented: errorBinding) {
                 Button("OK", role: .cancel) { errorMessage = nil }
@@ -83,10 +82,12 @@ struct PaywallView: View {
     /// parent works, and it is free, so it is not sold here either.
     private var benefits: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacing) {
-            benefit("lock.doc", "The document vault",
-                    "Photographs of the birth certificate, the card and the insurance details, on your phone at the counter. Never backed up, never uploaded.")
+            benefit("lock.doc", "The document vault after twelve weeks",
+                    "Photographs of the birth certificate, the card and the insurance details, on your phone at the counter. Adding stays free during the first twelve weeks. Never backed up, never uploaded.")
             benefit("clock.badge.exclamationmark", "Chase what has not arrived",
                     "Record what you sent and what you were told to expect. The plan speaks up when that date passes, because nothing else will.")
+            benefit("doc.text", "Printable one-page summary",
+                    "A plain-text copy of the plan for the other parent, the appointment folder or whoever is driving.")
             benefit("briefcase", "The employer packet",
                     "The qualifying-life-event page HR asks for, with the event, the date and the enclosures already filled in.")
             benefit("figure.and.child.holdinghands", "Every child",
@@ -128,7 +129,7 @@ struct PaywallView: View {
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                         Button("Try again") {
-                            Task { await store.refresh() }
+                            Task { await refreshStore() }
                         }
                         .buttonStyle(.bordered)
                     }
@@ -192,6 +193,14 @@ struct PaywallView: View {
                 .accessibilityValue(selection == plan.id ? "Selected" : "Not selected")
             }
         }
+    }
+
+    private func refreshStore() async {
+        await store.refresh()
+        let available = Set(store.plans.map(\.id))
+        if let selection, available.contains(selection) { return }
+        selection = store.plans.first { $0.id == ProProduct.weekly }?.id
+            ?? store.plans.first?.id
     }
 
     /// The disclosure App Review 3.1.2 requires, in the place the decision is
@@ -274,9 +283,15 @@ struct PaywallView: View {
     /// between metadata and binary that a subscription review is looking for.
     private var footerLinks: some View {
         VStack(spacing: AppTheme.tightSpacing) {
-            HStack(spacing: AppTheme.looseSpacing) {
-                Link("Terms of Use", destination: URL(string: "https://jackwallner.com/ios/babydocs/terms.html")!)
-                Link("Privacy Policy", destination: URL(string: "https://jackwallner.com/ios/babydocs/privacy-policy.html")!)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: AppTheme.looseSpacing) {
+                    Link("Terms of Use", destination: URL(string: "https://jackwallner.com/ios/babydocs/terms.html")!)
+                    Link("Privacy Policy", destination: URL(string: "https://jackwallner.com/ios/babydocs/privacy-policy.html")!)
+                }
+                VStack(spacing: AppTheme.hairSpacing) {
+                    Link("Terms of Use", destination: URL(string: "https://jackwallner.com/ios/babydocs/terms.html")!)
+                    Link("Privacy Policy", destination: URL(string: "https://jackwallner.com/ios/babydocs/privacy-policy.html")!)
+                }
             }
             Link("Apple Standard EULA", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
         }

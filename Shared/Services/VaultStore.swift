@@ -72,6 +72,7 @@ final class VaultStore {
             return ok
         } catch {
             log.info("vault unlock declined")
+            lastError = "The document vault could not be unlocked. Try again when you are ready."
             return false
         }
     }
@@ -102,14 +103,14 @@ final class VaultStore {
 
     func image(named name: String) -> UIImage? {
         guard isUnlocked else { return nil }
-        guard let url = try? directory().appendingPathComponent(name),
+        guard let url = safeURL(for: name),
               let data = try? Data(contentsOf: url) else { return nil }
         return UIImage(data: data)
     }
 
     @discardableResult
     func removePage(named name: String) -> Bool {
-        guard let url = try? directory().appendingPathComponent(name) else { return false }
+        guard let url = safeURL(for: name) else { return false }
         do {
             if FileManager.default.fileExists(atPath: url.path) {
                 try FileManager.default.removeItem(at: url)
@@ -130,6 +131,26 @@ final class VaultStore {
         names.filter { !removePage(named: $0) }
     }
 
+    /// Removes a file left by a crash between writing a page and saving its
+    /// model row. The model is the source of truth, so an unreferenced file is
+    /// safe to remove and must not remain as an undiscoverable sensitive copy.
+    @discardableResult
+    func removeOrphanedPages(referencedNames: Set<String>) -> Int {
+        guard let dir = try? directory(),
+              let contents = try? FileManager.default.contentsOfDirectory(
+                  at: dir,
+                  includingPropertiesForKeys: nil
+              ) else { return 0 }
+
+        var removed = 0
+        for url in contents where !referencedNames.contains(url.lastPathComponent) {
+            if removePage(named: url.lastPathComponent) {
+                removed += 1
+            }
+        }
+        return removed
+    }
+
     /// Total bytes on disk, for the line in Settings. A vault is the one part of
     /// this app that can grow without the user noticing.
     func totalBytes() -> Int64 {
@@ -145,6 +166,20 @@ final class VaultStore {
     }
 
     // MARK: - Location on disk
+
+    /// Model data is local, but it is still input. Keep a corrupted filename
+    /// from turning an image read or delete into a path traversal outside the
+    /// protected vault directory.
+    private func safeURL(for name: String) -> URL? {
+        guard name.count <= 100,
+              name == URL(fileURLWithPath: name).lastPathComponent,
+              name.lowercased().hasSuffix(".jpg") else { return nil }
+        guard let dir = try? directory() else { return nil }
+        let base = dir.standardizedFileURL.path
+        let candidate = dir.appendingPathComponent(name).standardizedFileURL
+        guard candidate.path.hasPrefix(base + "/") else { return nil }
+        return candidate
+    }
 
     private func directory() throws -> URL {
         let manager = FileManager.default

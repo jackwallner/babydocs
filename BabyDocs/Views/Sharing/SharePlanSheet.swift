@@ -115,7 +115,7 @@ struct SharePlanSheet: View {
 struct ImportPlanSheet: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
-    @Query(filter: #Predicate<Child> { $0.deletedAt == nil }) private var children: [Child]
+    @Query(filter: #Predicate<Child> { !$0.isEphemeralDraft }) private var allChildren: [Child]
 
     let seed: PlanSeed
     var onImported: (() -> Void)?
@@ -129,27 +129,46 @@ struct ImportPlanSheet: View {
     @State private var mergeTargetID: UUID?
     @State private var hasChosenTarget = false
 
+    private var children: [Child] {
+        allChildren.filter { $0.deletedAt == nil }
+    }
+
     var body: some View {
         NavigationStack {
             List {
                 Section {
                     LabeledContent("Baby", value: seed.name.isEmpty ? "Not named" : seed.name)
-                    LabeledContent("Born", value: seed.birthDate.formatted(date: .abbreviated, time: .omitted))
+                    LabeledContent(
+                        "Born",
+                        value: DateOnly.canonicalFromUTC(seed.birthDate)
+                            .formatted(date: .abbreviated, time: .omitted)
+                    )
                     LabeledContent("Registered in", value: birthPlace)
                     LabeledContent("You live in", value: USState.displayName(for: seed.residenceStateCode))
                     LabeledContent("Coverage", value: InsuranceKind(rawValue: seed.insuranceKind)?.label ?? "Not set")
+                    if seed.insuranceKind == InsuranceKind.employer.rawValue,
+                       let planName = seed.employerPlanName,
+                       !planName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        LabeledContent("Plan", value: planName)
+                    }
+                    if seed.insuranceKind == InsuranceKind.employer.rawValue,
+                       let contact = seed.benefitsContactNote,
+                       !contact.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        LabeledContent("Benefits contact", value: contact)
+                    }
                 } header: {
                     Text("What was sent")
                 } footer: {
                     Text("These answers, and nothing else. No completed tasks, no documents and no photographs travel in a link.")
                 }
 
-                if !children.isEmpty {
+                if !allChildren.isEmpty {
                     Section {
                         Picker("This child is", selection: $mergeTargetID) {
                             Text("Someone new").tag(UUID?.none)
-                            ForEach(children) { child in
-                                Text("\(child.displayName), already on this phone").tag(UUID?.some(child.id))
+                            ForEach(allChildren) { child in
+                                let suffix = child.deletedAt == nil ? "already on this phone" : "archived on this phone"
+                                Text("\(child.displayName), \(suffix)").tag(UUID?.some(child.id))
                             }
                         }
                         .pickerStyle(.inline)
@@ -193,15 +212,15 @@ struct ImportPlanSheet: View {
     private func proposeTarget() {
         guard !hasChosenTarget else { return }
         hasChosenTarget = true
-        let matches = children.filter {
-            Calendar.current.isDate($0.birthDate, inSameDayAs: seed.birthDate)
+        let matches = allChildren.filter {
+            DateOnly.sameDay($0.birthDate, seed.birthDate)
                 && $0.birthStateCode == seed.birthStateCode
         }
         mergeTargetID = matches.count == 1 ? matches[0].id : nil
     }
 
     private var mergeTarget: Child? {
-        children.first { $0.id == mergeTargetID }
+        allChildren.first { $0.id == mergeTargetID }
     }
 
     private var matchHint: String {
@@ -212,8 +231,8 @@ struct ImportPlanSheet: View {
     }
 
     private var actionTitle: String {
-        if children.isEmpty { return "Build my plan from this" }
         if let target = mergeTarget { return "Replace my answers and update \(target.displayName)" }
+        if children.isEmpty { return "Build my plan from this" }
         return "Replace my answers and add this child"
     }
 
@@ -245,6 +264,13 @@ struct ImportPlanSheet: View {
         profile.secondParentOnRecord = seed.secondParentOnRecord
         profile.insuranceKindRaw = seed.insuranceKind
         profile.marketplaceKindRaw = seed.marketplaceKind ?? MarketplaceKind.unknown.rawValue
+        if seed.insuranceKind == InsuranceKind.employer.rawValue {
+            profile.employerPlanName = seed.employerPlanName ?? ""
+            profile.benefitsContactNote = seed.benefitsContactNote ?? ""
+        } else {
+            profile.employerPlanName = ""
+            profile.benefitsContactNote = ""
+        }
         profile.hasDependentCareFSA = seed.hasDependentCareFSA
         profile.wantsPassport = seed.wantsPassport
         profile.wants529 = seed.wants529
@@ -252,24 +278,33 @@ struct ImportPlanSheet: View {
         profile.parentalLeaveTakers = seed.parentalLeaveTakers
             .flatMap(ParentalLeaveTakers.init(rawValue:))
             ?? (seed.takingParentalLeave ? .oneParent : .nobody)
-        profile.recordLocalChange(in: context)
+        profile.updatedAt = Date()
 
         // Whichever child the recipient picked, and nothing inferred. See
         // `proposeTarget`.
         let existing = mergeTarget
         let child = existing ?? Child()
+        if existing == nil,
+           let childID = seed.childID,
+           !allChildren.contains(where: { $0.id == childID }) {
+            child.id = childID
+        }
         child.name = seed.name
-        child.birthDate = seed.birthDate
+        child.birthDate = DateOnly.canonicalFromUTC(seed.birthDate)
         child.birthStateCode = seed.birthStateCode
         child.birthCounty = seed.birthCounty
         child.isUSCitizen = seed.isUSCitizen
         if existing == nil {
             child.colorIndex = children.count
             context.insert(child)
+        } else {
+            child.deletedAt = nil
         }
-        child.recordLocalChange(in: context)
-
-        RequirementEngine.reconcileAll(in: context)
+        // The engine saves the household answers, child and generated plans at
+        // one boundary. A link import stays open if the disk rejects it.
+        let result = RequirementEngine.reconcileAll(in: context)
+        guard result.didPersist else { return }
+        OnboardingDraftStore.clear()
         Task {
             let tasks = ((try? context.fetch(FetchDescriptor<Child>())) ?? [])
                 .filter { $0.deletedAt == nil }

@@ -147,6 +147,21 @@ struct SourceIntegrityTests {
         }
     }
 
+    @Test("Birth certificate coverage includes every state and DC")
+    func everyStateHasOneVitalRecordsEntry() {
+        let territories = Set(["PR", "VI", "GU", "MP", "AS"])
+        let expected = Set(USState.all.map(\.code)).subtracting(territories)
+        let actual = Set(StateVitalRecords.verifiedStateCodes)
+
+        #expect(actual == expected)
+        #expect(StateVitalRecords.allOffices.count == expected.count)
+        for office in StateVitalRecords.allOffices {
+            #expect(office.urlString.hasPrefix("https://"))
+            #expect(office.url != nil, "\(office.stateCode) has an invalid office URL")
+            #expect(office.verifiedOn != nil)
+        }
+    }
+
     // MARK: - The number this app refuses to hold
 
     @Test("Nothing in the catalog asks a parent to enter a Social Security number")

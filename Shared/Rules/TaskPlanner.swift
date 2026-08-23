@@ -106,6 +106,14 @@ enum TaskPlanner {
         /// the thing, and having to find the same title again in the list below
         /// is the app making them do its work twice.
         var nextHardDeadlineID: UUID?
+        /// A missed legal window must remain visible after it closes. The home
+        /// screen uses this before the next future window, so "nothing closing"
+        /// can never hide the most consequential overdue task.
+        var pastHardDeadline: Date?
+        var pastHardDeadlineTitle: String?
+        var pastHardDeadlineID: UUID?
+
+        var hasPastHardDeadline: Bool { pastHardDeadlineID != nil }
 
         var totalCount: Int { openCount + doneCount }
 
@@ -118,22 +126,37 @@ enum TaskPlanner {
         var overview = Overview()
         var soonest: RequirementTask?
 
+        var past: RequirementTask?
+
         for task in tasks where task.deletedAt == nil {
-            if task.isDone || task.isDismissed {
+            if task.isDismissed {
+                continue
+            }
+            if task.isDone {
                 overview.doneCount += 1
                 continue
             }
             overview.openCount += 1
-            if let days = task.daysRemaining(from: now), days < 0 { overview.overdueCount += 1 }
-            guard task.deadlineKind == .hard, let due = task.dueAt, due >= now else { continue }
-            overview.hardDeadlineCount += 1
-            if let current = soonest, let currentDue = current.dueAt, currentDue <= due { continue }
-            soonest = task
+            let days = task.daysRemaining(from: now)
+            if let days, days < 0 { overview.overdueCount += 1 }
+
+            guard task.deadlineKind == .hard, let due = task.dueAt, let days else { continue }
+            if days < 0 {
+                if let current = past, let currentDue = current.dueAt, currentDue <= due { continue }
+                past = task
+            } else {
+                overview.hardDeadlineCount += 1
+                if let current = soonest, let currentDue = current.dueAt, currentDue <= due { continue }
+                soonest = task
+            }
         }
 
         overview.nextHardDeadline = soonest?.dueAt
         overview.nextHardDeadlineTitle = soonest?.title
         overview.nextHardDeadlineID = soonest?.id
+        overview.pastHardDeadline = past?.dueAt
+        overview.pastHardDeadlineTitle = past?.title
+        overview.pastHardDeadlineID = past?.id
         return overview
     }
 

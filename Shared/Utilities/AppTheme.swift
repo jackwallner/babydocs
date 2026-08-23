@@ -136,8 +136,10 @@ enum AppTheme {
     /// passing under it.
     ///
     /// The scroll view is full height again, so the system contributes the
-    /// bar's own footprint. This is only breathing room on top of it.
-    static let floatingTabBarInset: CGFloat = 24
+    /// bar's own footprint. This is breathing room on top of it. Eighty
+    /// points leaves a readable gap at the largest accessibility text size,
+    /// where a smaller cushion let the last checklist row slip under the bar.
+    static let floatingTabBarInset: CGFloat = 80
 }
 
 extension RequirementCategory {
@@ -225,11 +227,15 @@ extension View {
     func planPageBackground(underTabBar: Bool = true) -> some View {
         self
             .scrollContentBackground(.hidden)
-            .contentMargins(
-                .bottom,
-                underTabBar ? AppTheme.floatingTabBarInset : AppTheme.looseSpacing,
-                for: .scrollContent
-            )
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.clear
+                    .frame(
+                        height: underTabBar
+                            ? AppTheme.floatingTabBarInset
+                            : AppTheme.looseSpacing
+                    )
+                    .allowsHitTesting(false)
+            }
             .background(AppTheme.pageBackground.ignoresSafeArea())
     }
 }

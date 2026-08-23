@@ -98,9 +98,10 @@ extension LocalRecord {
     /// from every list the moment this is called. It stays in the store because
     /// the alternative is that a mis-swipe at 3am destroys the confirmation
     /// number for a birth certificate that took a fortnight to arrive.
-    func tombstone(in context: ModelContext) {
+    @discardableResult
+    func tombstone(in context: ModelContext) -> Bool {
         deletedAt = Date()
-        recordLocalChange(in: context)
+        return recordLocalChange(in: context)
     }
 }
 
@@ -114,6 +115,7 @@ extension Child {
         do {
             try context.save()
         } catch {
+            context.rollback()
             SaveFailureReporter.shared.report(error)
         }
     }

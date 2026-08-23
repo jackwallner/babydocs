@@ -60,6 +60,7 @@ struct DocumentsView: View {
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
+                    .accessibilityLabel("What to show")
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets(
                         top: 0, leading: 0, bottom: AppTheme.tightSpacing, trailing: 0
@@ -123,10 +124,11 @@ struct DocumentsView: View {
         children.flatMap(\.liveTasks)
     }
 
-    /// Every document every *open* task asks for, ticked or not. A task that is
-    /// finished has stopped asking, so its list stops appearing here.
+    /// Every document every live task asks for, ticked or not. Completed tasks
+    /// remain in the source list so a document already gathered does not vanish
+    /// when the errand itself is marked done.
     private var checklist: [DocumentItem] {
-        liveTasks.filter(\.isOpen).flatMap(\.liveDocuments)
+        liveTasks.flatMap(\.liveDocuments)
     }
 
     private var gathered: [DocumentItem] {
@@ -279,10 +281,13 @@ struct DocumentsView: View {
     /// you nothing about the other.
     private func setOnHand(_ item: DocumentItem, _ value: Bool) {
         let key = identity(item)
-        for match in checklist where identity(match) == key {
+        let matches = checklist.filter { identity($0) == key }
+        for match in matches {
             match.isOnHand = value
             match.markedOnHandAt = value ? Date() : nil
-            match.recordLocalChange(in: context)
+        }
+        if let first = matches.first {
+            first.recordLocalChange(in: context)
         }
     }
 
@@ -294,7 +299,12 @@ struct DocumentsView: View {
         Section {
             if !vault.isUnlocked && !documents.isEmpty {
                 Button {
-                    Task { await vault.unlock() }
+                    Task {
+                        guard await vault.unlock() else {
+                            errorMessage = vault.lastError ?? "The document vault is still locked. Try again."
+                            return
+                        }
+                    }
                 } label: {
                     Label("\(documents.count) locked. Tap to unlock.", systemImage: "lock.fill")
                 }
@@ -349,7 +359,10 @@ struct DocumentsView: View {
         if store.isPro || isWithinFreeWindow(child) {
             Button {
                 Task {
-                    guard await vault.unlock(reason: "Unlock the document vault") else { return }
+                    guard await vault.unlock(reason: "Unlock the document vault") else {
+                        errorMessage = vault.lastError ?? "The document vault is still locked. Try again."
+                        return
+                    }
                     addingFor = child
                 }
             } label: {
@@ -365,6 +378,8 @@ struct DocumentsView: View {
                     PlusBadge()
                 }
             }
+            .accessibilityLabel("Add a document. Included with Plus.")
+            .accessibilityHint("Opens the upgrade screen")
         }
     }
 
@@ -388,7 +403,10 @@ struct DocumentsView: View {
 
     private func openViewer(_ document: VaultDocument) {
         Task {
-            guard await vault.unlock(reason: "Unlock \(document.displayTitle)") else { return }
+            guard await vault.unlock(reason: "Unlock \(document.displayTitle)") else {
+                errorMessage = vault.lastError ?? "The document vault is still locked. Try again."
+                return
+            }
             viewing = document
         }
     }
@@ -406,17 +424,22 @@ struct DocumentsView: View {
     private func confirmDelete() {
         guard let document = pendingDeletion else { return }
         pendingDeletion = nil
-        // The images go now, the row goes to a tombstone. A tombstone is what
-        // makes an accidental swipe recoverable everywhere else in this app, but
-        // leaving orphaned photographs of a Social Security card on disk after
-        // someone asked for them to be gone is not a trade worth making.
-        let remaining = VaultStore.shared.removePages(named: document.pageFileNames)
+        // Commit the tombstone before touching the files. If SwiftData refuses
+        // the write, the visible row and every image are still intact. The
+        // follow-up save records any files that could not be removed, so the
+        // launch cleanup can retry without exposing the document again.
+        let names = document.pageFileNames
+        guard document.tombstone(in: context) else {
+            errorMessage = "That document could not be removed. Your photos are still on this phone."
+            return
+        }
+
+        let remaining = VaultStore.shared.removePages(named: names)
         document.pageFileNames = remaining
-        if remaining.isEmpty {
-            document.tombstone(in: context)
-        } else {
-            document.recordLocalChange(in: context)
-            errorMessage = "Some photos could not be removed. The document is still listed so you can try again."
+        if !document.recordLocalChange(in: context) {
+            errorMessage = "The document was removed from the list, but some private photos still need cleanup."
+        } else if !remaining.isEmpty {
+            errorMessage = "Some private photos could not be removed yet. Baby Docs will try again when you reopen it."
         }
     }
 
@@ -440,6 +463,7 @@ struct AddVaultDocumentSheet: View {
     @State private var hasAcknowledged = false
     @State private var isLoadingPhotos = false
     @State private var photoLoadError: String?
+    @State private var photoSelectionID = UUID()
     @State private var errorMessage: String?
 
     var body: some View {
@@ -453,6 +477,8 @@ struct AddVaultDocumentSheet: View {
                     }
                     .pickerStyle(.inline)
                     .labelsHidden()
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel("Document type")
 
                     if kind == .other {
                         TextField("Name it", text: $customTitle)
@@ -497,12 +523,15 @@ struct AddVaultDocumentSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: attemptSave)
-                        .disabled(images.isEmpty || isLoadingPhotos)
+                        .disabled(images.isEmpty || isLoadingPhotos || photoLoadError != nil)
                 }
             }
             .onChange(of: picked) { _, items in
-                Task { await load(items) }
+                let selectionID = UUID()
+                photoSelectionID = selectionID
+                Task { await load(items, selectionID: selectionID) }
             }
+            .onDisappear { photoSelectionID = UUID() }
             .alert("Before you save this", isPresented: $isShowingSensitiveNote) {
                 Button("I understand") {
                     hasAcknowledged = true
@@ -540,12 +569,13 @@ struct AddVaultDocumentSheet: View {
         Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
     }
 
-    private func load(_ items: [PhotosPickerItem]) async {
+    private func load(_ items: [PhotosPickerItem], selectionID: UUID) async {
         isLoadingPhotos = true
         photoLoadError = nil
         var loaded: [UIImage] = []
         var failed = 0
         for item in items {
+            guard selectionID == photoSelectionID else { return }
             if let data = try? await item.loadTransferable(type: Data.self),
                let image = UIImage(data: data) {
                 loaded.append(image)
@@ -553,6 +583,7 @@ struct AddVaultDocumentSheet: View {
                 failed += 1
             }
         }
+        guard selectionID == photoSelectionID else { return }
         images = loaded
         isLoadingPhotos = false
         if failed > 0 {
@@ -567,6 +598,7 @@ struct AddVaultDocumentSheet: View {
     /// forgotten whatever an onboarding screen told them in week one, and this
     /// is the only moment the sentence is actually load-bearing.
     private func attemptSave() {
+        guard photoLoadError == nil else { return }
         if kind.isSensitive && !hasAcknowledged {
             isShowingSensitiveNote = true
         } else {
@@ -608,7 +640,10 @@ struct VaultDocumentViewer: View {
     @Environment(\.scenePhase) private var scenePhase
     let document: VaultDocument
 
+    @State private var vault = VaultStore.shared
     @State private var images: [UIImage] = []
+    @State private var isLoading = false
+    @State private var missingPageCount = 0
 
     var body: some View {
         NavigationStack {
@@ -617,19 +652,38 @@ struct VaultDocumentViewer: View {
                     EmptyStateView(
                         symbol: "photo",
                         title: "Nothing to show",
-                        message: "The photos for this document could not be read."
+                        message: missingPageCount > 0
+                            ? "Some pages for this document are no longer available on this phone."
+                            : (vault.lastError ?? "Unlock the vault to view this document."),
+                        actionTitle: "Unlock and try again",
+                        action: { Task { await loadImages() } }
                     )
-                } else {
-                    TabView {
-                        ForEach(Array(images.enumerated()), id: \.offset) { index, image in
-                            ZoomableImage(image: image)
-                                .accessibilityLabel("Document photo \(index + 1) of \(images.count)")
-                        }
+                    .overlay {
+                        if isLoading { ProgressView("Unlocking the vault") }
                     }
-                    .tabViewStyle(.page)
-                    .background(Color.black)
+                } else {
+                    VStack(spacing: 0) {
+                        if missingPageCount > 0 {
+                            Text("Some pages are unavailable. The copies on this phone may be incomplete.")
+                                .font(.footnote)
+                                .foregroundStyle(.primary)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(AppTheme.spacing)
+                                .frame(maxWidth: .infinity)
+                                .background(.thinMaterial)
+                        }
+                        TabView {
+                            ForEach(Array(images.enumerated()), id: \.offset) { index, image in
+                                ZoomableImage(image: image)
+                                    .accessibilityLabel("Document photo \(index + 1) of \(images.count)")
+                            }
+                        }
+                        .tabViewStyle(.page)
+                        .background(Color.black)
+                    }
                     .accessibilityLabel("Document pages")
-                    .accessibilityHint("Swipe between pages. Pinch to zoom a page.")
+                    .accessibilityHint("Swipe between pages. Pinch to zoom a page. Some pages may be unavailable.")
                 }
             }
             .navigationTitle(document.displayTitle)
@@ -645,12 +699,34 @@ struct VaultDocumentViewer: View {
             // rather than aspirational.
         }
         .task {
-            images = document.pageFileNames.compactMap { VaultStore.shared.image(named: $0) }
+            await loadImages()
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase != .active { images = [] }
+            if phase != .active {
+                images = []
+            } else {
+                Task { await loadImages() }
+            }
         }
         .onDisappear { images = [] }
+    }
+
+    private func loadImages() async {
+        guard scenePhase == .active else { return }
+        isLoading = true
+        guard await vault.unlock(reason: "Unlock \(document.displayTitle)") else {
+            isLoading = false
+            return
+        }
+        var loaded: [UIImage] = []
+        for name in document.pageFileNames {
+            if let image = vault.image(named: name) {
+                loaded.append(image)
+            }
+        }
+        images = loaded
+        missingPageCount = document.pageFileNames.count - loaded.count
+        isLoading = false
     }
 }
 
@@ -679,6 +755,26 @@ struct ZoomableImage: View {
             .onTapGesture(count: 2) {
                 withAnimation(.snappy) { scale > 1 ? reset() : (scale = 3) }
             }
+            .accessibilityValue("Zoom \(Int(scale * 100)) percent")
+            .accessibilityHint("Use the accessibility adjustable action to zoom this page")
+            .accessibilityAdjustableAction { direction in
+                switch direction {
+                case .increment:
+                    zoom(by: 0.5)
+                case .decrement:
+                    zoom(by: -0.5)
+                @unknown default:
+                    break
+                }
+            }
+            .accessibilityAction(named: "Reset zoom") { reset() }
+    }
+
+    private func zoom(by amount: CGFloat) {
+        withAnimation(.snappy) {
+            scale = max(1, min(6, scale + amount))
+            if scale == 1 { offset = .zero }
+        }
     }
 
     private func reset() {

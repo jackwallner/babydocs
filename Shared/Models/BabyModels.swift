@@ -262,10 +262,14 @@ final class Child {
     var birthStateCode: String = ""
     var birthCounty: String = ""
     /// Eligibility for the $1,000 federal newborn account turns on this.
-    /// Defaulted true because the overwhelming majority of births this app sees
-    /// are to US citizens, and a wrong default here only ever shows one extra
-    /// task.
+    /// Existing records keep their stored answer. New intake and child-edit
+    /// flows require the parent to choose it rather than relying on this model
+    /// default.
     var isUSCitizen: Bool = true
+    /// A tombstoned child created by the add-child sheet before the parent
+    /// confirms it. It is scaffolding, not an archived family record, so launch
+    /// cleanup removes it rather than presenting it as restorable work.
+    var isEphemeralDraft: Bool = false
     var ssnStatusRaw: String = SSNStatus.unknown.rawValue
     /// When the SSN card actually arrived, so the follow-up reminder can be
     /// retired rather than nagging forever.
@@ -292,7 +296,7 @@ final class Child {
     init(name: String = "", birthDate: Date = Date(), birthStateCode: String = "") {
         self.id = UUID()
         self.name = name
-        self.birthDate = birthDate
+        self.birthDate = DateOnly.canonical(birthDate)
         self.birthStateCode = birthStateCode
         self.updatedAt = Date()
     }
@@ -524,7 +528,7 @@ final class RequirementTask {
     /// someone opens this app in week eight.
     func isLate(from now: Date = Date()) -> Bool {
         guard isOpen, submittedAt != nil, let expectedByAt else { return false }
-        return expectedByAt < now
+        return DateOnly.dayKey(expectedByAt) < DateOnly.localDayKey(now)
     }
 
     var liveDocuments: [DocumentItem] {

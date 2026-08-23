@@ -130,6 +130,9 @@ final class StoreService: NSObject {
         }
 
         isLoading = true
+        plans = []
+        offerings = nil
+        loadError = nil
         defer { isLoading = false }
 
         guard isConfigured else {
@@ -149,7 +152,10 @@ final class StoreService: NSObject {
             // inverts the whole pricing argument: weekly leads because the need
             // ends. `ProProduct.all` already declares the intended order, so
             // sort against it and let the dashboard hold whatever order it likes.
-            let ordered = (offerings.current?.availablePackages ?? []).sorted {
+            let expectedProducts = Set(ProProduct.all)
+            let ordered = (offerings.current?.availablePackages ?? [])
+                .filter { expectedProducts.contains($0.storeProduct.productIdentifier) }
+                .sorted {
                 let left = ProProduct.all.firstIndex(of: $0.storeProduct.productIdentifier)
                     ?? ProProduct.all.count
                 let right = ProProduct.all.firstIndex(of: $1.storeProduct.productIdentifier)

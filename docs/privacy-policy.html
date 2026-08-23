@@ -100,8 +100,9 @@
 
     <h2>What leaves your iPhone, and when</h2>
     <p>
-      Only what you deliberately send, and only to whoever you send it to. There
-      is no background upload, no account and no server copy.
+      Only what you deliberately send, and only to whoever you send it to, plus
+      one Apple system-service request if you tap the location helper. There is
+      no background upload, no account and no Baby Docs server copy.
     </p>
     <ul>
       <li>
@@ -196,8 +197,10 @@
     </p>
     <p>
       If you tap &ldquo;Use my location&rdquo; on the household questions, iOS
-      gives the app a single position, which is turned into a state and county
-      on the device and then discarded. No coordinate is saved or sent.
+      gives the app a single position. The app asks Apple&rsquo;s geocoding
+      service to resolve that position into a state and county, then discards
+      the position. Baby Docs does not store it or send it to its own server.
+      This helper is never used in the background.
     </p>
 
     <h2>Who can see it</h2>
@@ -207,6 +210,11 @@
       send a plan or exported summary to. We have no database of any of it, so
       there is nothing for us to look at, nothing to hand over and nothing to
       breach.
+    </p>
+    <p>
+      If you use the location helper, Apple may process the one position needed
+      to return the state and county. Baby Docs does not receive a persistent
+      location history and does not keep the position.
     </p>
     <p>
       Your purchase record: Apple, RevenueCat and us, as described above. It

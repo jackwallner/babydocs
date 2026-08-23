@@ -95,7 +95,7 @@ struct RequirementRule: Identifiable, Sendable {
     let key: String
     let title: String
     /// The title with this family's own words in it, when there are any worth
-    /// putting there. Defaults to `title`, which is what nineteen of the twenty
+    /// putting there. Defaults to `title`, which is what twenty of the twenty-two
     /// rules use: a rule only overrides this when the family told the app
     /// something that makes the sentence more actionable, never to decorate it.
     var titleForFamily: (@Sendable (RuleInput) -> String)?

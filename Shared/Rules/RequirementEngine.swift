@@ -31,6 +31,7 @@ enum RequirementEngine {
         var updated = 0
         var retired = 0
         var total = 0
+        var didPersist = true
     }
 
     // MARK: - Entry point
@@ -42,7 +43,21 @@ enum RequirementEngine {
         in context: ModelContext,
         now: Date = Date()
     ) -> Result {
+        reconcile(child: child, profile: profile, in: context, now: now, save: true)
+    }
+
+    private static func reconcile(
+        child: Child,
+        profile: FamilyProfile,
+        in context: ModelContext,
+        now: Date,
+        save: Bool
+    ) -> Result {
         var result = Result()
+        guard !FamilyProfileStore.lastFetchFailed else {
+            result.didPersist = false
+            return result
+        }
         let input = makeInput(child: child, profile: profile)
         // Tombstoned rows are included deliberately. The id of a generated task
         // is derived from (child, catalog key), so a rule that becomes
@@ -58,6 +73,13 @@ enum RequirementEngine {
             rows.first { $0.deletedAt == nil } ?? rows.first
         }
 
+        let currentKeys = Set(RequirementCatalog.all.map(\.key))
+        for task in child.liveTasks where !task.catalogKey.isEmpty && !currentKeys.contains(task.catalogKey) {
+            task.deletedAt = now
+            task.updatedAt = now
+            result.retired += 1
+        }
+
         for rule in RequirementCatalog.all {
             let applies = rule.applies(input)
             let row = existing[rule.key]
@@ -65,17 +87,16 @@ enum RequirementEngine {
             switch (applies, row) {
             case (true, .some(let task)):
                 let wasRetired = task.deletedAt != nil
-                if wasRetired { restore(task, in: context) }
-                if update(task, from: rule, input: input, in: context) || wasRetired {
+                if wasRetired { restore(task, now: now) }
+                if update(task, from: rule, input: input, in: context, now: now) || wasRetired {
                     result.updated += 1
                 }
                 result.total += 1
 
             case (true, .none):
-                let task = make(rule: rule, input: input, child: child, in: context)
+                let task = make(rule: rule, input: input, child: child, in: context, now: now)
                 context.insert(task)
-                task.recordLocalChange(in: context)
-                syncDocuments(of: task, to: rule.documents, in: context)
+                syncDocuments(of: task, to: rule.documents, in: context, now: now)
                 result.created += 1
                 result.total += 1
 
@@ -87,7 +108,8 @@ enum RequirementEngine {
                 // never destroys the family's work. The row remains in the
                 // store so a later answer can restore it with its notes,
                 // receipts and checked documents intact.
-                task.tombstone(in: context)
+                task.deletedAt = now
+                task.updatedAt = now
                 result.retired += 1
 
             case (false, .none):
@@ -95,6 +117,9 @@ enum RequirementEngine {
             }
         }
 
+        if save {
+            persist(&result, in: context)
+        }
         log.info("Reconciled \(child.displayName): \(result.created) new, \(result.updated) changed, \(result.retired) retired")
         return result
     }
@@ -105,30 +130,39 @@ enum RequirementEngine {
     @discardableResult
     static func reconcileAll(in context: ModelContext, now: Date = Date()) -> Result {
         let profile = FamilyProfileStore.current(in: context)
+        guard !FamilyProfileStore.lastFetchFailed else {
+            var result = Result()
+            result.didPersist = false
+            return result
+        }
         let children: [Child]
         do {
             children = try context.fetch(FetchDescriptor<Child>())
                 .filter { $0.deletedAt == nil }
         } catch {
             SaveFailureReporter.shared.report(error)
-            return Result()
+            var result = Result()
+            result.didPersist = false
+            return result
         }
 
         var combined = Result()
         for child in children {
-            let one = reconcile(child: child, profile: profile, in: context, now: now)
+            let one = reconcile(child: child, profile: profile, in: context, now: now, save: false)
             combined.created += one.created
             combined.updated += one.updated
             combined.retired += one.retired
             combined.total += one.total
+            combined.didPersist = combined.didPersist && one.didPersist
         }
+        persist(&combined, in: context)
         return combined
     }
 
     static func makeInput(child: Child, profile: FamilyProfile) -> RuleInput {
         RuleInput(
             childName: child.name,
-            birthDate: child.birthDate,
+            birthDate: DateOnly.canonicalFromUTC(child.birthDate),
             birthStateCode: child.birthStateCode,
             isUSCitizen: child.isUSCitizen,
             hasSSN: child.hasSSN,
@@ -163,12 +197,14 @@ enum RequirementEngine {
         rule: RequirementRule,
         input: RuleInput,
         child: Child,
-        in context: ModelContext
+        in context: ModelContext,
+        now: Date
     ) -> RequirementTask {
         let task = RequirementTask(title: rule.title(for: input))
         task.id = taskID(childID: child.id, catalogKey: rule.key)
         task.catalogKey = rule.key
         task.child = child
+        task.updatedAt = now
         task.isCustom = false
         applyRule(rule, input: input, to: task)
         return task
@@ -181,14 +217,15 @@ enum RequirementEngine {
         _ task: RequirementTask,
         from rule: RequirementRule,
         input: RuleInput,
-        in context: ModelContext
+        in context: ModelContext,
+        now: Date
     ) -> Bool {
         let before = fingerprint(task)
         applyRule(rule, input: input, to: task)
         let changed = fingerprint(task) != before
 
-        let documentsChanged = syncDocuments(of: task, to: rule.documents, in: context)
-        if changed { task.recordLocalChange(in: context) }
+        let documentsChanged = syncDocuments(of: task, to: rule.documents, in: context, now: now)
+        if changed || documentsChanged { task.updatedAt = now }
         return changed || documentsChanged
     }
 
@@ -216,13 +253,13 @@ enum RequirementEngine {
     /// same derived id. Everything the family did to it is still attached, which
     /// is the point: a parent who switched insurance twice should find their
     /// ticked documents where they left them.
-    private static func restore(_ task: RequirementTask, in context: ModelContext) {
+    private static func restore(_ task: RequirementTask, now: Date) {
         task.deletedAt = nil
+        task.updatedAt = now
         for document in (task.documents ?? []) where document.deletedAt != nil {
             document.deletedAt = nil
-            document.recordLocalChange(in: context)
+            document.updatedAt = now
         }
-        task.recordLocalChange(in: context)
     }
 
     /// Only the engine-owned fields. Deliberately excludes everything a parent
@@ -255,7 +292,8 @@ enum RequirementEngine {
     private static func syncDocuments(
         of task: RequirementTask,
         to specs: [DocumentSpec],
-        in context: ModelContext
+        in context: ModelContext,
+        now: Date
     ) -> Bool {
         var changed = false
         // Tombstones included, for the same reason as the task lookup above: a
@@ -272,10 +310,11 @@ enum RequirementEngine {
             if let item = existing[spec.key] {
                 let wasRetired = item.deletedAt != nil
                 if wasRetired { item.deletedAt = nil }
-                if wasRetired || item.title != spec.title || item.detail != spec.detail {
+                if wasRetired || item.title != spec.title || item.detail != spec.detail || item.sortWeight != index {
                     item.title = spec.title
                     item.detail = spec.detail
-                    item.recordLocalChange(in: context)
+                    item.sortWeight = index
+                    item.updatedAt = now
                     changed = true
                 }
                 continue
@@ -286,11 +325,33 @@ enum RequirementEngine {
             item.detail = spec.detail
             item.sortWeight = index
             item.task = task
+            item.updatedAt = now
             context.insert(item)
-            item.recordLocalChange(in: context)
+            changed = true
+        }
+
+        let currentDocumentKeys = Set(specs.map(\.key))
+        for item in task.liveDocuments where
+            !item.catalogKey.isEmpty && !currentDocumentKeys.contains(item.catalogKey) {
+            item.deletedAt = now
+            item.updatedAt = now
             changed = true
         }
         return changed
+    }
+
+    private static func persist(_ result: inout Result, in context: ModelContext) {
+        guard result.created > 0
+                || result.updated > 0
+                || result.retired > 0
+                || context.hasChanges else { return }
+        do {
+            try context.save()
+        } catch {
+            context.rollback()
+            result.didPersist = false
+            SaveFailureReporter.shared.report(error)
+        }
     }
 
 }
@@ -304,7 +365,10 @@ enum RequirementEngine {
 /// has to decide what to do when the row does not exist yet.
 @MainActor
 enum FamilyProfileStore {
+    fileprivate(set) static var lastFetchFailed = false
+
     static func current(in context: ModelContext) -> FamilyProfile {
+        lastFetchFailed = false
         var descriptor = FetchDescriptor<FamilyProfile>()
         descriptor.fetchLimit = 1
         do {
@@ -312,11 +376,12 @@ enum FamilyProfileStore {
                 return existing
             }
         } catch {
+            lastFetchFailed = true
             SaveFailureReporter.shared.report(error)
+            return FamilyProfile()
         }
         let profile = FamilyProfile()
         context.insert(profile)
-        profile.recordLocalChange(in: context)
         return profile
     }
 }

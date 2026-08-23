@@ -261,7 +261,7 @@ def main() -> int:
             check(f"review {field}", "present" if attributes.get(field) else None)
         # The notes are hard-wrapped in the Fastfile heredoc, so "employer\n
         # packet" is one phrase to a reviewer and two to a substring match.
-        notes = " ".join((attributes.get("notes") or "").split())
+        notes = " ".join((attributes.get("notes") or "").split()).lower()
         # The notes tell the reviewer what is free. When they disagree with the
         # binary the reviewer tests the wrong thing and rejects the right app.
         missing = [

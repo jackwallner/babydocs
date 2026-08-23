@@ -46,10 +46,10 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>To add a document you have already photographed. The copy stays on this phone, is not backed up, and is never uploaded anywhere.</string>
 	<!-- Used once, when you tap "Use my location" on the household questions, to
-	     fill in your state and county. Never in the background, never stored,
-	     never sent anywhere. -->
+	     fill in your state and county. iOS may send the position to Apple's
+	     geocoding service to resolve the place; Baby Docs never stores it. -->
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>To fill in your state and county on the household questions so you do not have to scroll for them. Your location is used once, on that screen, and is never stored or sent anywhere.</string>
+	<string>To fill in your state and county on the household questions so you do not have to scroll for them. Baby Docs uses one location fix only after you tap the button, never stores it, and iOS may send it to Apple to resolve the place.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>To unlock your document vault. Your passcode works too.</string>
 </dict>

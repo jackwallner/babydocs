@@ -52,64 +52,50 @@ platform :ios do
         demo_user: "No demo account required",
         demo_password: "",
         notes: <<~NOTES
-          Baby Docs is an organizational tool for the administrative paperwork
-          that follows a birth in the United States: the Social Security card,
-          the birth certificate, health plan enrollment, parental leave and so
-          on. It is a checklist and a reminder app. It does not file, submit or
-          transmit any government, tax, insurance or legal form, and it does not
-          ask for a Social Security number.
+          Baby Docs is an organizational checklist for the administrative
+          paperwork after a US birth: the Social Security card, birth
+          certificate, health-plan enrollment and parental leave. It does not
+          file, submit or transmit any government, tax, insurance or legal form,
+          and it never asks for a Social Security number.
 
-          The app works with no account. Every task, deadline, document
-          checklist and official link is generated on device from the answers
-          given during setup, so the whole plan is usable with no network at
-          all. There is no sign-in step and nothing to create an account for.
+          No account is needed. The plan is generated on device from setup
+          answers and works offline. Network use is limited to RevenueCat and
+          StoreKit for prices and purchases, plus the optional location helper.
+          The helper runs only after the reviewer taps it, asks Apple's
+          geocoding service for a state and county, then discards the position.
+          Government links open in Safari.
 
-          Two things do need a connection, and only these two: loading the
-          prices on the Baby Docs Plus paywall, and making or restoring a
-          purchase. Both go through RevenueCat and StoreKit. If the paywall is
-          opened offline the prices will not load and the buy button stays
-          disabled; reconnect and reopen it. The government links open in Safari
-          and need a connection like any other link.
+          Core flow: launch, answer the state, coverage and household questions,
+          then review the Plan tab. Each task explains why it applies, what to
+          bring and where to go. Children holds household answers, Documents
+          holds paperwork photos, and Settings shows the source review date.
 
-          Core flow:
-          1. Launch and answer the setup questions (state, coverage, situation)
-          2. The Plan tab shows the generated tasks, soonest deadline first
-          3. Tap a task for why it applies, what documents to bring, and a link
-             to the official government page for that task
-          4. Children tab holds each child and the household answers
-          5. Documents tab holds photographs of the paperwork itself
-          6. Settings shows the date the whole rule set was last reviewed
+          Paid-feature paths:
+          1. Follow-up tracking: Plan, open a sent task, tap "Sent it". Plus
+             unlocks the follow-up date and reminder.
+          2. Document vault after twelve weeks: Documents, Photos, "Add a
+             document". Plus unlocks adding new photos. Existing photos remain
+             viewable after a lapse.
+          3. Printable summary: Plan, Plan options, "Send or print this plan",
+             then "One-page summary".
+          4. Employer packet: choose Coverage "Through a job", then Children,
+             select a child, "Send or print this plan", then "Employer packet".
+          5. Further children: Children, "Add another child".
 
-          Sharing works and needs no account. "Send the plan" builds a link that
-          carries the household answers in the URL fragment, which browsers
-          never transmit to a server, and the other parent's copy of the app
-          regenerates the same plan from them. There is no backend for household
-          data anywhere in this app: nothing about a child, a plan or a document
-          is uploaded, and the only network requests the app makes at all are the
-          RevenueCat purchase calls described above.
+          Every task, deadline, document list, official link and shared plan link
+          is free. "Send the plan" carries answers in the URL fragment so the
+          other parent's app can rebuild the same plan without a backend. There
+          is no live sync. A Plus lapse stops new photos only; existing photos
+          remain on the device.
 
-          There is no rating prompt of our own. The app calls SKStoreReviewController
-          through SwiftUI's requestReview environment action and nothing stands in
-          front of it. "Send feedback" in Settings is a separate support action
-          that opens a mail draft; it is available to everyone, at any time, and
-          it does not lead to the App Store.
+          The app's only review action is the system requestReview call, with no
+          custom question or rating gate. "Send feedback" in Settings opens
+          support and never routes to the App Store. Vault photos use complete
+          file protection, are excluded from backup and have no share or export
+          path. Exports print Social Security status, never a number.
 
-          The Documents tab stores photographs in the app container under
-          complete file protection, excluded from backup. They never leave the
-          device: no share sheet or export path can reach them, and the exported
-          summaries print the status of a Social Security number, never a number.
-
-          Baby Docs Plus (IAP via RevenueCat, weekly or yearly subscription or a
-          one-time purchase) gates five things: follow-up tracking, additional
-          children beyond the first, adding new photographs to the Documents tab
-          after a child is twelve weeks old, the printable one-page summary, and
-          the employer packet. Every task, deadline, document checklist, official
-          link and the shared plan link is free. If Plus
-          lapses, existing photographs remain and remain viewable; only adding
-          new ones stops.
-
-          The app gives no legal, tax, medical or insurance advice, and carries
-          a disclaimer to that effect in Settings and on every exported summary.
+          The app gives no legal, tax, medical or insurance advice. Its
+          disclaimer appears in Settings and on exported summaries.
         NOTES
     }
 

@@ -11,6 +11,7 @@ import SwiftUI
 /// aftermath.
 struct TaskDetailView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.scenePhase) private var scenePhase
     @Bindable var task: RequirementTask
 
     @State private var store = StoreService.shared
@@ -18,6 +19,7 @@ struct TaskDetailView: View {
     @State private var isAddingReceipt = false
     @State private var receiptKind: ReceiptKind = .confirmationNumber
     @State private var receiptValue = ""
+    @State private var expectedDateDraft: Date?
 
     var body: some View {
         List {
@@ -49,6 +51,7 @@ struct TaskDetailView: View {
                 }
             }
 
+            ownerSection
             documentsSection
             if task.isPostedAway {
                 if store.isPro {
@@ -57,7 +60,6 @@ struct TaskDetailView: View {
                     followUpUpgradeSection
                 }
             }
-            ownerSection
             receiptsSection
 
             Section {
@@ -104,8 +106,12 @@ struct TaskDetailView: View {
         .navigationTitle(shortTitle)
         .navigationBarTitleDisplayMode(.inline)
         .onDisappear {
-            task.recordLocalChange(in: context)
-            rescheduleReminders()
+            saveTaskChanges()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active {
+                saveTaskChanges()
+            }
         }
         .alert("Record a confirmation", isPresented: $isAddingReceipt) {
             TextField("Number or reference", text: $receiptValue)
@@ -179,9 +185,7 @@ struct TaskDetailView: View {
                     // parent is most likely to be using one-handed.
                     Button {
                         if item.isOnHand { Haptics.selected() } else { Haptics.completed() }
-                        item.isOnHand.toggle()
-                        item.markedOnHandAt = item.isOnHand ? Date() : nil
-                        item.recordLocalChange(in: context)
+                        setDocumentOnHand(item, !item.isOnHand)
                     } label: {
                         HStack(alignment: .top, spacing: AppTheme.spacing) {
                             Image(systemName: item.isOnHand ? "checkmark.circle.fill" : "circle")
@@ -265,7 +269,15 @@ struct TaskDetailView: View {
                 // app made up wearing the label "they said by", and a fortnight
                 // later it tells a tired parent that a fictional date has
                 // passed. There is no date here until an office gave one.
-                if task.expectedByAt == nil {
+                if let _ = expectedDateDraft {
+                    DatePicker(
+                        "They said by",
+                        selection: expectedDateDraftBinding,
+                        displayedComponents: .date
+                    )
+                    Button("Save the date") { saveExpectedDate() }
+                    Button("Cancel", role: .cancel) { expectedDateDraft = nil }
+                } else if task.expectedByAt == nil {
                     Button("They gave me a date") { setExpectedDate() }
                     Text("No date given yet. Nothing here will go late until you put one in.")
                         .font(.footnote)
@@ -355,8 +367,9 @@ struct TaskDetailView: View {
                     task.submittedAt = nil
                     task.expectedByAt = nil
                 }
-                task.recordLocalChange(in: context)
-                rescheduleReminders()
+                if task.recordLocalChange(in: context) {
+                    rescheduleReminders()
+                }
             }
         )
     }
@@ -364,14 +377,24 @@ struct TaskDetailView: View {
     private var submittedDateBinding: Binding<Date> {
         Binding(
             get: { task.submittedAt ?? Date() },
-            set: { task.submittedAt = $0; task.recordLocalChange(in: context); rescheduleReminders() }
+            set: {
+                task.submittedAt = DateOnly.canonical($0)
+                if task.recordLocalChange(in: context) {
+                    rescheduleReminders()
+                }
+            }
         )
     }
 
     private var expectedBinding: Binding<Date> {
         Binding(
             get: { task.expectedByAt ?? Date() },
-            set: { task.expectedByAt = $0; task.recordLocalChange(in: context); rescheduleReminders() }
+            set: {
+                task.expectedByAt = DateOnly.canonical($0)
+                if task.recordLocalChange(in: context) {
+                    rescheduleReminders()
+                }
+            }
         )
     }
 
@@ -380,31 +403,64 @@ struct TaskDetailView: View {
     /// Opens the picker on today, which is the one date that is not a guess
     /// about an office: it is where the parent starts scrolling from.
     private func setExpectedDate() {
-        task.expectedByAt = Date()
-        task.recordLocalChange(in: context)
+        expectedDateDraft = Calendar.current.startOfDay(for: Date())
+    }
+
+    private func saveExpectedDate() {
+        guard let expectedDateDraft else { return }
+        task.expectedByAt = DateOnly.canonical(expectedDateDraft)
+        guard task.recordLocalChange(in: context) else { return }
+        self.expectedDateDraft = nil
         rescheduleReminders()
     }
 
     private func clearExpectedDate() {
         task.expectedByAt = nil
-        task.recordLocalChange(in: context)
-        rescheduleReminders()
+        expectedDateDraft = nil
+        if task.recordLocalChange(in: context) {
+            rescheduleReminders()
+        }
+    }
+
+    private var expectedDateDraftBinding: Binding<Date> {
+        Binding(
+            get: { expectedDateDraft ?? Calendar.current.startOfDay(for: Date()) },
+            set: { expectedDateDraft = $0 }
+        )
+    }
+
+    private func setDocumentOnHand(_ item: DocumentItem, _ value: Bool) {
+        let key = item.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        var changed = false
+        for match in task.child?.liveTasks ?? [] {
+            for document in match.liveDocuments where
+                document.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == key {
+                document.isOnHand = value
+                document.markedOnHandAt = value ? Date() : nil
+                changed = true
+            }
+        }
+        if changed { _ = task.recordLocalChange(in: context) }
     }
 
     private func toggleDone() {
         let wasDone = task.isDone
         task.completedAt = wasDone ? nil : Date()
+        if !wasDone { task.dismissedAt = nil }
         let saved = task.recordLocalChange(in: context)
         if saved && !wasDone {
             ReviewPromptTracker.recordCompletion(of: task)
         }
-        rescheduleReminders()
+        if saved { rescheduleReminders() }
     }
 
     private func toggleDismissed() {
-        task.dismissedAt = task.isDismissed ? nil : Date()
-        task.recordLocalChange(in: context)
-        rescheduleReminders()
+        let wasDismissed = task.isDismissed
+        task.dismissedAt = wasDismissed ? nil : Date()
+        if !wasDismissed { task.completedAt = nil }
+        if task.recordLocalChange(in: context) {
+            rescheduleReminders()
+        }
     }
 
     private func saveReceipt() {
@@ -413,14 +469,21 @@ struct TaskDetailView: View {
         let receipt = Receipt(kind: receiptKind, value: trimmed)
         receipt.task = task
         context.insert(receipt)
-        receipt.recordLocalChange(in: context)
-        receiptValue = ""
+        if receipt.recordLocalChange(in: context) {
+            receiptValue = ""
+        }
     }
 
     private func deleteReceipts(at offsets: IndexSet) {
         let receipts = task.liveReceipts
+        var deleted: [Receipt] = []
         for index in offsets where receipts.indices.contains(index) {
-            receipts[index].tombstone(in: context)
+            receipts[index].deletedAt = Date()
+            receipts[index].updatedAt = Date()
+            deleted.append(receipts[index])
+        }
+        if let first = deleted.first {
+            first.recordLocalChange(in: context)
         }
     }
 
@@ -428,5 +491,10 @@ struct TaskDetailView: View {
         Task {
             await DeadlineReminderScheduler.reschedule(in: context)
         }
+    }
+
+    private func saveTaskChanges() {
+        guard task.recordLocalChange(in: context) else { return }
+        rescheduleReminders()
     }
 }

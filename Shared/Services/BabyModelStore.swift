@@ -83,18 +83,23 @@ enum BabyModelStore {
             .appendingPathComponent("BabyDocs-unreadable-\(stamp).store")
 
         var moved: URL?
+        var movedFiles: [(source: URL, target: URL)] = []
         for suffix in ["", "wal", "shm"] {
             let source = suffix.isEmpty ? url : url.appendingPathExtension(suffix)
             let target = suffix.isEmpty ? destination : destination.appendingPathExtension(suffix)
             guard manager.fileExists(atPath: source.path) else { continue }
             do {
                 try manager.moveItem(at: source, to: target)
+                movedFiles.append((source, target))
                 if suffix.isEmpty { moved = target }
             } catch {
-                // If it cannot even be moved, leave it alone. A container that
-                // fails to build is recoverable; a file destroyed on the way to
-                // recovery is not.
-                return moved
+                // A store and its WAL/SHM are one recovery unit. If any move
+                // fails, put earlier files back so the original remains intact
+                // and the next launch can retry the complete archive.
+                for file in movedFiles.reversed() {
+                    try? manager.moveItem(at: file.target, to: file.source)
+                }
+                return nil
             }
         }
         return moved

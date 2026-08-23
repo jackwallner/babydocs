@@ -103,6 +103,10 @@ struct TaskRow: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .contentShape(Rectangle())
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(task.title)
+            .accessibilityValue(accessibilitySummary)
+            .accessibilityHint("Opens task details")
         }
         .padding(.vertical, AppTheme.hairSpacing)
     }
@@ -153,10 +157,16 @@ struct TaskRow: View {
     private var secondaryLine: String {
         var parts = [task.category.label]
         if showChildName, let name = task.child?.displayName { parts.append(name) }
-        if !task.assigneeName.isEmpty { parts.append(task.assigneeName) }
+        parts.append(task.assigneeName.isEmpty ? "Assign someone" : task.assigneeName)
         let outstanding = task.liveDocuments.filter { !$0.isOnHand }.count
         if outstanding > 0 && !task.isDone { parts.append("\(outstanding) to gather") }
         return parts.joined(separator: " \u{00B7} ")
+    }
+
+    private var accessibilitySummary: String {
+        var parts = [secondaryLine, TaskPlanner.duePhrase(for: task)]
+        if task.isLate() { parts.append("Sent and not arrived") }
+        return parts.filter { !$0.isEmpty }.joined(separator: ". ")
     }
 }
 
@@ -264,7 +274,7 @@ struct PlanHeaderCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.spacing) {
-            if let id = overview.nextHardDeadlineID {
+            if let id = overview.pastHardDeadlineID ?? overview.nextHardDeadlineID {
                 NavigationLink(value: id) {
                     deadlineBlock
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -290,17 +300,17 @@ struct PlanHeaderCard: View {
         VStack(alignment: .leading, spacing: AppTheme.tightSpacing) {
             HStack(spacing: AppTheme.tightSpacing) {
                 Label {
-                    Text(overview.nextHardDeadline == nil ? "Nothing closing" : "Next hard deadline")
+                        Text(eyebrow)
                         .font(.caption.weight(.semibold))
                         .textCase(.uppercase)
                         .tracking(0.4)
                 } icon: {
-                    Image(systemName: overview.nextHardDeadline == nil
-                          ? "checkmark.circle.fill"
-                          : "exclamationmark.circle.fill")
+                    Image(systemName: overview.hasPastHardDeadline || overview.nextHardDeadline != nil
+                          ? "exclamationmark.circle.fill"
+                          : "checkmark.circle.fill")
                         .font(.caption)
                 }
-                .foregroundStyle(overview.nextHardDeadline == nil ? Color.green : Color.red)
+                .foregroundStyle(overview.hasPastHardDeadline || overview.nextHardDeadline != nil ? Color.red : Color.green)
 
                 Spacer(minLength: 0)
                 // No chevron of our own here. The row is a `NavigationLink`, and
@@ -309,7 +319,16 @@ struct PlanHeaderCard: View {
                 // destination.
             }
 
-            if let date = overview.nextHardDeadline, let title = overview.nextHardDeadlineTitle {
+            if let date = overview.pastHardDeadline, let title = overview.pastHardDeadlineTitle {
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(TaskPlanner.deadlineLine(for: date))
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if let date = overview.nextHardDeadline, let title = overview.nextHardDeadlineTitle {
                 Text(title)
                     .font(.headline)
                     .foregroundStyle(.primary)
@@ -328,6 +347,12 @@ struct PlanHeaderCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+
+    private var eyebrow: String {
+        if overview.hasPastHardDeadline { return "Hard deadline passed" }
+        if overview.nextHardDeadline != nil { return "Next hard deadline" }
+        return "Nothing closing"
     }
 }
 
@@ -473,6 +498,7 @@ struct SourceFootnote: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("source-limitations")
                 }
             }
         } else if let reason = rule?.noSourceReason, !reason.isEmpty {

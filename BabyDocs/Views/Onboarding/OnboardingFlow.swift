@@ -1,5 +1,6 @@
 import SwiftData
 import SwiftUI
+import UIKit
 
 /// The intake.
 ///
@@ -17,15 +18,17 @@ import SwiftUI
 /// has never heard of, like the $1,000 newborn account.
 struct OnboardingFlow: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.scenePhase) private var scenePhase
     @State private var step: Step = .welcome
     @State private var location = LocationLookup()
 
     // Baby
     @State private var name = ""
     @State private var birthDate = Date()
+    @State private var birthDateConfirmed = false
     @State private var birthStateCode = ""
     @State private var birthCounty = ""
-    @State private var isUSCitizen = true
+    @State private var isUSCitizen: Bool?
 
     // Household
     @State private var residenceStateCode = ""
@@ -37,8 +40,10 @@ struct OnboardingFlow: View {
     // chose: "married" quietly decides a parentage question, and "already on the
     // record" quietly removes the task about getting there.
     @State private var parentage: ParentageSituation = .unknown
+    @State private var parentageConfirmed = false
     @State private var secondParentOnRecord = false
     @State private var insuranceKind: InsuranceKind = .unknown
+    @State private var coverageConfirmed = false
     @State private var marketplaceKind: MarketplaceKind = .unknown
     @State private var employerPlanName = ""
     @State private var benefitsContactNote = ""
@@ -60,6 +65,7 @@ struct OnboardingFlow: View {
     @State private var wantsPassport = false
 
     @State private var result: RequirementEngine.Result?
+    @State private var didLoadDraft = false
 
     enum Step: Int, CaseIterable {
         case welcome, baby, household, coverage
@@ -92,6 +98,15 @@ struct OnboardingFlow: View {
                         StepDots(current: step)
                     }
                 }
+            }
+            .onAppear(perform: restoreDraft)
+            .onChange(of: draftSnapshot) { _, draft in
+                guard didLoadDraft else { return }
+                OnboardingDraftStore.save(draft)
+            }
+            .onChange(of: scenePhase) { _, phase in
+                guard phase != .active else { return }
+                persistDraft()
             }
         }
     }
@@ -139,12 +154,22 @@ struct OnboardingFlow: View {
             Section {
                 TextField("First name (optional)", text: $name)
                 DatePicker(
-                    selection: $birthDate,
+                    selection: Binding(
+                        get: { birthDate },
+                        set: { newValue in
+                            if !DateOnly.sameDay(newValue, birthDate) {
+                                birthDateConfirmed = false
+                            }
+                            birthDate = newValue
+                        }
+                    ),
                     in: ...Date(),
                     displayedComponents: .date
                 ) {
                     RequiredLabel("Date of birth")
                 }
+                Toggle("I checked this date", isOn: $birthDateConfirmed)
+                    .accessibilityLabel("I checked this date")
             } header: {
                 Text("Your baby")
             } footer: {
@@ -153,9 +178,29 @@ struct OnboardingFlow: View {
 
             Section {
                 locationButton
-                statePicker("State of birth", selection: $birthStateCode, required: true)
+                statePicker(
+                    "State of birth",
+                    selection: Binding(
+                        get: { birthStateCode },
+                        set: { newValue in
+                            if newValue != birthStateCode {
+                                birthCounty = ""
+                            }
+                            birthStateCode = newValue
+                        }
+                    ),
+                    required: true
+                )
                 countyPicker(stateCode: birthStateCode, selection: $birthCounty)
-                Toggle("US citizen", isOn: $isUSCitizen)
+                Picker("Citizenship", selection: $isUSCitizen) {
+                    Text("Choose").tag(nil as Bool?)
+                    Text("US citizen").tag(true as Bool?)
+                    Text("Not a US citizen").tag(false as Bool?)
+                }
+                .pickerStyle(.inline)
+                .labelsHidden()
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Citizenship")
             } header: {
                 Text("Where the birth was registered")
             } footer: {
@@ -165,10 +210,17 @@ struct OnboardingFlow: View {
         .navigationTitle("Your baby")
         .safeAreaInset(edge: .bottom) {
             OnboardingFooter(
-                enabled: !birthStateCode.isEmpty,
-                note: birthStateCode.isEmpty ? "Pick the state of birth to carry on." : ""
+                enabled: birthDateConfirmed && !birthStateCode.isEmpty && isUSCitizen != nil,
+                note: babyContinueNote
             ) { step = .household }
         }
+    }
+
+    private var babyContinueNote: String {
+        if !birthDateConfirmed { return "Check the date of birth to carry on." }
+        if birthStateCode.isEmpty { return "Pick the state of birth to carry on." }
+        if isUSCitizen == nil { return "Choose the baby's citizenship to carry on." }
+        return ""
     }
 
     private var birthFooter: String {
@@ -203,9 +255,25 @@ struct OnboardingFlow: View {
                 Text("Finding your county").foregroundStyle(.secondary)
             }
         case .failed(let message):
-            Text(message)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: AppTheme.tightSpacing) {
+                Text(message)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: AppTheme.spacing) {
+                    Button("Try again") {
+                        location.reset()
+                        Task { await location.find() }
+                    }
+                    if location.isDenied {
+                        Button("Open Settings") {
+                            guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                }
+                .font(.footnote.weight(.medium))
+            }
         default:
             Button {
                 Task {
@@ -243,13 +311,24 @@ struct OnboardingFlow: View {
             // was false. A false value is worse than no value: it is what turns
             // the legally significant parentage task on or off.
             Section {
-                Picker("Situation", selection: $parentage) {
+                Picker("Situation", selection: Binding(
+                    get: { parentage },
+                    set: {
+                        parentage = $0
+                        parentageConfirmed = true
+                        if $0 != .unmarriedBothParents {
+                            secondParentOnRecord = false
+                        }
+                    }
+                )) {
                     ForEach(ParentageSituation.allCases, id: \.self) { value in
                         Text(value.label).tag(value)
                     }
                 }
                 .pickerStyle(.inline)
                 .labelsHidden()
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Parents' situation")
 
                 if parentage == .unmarriedBothParents {
                     Toggle("Both parents already on the birth record", isOn: $secondParentOnRecord)
@@ -263,8 +342,8 @@ struct OnboardingFlow: View {
         .navigationTitle("Your household")
         .safeAreaInset(edge: .bottom) {
             OnboardingFooter(
-                enabled: !residenceStateCode.isEmpty,
-                note: residenceStateCode.isEmpty ? "Pick the state you live in to carry on." : ""
+                enabled: !residenceStateCode.isEmpty && parentageConfirmed,
+                note: householdContinueNote
             ) { step = .coverage }
         }
     }
@@ -288,18 +367,37 @@ struct OnboardingFlow: View {
         }
     }
 
+    private var householdContinueNote: String {
+        if residenceStateCode.isEmpty { return "Pick the state you live in to carry on." }
+        if !parentageConfirmed { return "Choose the parents' situation, including Prefer not to say, to carry on." }
+        return ""
+    }
+
     // MARK: - Coverage
 
     private var coverageStep: some View {
         Form {
             Section {
-                Picker("Coverage", selection: $insuranceKind) {
+                Picker("Coverage", selection: Binding(
+                    get: { insuranceKind },
+                    set: {
+                        insuranceKind = $0
+                        coverageConfirmed = true
+                        if $0 != .marketplace { marketplaceKind = .unknown }
+                        if $0 != .employer {
+                            employerPlanName = ""
+                            benefitsContactNote = ""
+                        }
+                    }
+                )) {
                     ForEach(InsuranceKind.allCases, id: \.self) { value in
                         Text(value.label).tag(value)
                     }
                 }
                 .pickerStyle(.inline)
                 .labelsHidden()
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Coverage")
             } header: {
                 Text("How is the family covered?")
             } footer: {
@@ -325,6 +423,8 @@ struct OnboardingFlow: View {
                     }
                     .pickerStyle(.inline)
                     .labelsHidden()
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel("Marketplace")
                 } header: {
                     Text("Which marketplace?")
                 } footer: {
@@ -356,7 +456,10 @@ struct OnboardingFlow: View {
         }
         .navigationTitle("Coverage")
         .safeAreaInset(edge: .bottom) {
-            OnboardingFooter(enabled: true) { step = .leave }
+            OnboardingFooter(
+                enabled: coverageConfirmed,
+                note: coverageConfirmed ? "" : "Choose a coverage answer, including Not sure yet, to carry on."
+            ) { step = .leave }
         }
     }
 
@@ -404,6 +507,8 @@ struct OnboardingFlow: View {
                 }
                 .pickerStyle(.inline)
                 .labelsHidden()
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Parental leave")
             } footer: {
                 Text(leaveFooter)
             }
@@ -421,7 +526,7 @@ struct OnboardingFlow: View {
             OnboardingFooter(
                 enabled: leaveTakers != nil,
                 note: leaveTakers == nil ? "Pick one to carry on. \"Nobody\" is a real answer here." : ""
-            ) { step = isUSCitizen ? .newbornAccount : .plan529 }
+            ) { step = isUSCitizen == true ? .newbornAccount : .plan529 }
         }
     }
 
@@ -447,7 +552,7 @@ struct OnboardingFlow: View {
             detail: "It is a thousand dollars, most US citizen newborns can qualify, and it is claimed by election rather than automatically, so a family that has not heard of it simply does not get it. The election needs the baby's Social Security number first, which is why that task sits at the top of your plan. Baby Docs cannot tell you whether you qualify: there are conditions beyond citizenship and a birth year, and the instructions are the only thing that settles them.",
             isOn: $wantsNewbornAccount,
             toggleLabel: "Add this to my plan",
-            isAvailable: isUSCitizen,
+            isAvailable: isUSCitizen == true,
             unavailableNote: "This one is for US citizen children only, and you said this baby is not one, so it stays off your plan."
         ) { step = .plan529 }
         .navigationTitle("Newborn account")
@@ -523,9 +628,6 @@ struct OnboardingFlow: View {
                     .controlSize(.large)
                 }
 
-                Button("Not now") { }
-                    .font(.subheadline)
-                    .padding(.vertical, AppTheme.tightSpacing)
             }
             .padding(.horizontal, AppTheme.margin)
             .padding(.top, AppTheme.spacing)
@@ -580,17 +682,18 @@ struct OnboardingFlow: View {
         guard var previous = Step(rawValue: step.rawValue - 1) else { return }
         // Skip a page that was skipped on the way in, so Back does not land on
         // a question the flow decided was not applicable.
-        if previous == .newbornAccount && !isUSCitizen {
+        if previous == .newbornAccount && isUSCitizen != true {
             previous = .leave
         }
         step = previous
     }
 
     private func finish() {
+        guard let isUSCitizen else { return }
         let profile = FamilyProfileStore.current(in: context)
         profile.residenceStateCode = residenceStateCode
         profile.parentage = parentage
-        profile.secondParentOnRecord = parentage == .married || secondParentOnRecord
+        profile.secondParentOnRecord = parentage == .unmarriedBothParents && secondParentOnRecord
         profile.insuranceKind = insuranceKind
         profile.marketplaceKind = insuranceKind == .marketplace ? marketplaceKind : .unknown
         profile.employerPlanName = insuranceKind == .employer ? employerPlanName : ""
@@ -600,15 +703,21 @@ struct OnboardingFlow: View {
         profile.wants529 = wants529
         profile.wantsNewbornAccount = wantsNewbornAccount
         profile.parentalLeaveTakers = leaveTakers ?? .nobody
-        profile.recordLocalChange(in: context)
+        profile.updatedAt = Date()
 
         let child = Child(name: name, birthDate: birthDate, birthStateCode: birthStateCode)
         child.birthCounty = birthCounty
         child.isUSCitizen = isUSCitizen
         context.insert(child)
-        child.recordLocalChange(in: context)
-
+        // The engine saves the pending profile, child and generated plan at one
+        // boundary. A failed write leaves the intake open instead of showing a
+        // success state for a plan that only partly reached disk.
         result = RequirementEngine.reconcile(child: child, profile: profile, in: context)
+        guard result?.didPersist == true else {
+            return
+        }
+
+        OnboardingDraftStore.clear()
         // The one moment in the intake that is an outcome rather than a step:
         // ten questions in, there is now a plan. Every Continue before this is
         // silent, which is what leaves this one meaning something.
@@ -616,12 +725,121 @@ struct OnboardingFlow: View {
         step = .done
     }
 
+    private var draftSnapshot: OnboardingDraft {
+        OnboardingDraft(
+            step: step.rawValue,
+            name: name,
+            birthDate: DateOnly.canonical(birthDate),
+            birthDateConfirmed: birthDateConfirmed,
+            birthStateCode: birthStateCode,
+            birthCounty: birthCounty,
+            isUSCitizen: isUSCitizen,
+            residenceStateCode: residenceStateCode,
+            parentage: parentage.rawValue,
+            parentageConfirmed: parentageConfirmed,
+            secondParentOnRecord: secondParentOnRecord,
+            insuranceKind: insuranceKind.rawValue,
+            coverageConfirmed: coverageConfirmed,
+            marketplaceKind: marketplaceKind.rawValue,
+            employerPlanName: employerPlanName,
+            benefitsContactNote: benefitsContactNote,
+            hasDependentCareFSA: hasDependentCareFSA,
+            leaveTakers: leaveTakers?.rawValue,
+            wantsNewbornAccount: wantsNewbornAccount,
+            wants529: wants529,
+            wantsPassport: wantsPassport
+        )
+    }
+
+    private func persistDraft() {
+        guard didLoadDraft, step != .done else { return }
+        OnboardingDraftStore.save(draftSnapshot)
+    }
+
+    private func restoreDraft() {
+        guard !didLoadDraft else { return }
+        didLoadDraft = true
+        if ProcessInfo.processInfo.arguments.contains("-uitest-wipe-store") {
+            OnboardingDraftStore.clear()
+            return
+        }
+        guard let draft = OnboardingDraftStore.load(),
+              let restoredStep = Step(rawValue: draft.step),
+              restoredStep != .done else { return }
+        step = restoredStep
+        name = draft.name
+        birthDate = DateOnly.canonicalFromUTC(draft.birthDate)
+        birthDateConfirmed = draft.birthDateConfirmed ?? false
+        birthStateCode = draft.birthStateCode
+        birthCounty = draft.birthCounty
+        isUSCitizen = draft.isUSCitizen
+        residenceStateCode = draft.residenceStateCode
+        parentage = ParentageSituation(rawValue: draft.parentage) ?? .unknown
+        parentageConfirmed = draft.parentageConfirmed ?? (parentage != .unknown)
+        secondParentOnRecord = draft.secondParentOnRecord
+        insuranceKind = InsuranceKind(rawValue: draft.insuranceKind) ?? .unknown
+        coverageConfirmed = draft.coverageConfirmed ?? (insuranceKind != .unknown)
+        marketplaceKind = MarketplaceKind(rawValue: draft.marketplaceKind) ?? .unknown
+        employerPlanName = draft.employerPlanName
+        benefitsContactNote = draft.benefitsContactNote
+        hasDependentCareFSA = draft.hasDependentCareFSA
+        leaveTakers = draft.leaveTakers.flatMap(ParentalLeaveTakers.init(rawValue:))
+        wantsNewbornAccount = draft.wantsNewbornAccount
+        wants529 = draft.wants529
+        wantsPassport = draft.wantsPassport
+    }
+
     private func allTasks() -> [RequirementTask] {
-        ((try? context.fetch(FetchDescriptor<Child>())) ?? []).flatMap(\.liveTasks)
+        ((try? context.fetch(FetchDescriptor<Child>())) ?? [])
+            .filter { $0.deletedAt == nil && !$0.isEphemeralDraft }
+            .flatMap(\.liveTasks)
     }
 
     private var canOfferReminders: Bool {
         !DeadlineReminderScheduler.plans(for: allTasks()).isEmpty
+    }
+}
+
+struct OnboardingDraft: Codable, Equatable {
+    var version = 1
+    var step: Int
+    var name: String
+    var birthDate: Date
+    var birthDateConfirmed: Bool?
+    var birthStateCode: String
+    var birthCounty: String
+    var isUSCitizen: Bool?
+    var residenceStateCode: String
+    var parentage: String
+    var parentageConfirmed: Bool?
+    var secondParentOnRecord: Bool
+    var insuranceKind: String
+    var coverageConfirmed: Bool?
+    var marketplaceKind: String
+    var employerPlanName: String
+    var benefitsContactNote: String
+    var hasDependentCareFSA: Bool
+    var leaveTakers: String?
+    var wantsNewbornAccount: Bool
+    var wants529: Bool
+    var wantsPassport: Bool
+}
+
+enum OnboardingDraftStore {
+    private static let key = "babydocs.onboarding-draft"
+
+    static func load() -> OnboardingDraft? {
+        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
+        return try? JSONDecoder().decode(OnboardingDraft.self, from: data)
+    }
+
+    static func save(_ draft: OnboardingDraft) {
+        guard let data = try? JSONEncoder().encode(draft) else { return }
+        UserDefaults.standard.set(data, forKey: key)
+    }
+
+    static func clear() {
+        UserDefaults.standard.removeObject(forKey: key)
     }
 }
 
@@ -803,31 +1021,26 @@ struct OnboardingDisclosure: View {
     }
 }
 
-/// Centres its content on a screen it fits on, and scrolls on one it does not.
+/// Keeps short content pleasant while guaranteeing a scroll path at every text size.
 ///
 /// The welcome and finished screens are a short block of text with a pinned
 /// button under them. Top-aligned in a `ScrollView` they left half a phone of
 /// empty page below the words, which reads as a layout that ran out. Centred
 /// with fixed spacers they truncated the product's whole promise to an ellipsis
-/// at an accessibility text size, which is worse. `ViewThatFits` takes the
-/// centred version when the content fits the screen and the scrolling one when
-/// it does not, and neither case needs a `GeometryReader`.
+/// at an accessibility text size, which is worse. The old `ViewThatFits`
+/// approach could choose the centred stack before the safe-area inset and text
+/// size had been accounted for. A scroll view is slightly less decorative on a
+/// short screen, but it never clips the promise or hides the only way forward.
 struct CentredIfItFits<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        ViewThatFits(in: .vertical) {
-            VStack(spacing: 0) {
-                Spacer(minLength: 0)
-                content
-                Spacer(minLength: 0)
-            }
-            ScrollView {
-                content
-                    .padding(.top, AppTheme.looseSpacing)
-                    .padding(.bottom, AppTheme.spacing)
-            }
+        ScrollView {
+            content
+                .padding(.top, AppTheme.looseSpacing)
+                .padding(.bottom, AppTheme.spacing)
         }
+        .scrollBounceBehavior(.basedOnSize)
     }
 }
 

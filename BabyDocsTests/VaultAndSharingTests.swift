@@ -112,21 +112,87 @@ struct VaultAndSharingTests {
     func seedSurvivesTheLink() throws {
         let context = makeContext()
         let (child, profile) = makeFamily(in: context)
+        profile.employerPlanName = "Acme PPO"
+        profile.benefitsContactNote = "Dana in HR"
 
         let seed = PlanSeed.make(child: child, profile: profile)
         let url = try #require(seed.shareURL())
         let decoded = try #require(PlanSeed.decode(from: url))
 
         #expect(decoded.name == "Rosa")
+        #expect(decoded.childID == child.id)
         #expect(decoded.birthStateCode == "CA")
         #expect(decoded.birthCounty == "Alameda County")
         #expect(decoded.residenceStateCode == "CA")
         #expect(decoded.insuranceKind == InsuranceKind.employer.rawValue)
+        #expect(decoded.employerPlanName == "Acme PPO")
+        #expect(decoded.benefitsContactNote == "Dana in HR")
         #expect(decoded.wantsNewbornAccount)
         // Whole seconds only: the payload is ISO8601, and a birth date that
         // arrives a fraction off would push every derived deadline by a day at
         // the wrong end of a timezone.
         #expect(abs(decoded.birthDate.timeIntervalSince(child.birthDate)) < 1)
+    }
+
+    @Test("A non-employer seed does not carry employer-only details")
+    func seedOmitsEmployerDetailsWhenCoverageChanges() throws {
+        let context = makeContext()
+        let (child, profile) = makeFamily(in: context)
+        profile.insuranceKind = .marketplace
+        profile.employerPlanName = "Stale employer plan"
+        profile.benefitsContactNote = "Stale HR contact"
+
+        let seed = PlanSeed.make(child: child, profile: profile)
+        #expect(seed.employerPlanName == nil)
+        #expect(seed.benefitsContactNote == nil)
+
+        let payload = try #require(seed.encoded())
+        let decoded = try #require(PlanSeed.decode(payload: payload))
+        #expect(decoded.employerPlanName == nil)
+        #expect(decoded.benefitsContactNote == nil)
+    }
+
+    @Test("Shared free text redacts a Social Security number")
+    func sharedFreeTextRedactsSensitiveShape() {
+        let context = makeContext()
+        let (child, profile) = makeFamily(in: context)
+        profile.employerPlanName = "Acme 123-45-6789 PPO"
+        profile.benefitsContactNote = "Call 555 12 3456"
+
+        let seed = PlanSeed.make(child: child, profile: profile)
+        #expect(seed.employerPlanName?.contains("123-45-6789") == false)
+        #expect(seed.benefitsContactNote?.contains("555 12 3456") == false)
+    }
+
+    @Test("Exports redact a Social Security number in an assignee name")
+    func exportsRedactSensitiveFreeText() throws {
+        let context = makeContext()
+        let (child, profile) = makeFamily(in: context)
+        let task = try #require(child.liveTasks.first)
+        task.completedAt = Date()
+        task.completedByName = "123-45-6789"
+
+        let summary = PlanExporter.summary(for: child, profile: profile)
+        #expect(!summary.contains("123-45-6789"))
+        #expect(summary.contains("redacted Social Security number"))
+    }
+
+    @Test("A shared birth date stays the same across US time zones")
+    func birthDateIsDateOnly() throws {
+        var sourceCalendar = Calendar(identifier: .gregorian)
+        sourceCalendar.timeZone = TimeZone(identifier: "America/New_York")!
+        let sourceDate = sourceCalendar.date(from: DateComponents(year: 2026, month: 8, day: 22))!
+        let child = Child(name: "Rosa", birthDate: sourceDate, birthStateCode: "NY")
+        let profileContext = makeContext()
+        let profile = FamilyProfileStore.current(in: profileContext)
+        profile.residenceStateCode = "NY"
+        var seed = PlanSeed.make(child: child, profile: profile)
+        seed.birthDate = sourceDate
+
+        let payload = try #require(seed.encoded())
+        let decoded = try #require(PlanSeed.decode(payload: payload))
+        #expect(DateOnly.dayKey(decoded.birthDate) == "2026-08-22")
+        #expect(DateOnly.sameDay(decoded.birthDate, DateOnly.date(from: "2026-08-22")!))
     }
 
     @Test("Both link shapes carry the same payload")
@@ -231,6 +297,32 @@ struct VaultAndSharingTests {
 
         task.completedAt = Date()
         #expect(!task.isLate(), "Something that arrived is not late")
+    }
+
+    @Test("An expected date is not late until the next calendar day")
+    func expectedTodayIsNotLateBeforeTomorrow() {
+        let task = RequirementTask(title: "Order certified copies")
+        let now = Date()
+        task.submittedAt = Calendar.current.date(byAdding: .day, value: -2, to: now)
+        task.expectedByAt = DateOnly.canonical(now)
+
+        #expect(!task.isLate(from: now), "An item expected today is not late today")
+
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: now)!
+        #expect(task.isLate(from: tomorrow), "An item expected yesterday is late tomorrow")
+    }
+
+    @Test("A local day does not roll over at UTC midnight")
+    func localDayKeyUsesTheDeviceCalendar() {
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(secondsFromGMT: 0)!
+        let justAfterUTCMidnight = utc.date(
+            from: DateComponents(year: 2026, month: 8, day: 23, hour: 1)
+        )!
+        var pacific = Calendar(identifier: .gregorian)
+        pacific.timeZone = TimeZone(identifier: "America/Los_Angeles")!
+
+        #expect(DateOnly.localDayKey(justAfterUTCMidnight, calendar: pacific) == "2026-08-22")
     }
 
     @Test("Only rules that involve waiting on an office offer follow-up tracking")

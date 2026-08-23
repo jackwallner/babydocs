@@ -35,6 +35,7 @@ enum DeadlineReminderScheduler {
 
     private static let identifierPrefix = "deadline."
     private static let log = Logger(subsystem: "com.jackwallner.babydocs", category: "reminders")
+    private static var activeReschedule: Task<Void, Never>?
 
     /// What to schedule, as a plain value. Keeps the scheduling rule testable
     /// without a notification centre or a SwiftData store.
@@ -96,6 +97,16 @@ enum DeadlineReminderScheduler {
     /// The effectful half. Clears every reminder this app owns and lays down the
     /// current set. Leaves other categories of notification alone.
     static func reschedule(for tasks: [RequirementTask], now: Date = Date()) async {
+        activeReschedule?.cancel()
+        await activeReschedule?.value
+        let work = Task { @MainActor in
+            await performReschedule(for: tasks, now: now)
+        }
+        activeReschedule = work
+        await work.value
+    }
+
+    private static func performReschedule(for tasks: [RequirementTask], now: Date) async {
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized
@@ -109,6 +120,7 @@ enum DeadlineReminderScheduler {
         center.removePendingNotificationRequests(withIdentifiers: ours)
 
         for plan in plans(for: tasks, now: now) {
+            guard !Task.isCancelled else { return }
             let content = UNMutableNotificationContent()
             content.title = plan.title
             content.body = plan.body

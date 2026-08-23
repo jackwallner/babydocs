@@ -25,7 +25,7 @@ enum PlanExporter {
         var lines: [String] = []
 
         lines.append("NEWBORN PAPERWORK: \(child.displayName.uppercased())")
-        lines.append("Born \(dateString(child.birthDate))\(birthPlaceSuffix(child))")
+        lines.append("Born \(dateOnlyString(child.birthDate))\(birthPlaceSuffix(child))")
         if !profile.residenceStateCode.isEmpty {
             lines.append("Living in \(USState.displayName(for: profile.residenceStateCode))")
         }
@@ -38,10 +38,12 @@ enum PlanExporter {
         let tasks = child.liveTasks
         let overview = TaskPlanner.overview(for: tasks, now: now)
         lines.append("PROGRESS: \(overview.doneCount) of \(overview.totalCount) done")
-        if let next = overview.nextHardDeadline, let title = overview.nextHardDeadlineTitle {
-            lines.append("NEXT HARD DEADLINE: \(dateString(next)), \(title)")
+        if let past = overview.pastHardDeadline, let title = overview.pastHardDeadlineTitle {
+            lines.append("HARD DEADLINE PASSED: \(dateOnlyString(past)), \(title)")
+        } else if let next = overview.nextHardDeadline, let title = overview.nextHardDeadlineTitle {
+            lines.append("NEXT HARD DEADLINE: \(dateOnlyString(next)), \(title)")
         } else {
-            lines.append("NEXT HARD DEADLINE: none outstanding")
+            lines.append("HARD DEADLINES: none outstanding")
         }
         lines.append("")
 
@@ -59,7 +61,7 @@ enum PlanExporter {
             lines.append("  nothing yet")
         } else {
             for task in TaskPlanner.sorted(done, now: now) {
-                let by = task.completedByName.isEmpty ? "" : " by \(task.completedByName)"
+                let by = task.completedByName.isEmpty ? "" : " by \(safeExternalText(task.completedByName))"
                 lines.append("  \(task.title)\(by)")
                 for receipt in task.liveReceipts where !receipt.value.isEmpty {
                     lines.append("    \(receipt.kind.label): \(safeReceiptValue(receipt.value))")
@@ -97,14 +99,14 @@ enum PlanExporter {
         lines.append("QUALIFYING LIFE EVENT: BIRTH OF A CHILD")
         lines.append("")
         lines.append("Event: birth")
-        lines.append("Date of event: \(dateString(child.birthDate))")
+        lines.append("Date of event: \(dateOnlyString(child.birthDate))")
         if !child.name.trimmingCharacters(in: .whitespaces).isEmpty {
             lines.append("Dependent: \(child.name)")
         }
-        lines.append("Dependent's date of birth: \(dateString(child.birthDate))")
+        lines.append("Dependent's date of birth: \(dateOnlyString(child.birthDate))")
         lines.append("Relationship: child")
         if let due = insurance?.dueAt {
-            lines.append("Enrollment window closes: \(dateString(due))")
+            lines.append("Enrollment window closes: \(dateOnlyString(due))")
         }
         lines.append("")
 
@@ -179,18 +181,18 @@ enum PlanExporter {
     private static func taskLines(_ task: RequirementTask, now: Date) -> [String] {
         var lines: [String] = []
         let marker = task.deadlineKind == .hard ? "!" : " "
-        let due = task.dueAt.map { " (\(dateString($0)), \(TaskPlanner.duePhrase(for: task, now: now)))" } ?? ""
+        let due = task.dueAt.map { " (\(dateOnlyString($0)), \(TaskPlanner.duePhrase(for: task, now: now)))" } ?? ""
         lines.append("  \(marker) \(task.title)\(due)")
 
         if !task.assigneeName.isEmpty {
-            lines.append("      with \(task.assigneeName)")
+            lines.append("      with \(safeExternalText(task.assigneeName))")
         }
         if let sent = task.submittedAt {
             var line = "      sent \(dateString(sent))"
             if let expected = task.expectedByAt {
                 line += task.isLate(from: now)
-                    ? ", was due back \(dateString(expected)) (chase this)"
-                    : ", expected back \(dateString(expected))"
+                    ? ", was due back \(dateOnlyString(expected)) (chase this)"
+                    : ", expected back \(dateOnlyString(expected))"
             }
             lines.append(line)
         }
@@ -239,5 +241,13 @@ enum PlanExporter {
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
         return formatter.string(from: date)
+    }
+
+    private static func dateOnlyString(_ date: Date) -> String {
+        dateString(DateOnly.canonicalFromUTC(date))
+    }
+
+    private static func safeExternalText(_ value: String) -> String {
+        PlanSeed.safeExternalText(value)
     }
 }

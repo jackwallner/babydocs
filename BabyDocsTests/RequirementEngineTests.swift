@@ -78,6 +78,19 @@ struct RequirementEngineTests {
         #expect(second.total == first.total)
     }
 
+    @Test("Generated rows use the reconciliation timestamp")
+    func generatedRowsUseProvidedTime() throws {
+        let context = makeContext()
+        let (child, profile) = seed(context)
+        let now = DateOnly.date(from: "2026-08-22")!
+
+        let result = RequirementEngine.reconcile(child: child, profile: profile, in: context, now: now)
+        #expect(result.didPersist)
+        let task = try #require(child.liveTasks.first)
+        #expect(task.updatedAt == now)
+        #expect(task.liveDocuments.allSatisfy { $0.updatedAt == now })
+    }
+
     @Test("Changing an answer moves the deadline in place, not into a new row")
     func changingCoverageRewritesTheSameRow() {
         let context = makeContext()
