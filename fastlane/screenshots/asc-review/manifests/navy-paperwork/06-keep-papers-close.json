@@ -1,0 +1,87 @@
+{
+  "filename": "06-keep-papers-close.png",
+  "path": "navy-paperwork/06-keep-papers-close.png",
+  "output_sha256": "d3a404bb7edfadccdc4476e98c4c2072a4864d91b13437639fe769d6e7e160e4",
+  "output_size": [
+    1320,
+    2868
+  ],
+  "device": "iphone",
+  "header": "Keep the papers you will need",
+  "pitch": {
+    "benefit": "Keep protected photographs of the papers you need at the counter, without putting them in a server.",
+    "problem": "The document drawer is often at home when a parent is standing at an office counter.",
+    "advantage": "The on-device vault keeps paper photographs available on the phone and never gives the app a share or export path to them.",
+    "header_problem": "papers left at home",
+    "header_advantage": "an on-device vault",
+    "search_terms": [
+      "newborn paperwork",
+      "birth certificate checklist"
+    ],
+    "proof": "The literal Baby Docs Plus capture shows the document vault as the work around the free deadline and checklist surfaces."
+  },
+  "source": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/05-paywall.png",
+  "source_sha256": "d5af044ef421129701dd1a0a656e77fab052388d208eb300f9c959c699719c2f",
+  "background_asset": null,
+  "background_asset_sha256": null,
+  "background_override": "icon",
+  "foreground": "manifests/navy-paperwork/06-keep-papers-close.foreground.png",
+  "foreground_sha256": "2287aa646e3ff1f5109b535ff95465b990c1c3093ab6192864c2340eddc9da63",
+  "ui_mask": "manifests/navy-paperwork/06-keep-papers-close.ui-mask.png",
+  "ui_coverage": 0.6066,
+  "imagegen_received_ui_source": false,
+  "target": "iphone_69",
+  "size": [
+    1320,
+    2868
+  ],
+  "background_mode": "icon-derived",
+  "background_id": "icon:#031336",
+  "background_top": "#051f57",
+  "background_bottom": "#083391",
+  "background_asset_applied": false,
+  "background_source": "/Users/jackwallner/babydocs/BabyDocs/Assets.xcassets/AppIcon.appiconset/icon-1024.png",
+  "background_source_sha256": "9dd6d40867b43d317d88688dba9a2b69f8435787c80e42554d879afb45293e59",
+  "background_source_hex": "#031336",
+  "background_extraction": {
+    "rgb": [
+      3,
+      19,
+      54
+    ],
+    "hex": "#031336",
+    "method": "dominant-edge-swatch-quantized-8",
+    "edge_sample_count": 245760,
+    "swatch_sample_count": 241759,
+    "quantized_bucket": [
+      0,
+      16,
+      48
+    ]
+  },
+  "phone": {
+    "x": 126,
+    "y": 560,
+    "width": 1067,
+    "height": 2273,
+    "screen_x": 146,
+    "screen_y": 580,
+    "screen_width": 1027,
+    "screen_height": 2233
+  },
+  "header_only": true,
+  "compositor_text_layers": [
+    "header"
+  ],
+  "header_font_size": 164,
+  "header_lines": 2,
+  "header_text": "Keep the papers you will need",
+  "header_bounds": [
+    99,
+    152,
+    1221,
+    467
+  ],
+  "source_evidence": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/05-paywall.png",
+  "source_evidence_sha256": "d5af044ef421129701dd1a0a656e77fab052388d208eb300f9c959c699719c2f"
+}

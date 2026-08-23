@@ -1,0 +1,87 @@
+{
+  "filename": "04-child-plan.png",
+  "path": "navy-paperwork/04-child-plan.png",
+  "output_sha256": "cfffaee814f91f6239262c4940a80bd062e740312552fbacfa3cfffce225de03",
+  "output_size": [
+    1320,
+    2868
+  ],
+  "device": "iphone",
+  "header": "Keep each baby's plan together",
+  "pitch": {
+    "benefit": "Keep one child's deadlines and household answers together as the work changes.",
+    "problem": "A newborn checklist becomes harder to trust when a family has to remember which child or which answers a task belongs to.",
+    "advantage": "Children keeps the child-specific plan visible and makes the household answers that shape every deadline easy to revisit.",
+    "header_problem": "a mixed family checklist",
+    "header_advantage": "one plan per child",
+    "search_terms": [
+      "newborn paperwork",
+      "add baby to health insurance"
+    ],
+    "proof": "The literal Children capture shows the child-specific open-task count and the household answers that rebuild the plan."
+  },
+  "source": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/04-children.png",
+  "source_sha256": "23d042f1fbab4c7c92a59ec8e32ce38ddcbca01ce96f65836093a4a574781c09",
+  "background_asset": null,
+  "background_asset_sha256": null,
+  "background_override": "icon",
+  "foreground": "manifests/navy-paperwork/04-child-plan.foreground.png",
+  "foreground_sha256": "5f7c8af00379c292d224a67c9a0677a5c221bb1a6133efa816f889b569c3e427",
+  "ui_mask": "manifests/navy-paperwork/04-child-plan.ui-mask.png",
+  "ui_coverage": 0.6066,
+  "imagegen_received_ui_source": false,
+  "target": "iphone_69",
+  "size": [
+    1320,
+    2868
+  ],
+  "background_mode": "icon-derived",
+  "background_id": "icon:#031336",
+  "background_top": "#051f57",
+  "background_bottom": "#083391",
+  "background_asset_applied": false,
+  "background_source": "/Users/jackwallner/babydocs/BabyDocs/Assets.xcassets/AppIcon.appiconset/icon-1024.png",
+  "background_source_sha256": "9dd6d40867b43d317d88688dba9a2b69f8435787c80e42554d879afb45293e59",
+  "background_source_hex": "#031336",
+  "background_extraction": {
+    "rgb": [
+      3,
+      19,
+      54
+    ],
+    "hex": "#031336",
+    "method": "dominant-edge-swatch-quantized-8",
+    "edge_sample_count": 245760,
+    "swatch_sample_count": 241759,
+    "quantized_bucket": [
+      0,
+      16,
+      48
+    ]
+  },
+  "phone": {
+    "x": 126,
+    "y": 560,
+    "width": 1067,
+    "height": 2273,
+    "screen_x": 146,
+    "screen_y": 580,
+    "screen_width": 1027,
+    "screen_height": 2233
+  },
+  "header_only": true,
+  "compositor_text_layers": [
+    "header"
+  ],
+  "header_font_size": 152,
+  "header_lines": 2,
+  "header_text": "Keep each baby's plan together",
+  "header_bounds": [
+    96,
+    148,
+    1223,
+    441
+  ],
+  "source_evidence": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/04-children.png",
+  "source_evidence_sha256": "23d042f1fbab4c7c92a59ec8e32ce38ddcbca01ce96f65836093a4a574781c09"
+}

@@ -1,0 +1,87 @@
+{
+  "filename": "03-documents.png",
+  "path": "navy-paperwork/03-documents.png",
+  "output_sha256": "739dc703a96dd86f0f514bd3433fb43bfe3892f1e698348bebb2911f77269604",
+  "output_size": [
+    1320,
+    2868
+  ],
+  "device": "iphone",
+  "header": "Bring every paper you need",
+  "pitch": {
+    "benefit": "Gather the documents for each errand and see what is already in hand.",
+    "problem": "Generic lists repeat the same paper without showing which appointment needs it or whether it was already gathered.",
+    "advantage": "The Documents tab groups required papers by task, keeps ticked items visible, and links every row back to its task.",
+    "header_problem": "a repeated paper list",
+    "header_advantage": "the papers for this errand",
+    "search_terms": [
+      "birth certificate checklist",
+      "newborn paperwork"
+    ],
+    "proof": "The literal Documents capture shows the gathered checklist across the family's open tasks and the task link on every row."
+  },
+  "source": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/06-documents.png",
+  "source_sha256": "2d9406e2dc13a126f1099e395a2e06149f51c75776b98df0b29b4227c16f3e46",
+  "background_asset": null,
+  "background_asset_sha256": null,
+  "background_override": "icon",
+  "foreground": "manifests/navy-paperwork/03-documents.foreground.png",
+  "foreground_sha256": "9d4a8ee8eda7784bf0cf6e4d9357893bbdb3ad4b28325648137148953b8fef4c",
+  "ui_mask": "manifests/navy-paperwork/03-documents.ui-mask.png",
+  "ui_coverage": 0.6066,
+  "imagegen_received_ui_source": false,
+  "target": "iphone_69",
+  "size": [
+    1320,
+    2868
+  ],
+  "background_mode": "icon-derived",
+  "background_id": "icon:#031336",
+  "background_top": "#051f57",
+  "background_bottom": "#083391",
+  "background_asset_applied": false,
+  "background_source": "/Users/jackwallner/babydocs/BabyDocs/Assets.xcassets/AppIcon.appiconset/icon-1024.png",
+  "background_source_sha256": "9dd6d40867b43d317d88688dba9a2b69f8435787c80e42554d879afb45293e59",
+  "background_source_hex": "#031336",
+  "background_extraction": {
+    "rgb": [
+      3,
+      19,
+      54
+    ],
+    "hex": "#031336",
+    "method": "dominant-edge-swatch-quantized-8",
+    "edge_sample_count": 245760,
+    "swatch_sample_count": 241759,
+    "quantized_bucket": [
+      0,
+      16,
+      48
+    ]
+  },
+  "phone": {
+    "x": 126,
+    "y": 560,
+    "width": 1067,
+    "height": 2273,
+    "screen_x": 146,
+    "screen_y": 580,
+    "screen_width": 1027,
+    "screen_height": 2233
+  },
+  "header_only": true,
+  "compositor_text_layers": [
+    "header"
+  ],
+  "header_font_size": 164,
+  "header_lines": 2,
+  "header_text": "Bring every paper you need",
+  "header_bounds": [
+    128,
+    153,
+    1192,
+    467
+  ],
+  "source_evidence": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/06-documents.png",
+  "source_evidence_sha256": "2d9406e2dc13a126f1099e395a2e06149f51c75776b98df0b29b4227c16f3e46"
+}

@@ -17,13 +17,24 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-RAW="fastlane/screenshots/raw"
+RAW="${2:-fastlane/screenshots/raw}"
 
-if ! UDID=$(agent-sim udid babydocs 2>/dev/null) || [ -z "$UDID" ]; then
-  echo "No simulator lease. Run: agent-sim checkout babydocs" >&2
-  exit 1
+if [ -n "${1:-}" ]; then
+  UDID="$1"
+else
+  if ! UDID=$(agent-sim udid babydocs 2>/dev/null) || [ -z "$UDID" ]; then
+    echo "No simulator lease. Run: agent-sim checkout babydocs" >&2
+    exit 1
+  fi
 fi
+
 agent-sim boot babydocs >/dev/null
+xcrun simctl status_bar "$UDID" override \
+  --time 9:41 \
+  --batteryState charged \
+  --batteryLevel 100 \
+  --cellularBars 4 \
+  --wifiBars 3
 
 xcodegen generate >/dev/null
 xcodebuild test \

@@ -1,0 +1,87 @@
+{
+  "filename": "05-check-the-source.png",
+  "path": "navy-paperwork/05-check-the-source.png",
+  "output_sha256": "4a82fbf2409039f8c410bea97ef2fa66bed5efd9139e30a0e4799f256be7b9f3",
+  "output_size": [
+    1320,
+    2868
+  ],
+  "device": "iphone",
+  "header": "Check the source before you act",
+  "pitch": {
+    "benefit": "See when the rule set was checked and open the official source before relying on a date.",
+    "problem": "Government rules, office pages, and local processing details change while a newborn checklist stays installed.",
+    "advantage": "Settings surfaces the oldest source review date, the state office coverage, and the source directory behind the plan.",
+    "header_problem": "a stale checklist",
+    "header_advantage": "visible source review",
+    "search_terms": [
+      "newborn paperwork",
+      "birth certificate checklist"
+    ],
+    "proof": "The literal Settings capture shows the source review date, fifty states and DC coverage, and the source directory links."
+  },
+  "source": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/07-settings.png",
+  "source_sha256": "88791746b3dc00f8ef5844243fba274752422594aa01ea23050804e80a32053c",
+  "background_asset": null,
+  "background_asset_sha256": null,
+  "background_override": "icon",
+  "foreground": "manifests/navy-paperwork/05-check-the-source.foreground.png",
+  "foreground_sha256": "33d6eb39928c3feeebf4c0b4b5a505b9b6273f34821117adea3a7403a7d0291e",
+  "ui_mask": "manifests/navy-paperwork/05-check-the-source.ui-mask.png",
+  "ui_coverage": 0.6066,
+  "imagegen_received_ui_source": false,
+  "target": "iphone_69",
+  "size": [
+    1320,
+    2868
+  ],
+  "background_mode": "icon-derived",
+  "background_id": "icon:#031336",
+  "background_top": "#051f57",
+  "background_bottom": "#083391",
+  "background_asset_applied": false,
+  "background_source": "/Users/jackwallner/babydocs/BabyDocs/Assets.xcassets/AppIcon.appiconset/icon-1024.png",
+  "background_source_sha256": "9dd6d40867b43d317d88688dba9a2b69f8435787c80e42554d879afb45293e59",
+  "background_source_hex": "#031336",
+  "background_extraction": {
+    "rgb": [
+      3,
+      19,
+      54
+    ],
+    "hex": "#031336",
+    "method": "dominant-edge-swatch-quantized-8",
+    "edge_sample_count": 245760,
+    "swatch_sample_count": 241759,
+    "quantized_bucket": [
+      0,
+      16,
+      48
+    ]
+  },
+  "phone": {
+    "x": 126,
+    "y": 560,
+    "width": 1067,
+    "height": 2273,
+    "screen_x": 146,
+    "screen_y": 580,
+    "screen_width": 1027,
+    "screen_height": 2233
+  },
+  "header_only": true,
+  "compositor_text_layers": [
+    "header"
+  ],
+  "header_font_size": 156,
+  "header_lines": 2,
+  "header_text": "Check the source before you act",
+  "header_bounds": [
+    87,
+    149,
+    1232,
+    450
+  ],
+  "source_evidence": "/Users/jackwallner/babydocs/fastlane/screenshots/raw/07-settings.png",
+  "source_evidence_sha256": "88791746b3dc00f8ef5844243fba274752422594aa01ea23050804e80a32053c"
+}

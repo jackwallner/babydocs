@@ -1,0 +1,274 @@
+{
+  "app": "babydocs",
+  "display_name": "Baby Docs: Newborn Paperwork",
+  "target": "iphone_69",
+  "copy_contract": "single-header-benefit-story-v3",
+  "market": {
+    "category": "newborn administrative paperwork planners",
+    "audience": "US families in the first weeks after a birth who need to know what applies, when it closes, and what to bring",
+    "problem": "Generic checklists omit state, household, insurance, and parentage details, turning one urgent deadline into a pile of tabs and handouts.",
+    "advantage": "Baby Docs builds from the family's answers, then shows the deadlines, official sources, and document checklists that fit that household on one device.",
+    "competitive_context": "The app competes with generic newborn checklists, hospital handouts, and calendar reminders. It wins on personal applicability and source-backed tasks, while staying on-device and never filing anything for the family.",
+    "search_intent": [
+      "newborn paperwork",
+      "birth certificate checklist",
+      "add baby to health insurance",
+      "parental leave paperwork"
+    ],
+    "proof_points": [
+      {
+        "claim": "The plan screen puts the next hard deadline and open work in one ordered view.",
+        "source": "raw/01-plan.png"
+      },
+      {
+        "claim": "The task detail screen explains why the task applies, what timing means, and where the official office is.",
+        "source": "raw/02-task-detail.png"
+      },
+      {
+        "claim": "The Plus surface shows the on-device document vault as work around the free deadline and checklist surfaces.",
+        "source": "raw/05-paywall.png"
+      }
+    ]
+  },
+  "theme": {
+    "background": "#071630",
+    "background_2": "#123d76",
+    "ink": "#fff9ed",
+    "muted": "#b9c7dc",
+    "accent": "#ff6b59",
+    "accent_2": "#3d7cff",
+    "headline_font": "rounded",
+    "body_font": "sans",
+    "icon_source": "../../BabyDocs/Assets.xcassets/AppIcon.appiconset/icon-1024.png"
+  },
+  "capture": {
+    "mode": "command",
+    "lease": "babydocs",
+    "project_root": "/Users/jackwallner/babydocs",
+    "expected_screenshot_count": 16,
+    "command": ["bash", "scripts/capture-screenshots.sh", "{udid}", "{output}"]
+  },
+  "sets": [
+    {
+      "id": "navy-paperwork",
+      "submission": true,
+      "style": "navy-paperwork",
+      "story": {
+        "throughline": "Turn a newborn paperwork pile into a household-specific plan, a clear errand, and a free handoff",
+        "sequence": ["problem", "mechanism", "proof"]
+      },
+      "frames": [
+        {
+          "filename": "01-deadlines.png",
+          "header": "Know what is due next",
+          "story_role": "problem",
+          "story_focus": "what is due next",
+          "pitch": {
+            "benefit": "See the next hard deadline and the work around it without sorting a generic checklist.",
+            "problem": "Newborn paperwork arrives as a pile, but the dates that matter depend on the household and the plan.",
+            "advantage": "The Plan screen orders tasks by urgency and keeps sent work visible when something has not come back.",
+            "header_problem": "a pile of paperwork",
+            "header_advantage": "the next hard deadline",
+            "search_terms": [
+              "newborn paperwork",
+              "birth certificate checklist"
+            ],
+            "proof": "The literal Plan capture shows the job-based enrollment window, an overdue birth-certificate follow-up, and the next open tasks."
+          },
+          "source": "raw/01-plan.png",
+          "source_evidence": "raw/01-plan.png",
+          "capture_flow": "repo-command",
+          "evidence_status": "validated-staged",
+          "device": "iphone",
+          "layout": {
+            "header_top": 110,
+            "header_size": 164,
+            "header_min_size": 140,
+            "header_max_lines": 2,
+            "header_margin": 82,
+            "phone_top": 560,
+            "bottom_margin": 36,
+            "phone_width": 1120,
+            "phone_bezel": 20,
+            "phone_radius": 104
+          }
+        },
+        {
+          "filename": "02-why-it-applies.png",
+          "header": "See why each task applies",
+          "story_role": "mechanism",
+          "story_focus": "why each task applies",
+          "pitch": {
+            "benefit": "Understand why a task belongs on your plan before you follow its official link.",
+            "problem": "A checklist without its reasoning makes parents second-guess whether a task is for their state, coverage, or family.",
+            "advantage": "Each task explains its household-specific basis, timing, document list, official office, and source review date.",
+            "header_problem": "a generic checklist",
+            "header_advantage": "the reason it applies",
+            "search_terms": [
+              "newborn paperwork",
+              "birth certificate checklist"
+            ],
+            "proof": "The literal birth-certificate detail capture shows the California office, timing explanation, official link, and the statement that Baby Docs never files it."
+          },
+          "source": "raw/02-task-detail.png",
+          "source_evidence": "raw/02-task-detail.png",
+          "capture_flow": "repo-command",
+          "evidence_status": "validated-staged",
+          "device": "iphone",
+          "layout": {
+            "header_top": 110,
+            "header_size": 164,
+            "header_min_size": 140,
+            "header_max_lines": 2,
+            "header_margin": 82,
+            "phone_top": 560,
+            "bottom_margin": 36,
+            "phone_width": 1120,
+            "phone_bezel": 20,
+            "phone_radius": 104
+          }
+        },
+        {
+          "filename": "03-documents.png",
+          "header": "Bring every paper you need",
+          "story_role": "proof",
+          "story_focus": "every paper you need",
+          "pitch": {
+            "benefit": "Gather the documents for each errand and see what is already in hand.",
+            "problem": "Generic lists repeat the same paper without showing which appointment needs it or whether it was already gathered.",
+            "advantage": "The Documents tab groups required papers by task, keeps ticked items visible, and links every row back to its task.",
+            "header_problem": "a repeated paper list",
+            "header_advantage": "the papers for this errand",
+            "search_terms": [
+              "birth certificate checklist",
+              "newborn paperwork"
+            ],
+            "proof": "The literal Documents capture shows the gathered checklist across the family's open tasks and the task link on every row."
+          },
+          "source": "raw/06-documents.png",
+          "source_evidence": "raw/06-documents.png",
+          "capture_flow": "repo-command",
+          "evidence_status": "validated-staged",
+          "device": "iphone",
+          "layout": {
+            "header_top": 110,
+            "header_size": 164,
+            "header_min_size": 140,
+            "header_max_lines": 2,
+            "header_margin": 82,
+            "phone_top": 560,
+            "bottom_margin": 36,
+            "phone_width": 1120,
+            "phone_bezel": 20,
+            "phone_radius": 104
+          }
+        },
+        {
+          "filename": "04-child-plan.png",
+          "header": "Keep each baby's plan together",
+          "story_role": "support",
+          "story_focus": "each baby's plan together",
+          "pitch": {
+            "benefit": "Keep one child's deadlines and household answers together as the work changes.",
+            "problem": "A newborn checklist becomes harder to trust when a family has to remember which child or which answers a task belongs to.",
+            "advantage": "Children keeps the child-specific plan visible and makes the household answers that shape every deadline easy to revisit.",
+            "header_problem": "a mixed family checklist",
+            "header_advantage": "one plan per child",
+            "search_terms": [
+              "newborn paperwork",
+              "add baby to health insurance"
+            ],
+            "proof": "The literal Children capture shows the child-specific open-task count and the household answers that rebuild the plan."
+          },
+          "source": "raw/04-children.png",
+          "source_evidence": "raw/04-children.png",
+          "capture_flow": "repo-command",
+          "evidence_status": "validated-staged",
+          "device": "iphone",
+          "layout": {
+            "header_top": 110,
+            "header_size": 164,
+            "header_min_size": 140,
+            "header_max_lines": 2,
+            "header_margin": 82,
+            "phone_top": 560,
+            "bottom_margin": 36,
+            "phone_width": 1120,
+            "phone_bezel": 20,
+            "phone_radius": 104
+          }
+        },
+        {
+          "filename": "05-check-the-source.png",
+          "header": "Check the source before you act",
+          "story_role": "support",
+          "story_focus": "source before you act",
+          "pitch": {
+            "benefit": "See when the rule set was checked and open the official source before relying on a date.",
+            "problem": "Government rules, office pages, and local processing details change while a newborn checklist stays installed.",
+            "advantage": "Settings surfaces the oldest source review date, the state office coverage, and the source directory behind the plan.",
+            "header_problem": "a stale checklist",
+            "header_advantage": "visible source review",
+            "search_terms": [
+              "newborn paperwork",
+              "birth certificate checklist"
+            ],
+            "proof": "The literal Settings capture shows the source review date, fifty states and DC coverage, and the source directory links."
+          },
+          "source": "raw/07-settings.png",
+          "source_evidence": "raw/07-settings.png",
+          "capture_flow": "repo-command",
+          "evidence_status": "validated-staged",
+          "device": "iphone",
+          "layout": {
+            "header_top": 110,
+            "header_size": 164,
+            "header_min_size": 140,
+            "header_max_lines": 2,
+            "header_margin": 82,
+            "phone_top": 560,
+            "bottom_margin": 36,
+            "phone_width": 1120,
+            "phone_bezel": 20,
+            "phone_radius": 104
+          }
+        },
+        {
+          "filename": "06-keep-papers-close.png",
+          "header": "Keep the papers you will need",
+          "story_role": "support",
+          "story_focus": "papers you will need",
+          "pitch": {
+            "benefit": "Keep protected photographs of the papers you need at the counter, without putting them in a server.",
+            "problem": "The document drawer is often at home when a parent is standing at an office counter.",
+            "advantage": "The on-device vault keeps paper photographs available on the phone and never gives the app a share or export path to them.",
+            "header_problem": "papers left at home",
+            "header_advantage": "an on-device vault",
+            "search_terms": [
+              "newborn paperwork",
+              "birth certificate checklist"
+            ],
+            "proof": "The literal Baby Docs Plus capture shows the document vault as the work around the free deadline and checklist surfaces."
+          },
+          "source": "raw/05-paywall.png",
+          "source_evidence": "raw/05-paywall.png",
+          "capture_flow": "repo-command",
+          "evidence_status": "validated-staged",
+          "device": "iphone",
+          "layout": {
+            "header_top": 110,
+            "header_size": 164,
+            "header_min_size": 140,
+            "header_max_lines": 2,
+            "header_margin": 82,
+            "phone_top": 560,
+            "bottom_margin": 36,
+            "phone_width": 1120,
+            "phone_bezel": 20,
+            "phone_radius": 104
+          }
+        }
+      ]
+    }
+  ]
+}
