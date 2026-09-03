@@ -70,6 +70,14 @@ struct BabyDocsApp: App {
                     StoreService.shared.start()
                     NotificationService.shared.start()
                     ReviewPromptTracker.recordAppLaunch()
+                    ConversionDiagnostics.recordAppOpen()
+                    #if DEBUG
+                    if RevenueCatProbe.isEnabled {
+                        // Same entry point the paywall calls, so what this
+                        // proves is the actual path and not a parallel one.
+                        StoreService.shared.trackPaywallImpression(id: RevenueCatProbe.impressionID)
+                    }
+                    #endif
                 }
                 .onOpenURL { url in
                     AppNavigator.shared.open(url)

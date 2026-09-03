@@ -234,6 +234,10 @@ struct PlusPurchaseView: View {
     }
 
     private func refreshStore() async {
+        // This app reported no paywall impressions at all until now, so
+        // everything between "installed" and "subscribed" was invisible for it
+        // in RevenueCat.
+        store.trackPaywallImpression(id: "babydocs_\(placement)", oncePerSession: true)
         await store.refresh()
         let available = Set(store.plans.map(\.id))
         if let selection, available.contains(selection) { return }
