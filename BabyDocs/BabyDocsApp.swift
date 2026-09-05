@@ -76,6 +76,13 @@ struct BabyDocsApp: App {
                         // Same entry point the paywall calls, so what this
                         // proves is the actual path and not a parallel one.
                         StoreService.shared.trackPaywallImpression(id: RevenueCatProbe.impressionID)
+                        if RevenueCatProbe.wantsPurchase {
+                            Task {
+                                await StoreService.shared.refresh()
+                                guard let plan = StoreService.shared.plans.first else { return }
+                                try? await StoreService.shared.purchase(plan)
+                            }
+                        }
                     }
                     #endif
                 }

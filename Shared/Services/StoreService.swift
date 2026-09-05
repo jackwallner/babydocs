@@ -152,9 +152,19 @@ final class StoreService: NSObject {
             // inverts the whole pricing argument: weekly leads because the need
             // ends. `ProProduct.all` already declares the intended order, so
             // sort against it and let the dashboard hold whatever order it likes.
+            // The Test Store mirrors carry generic ids (`monthly`, `yearly`,
+            // `lifetime`) rather than this app's reverse-DNS ones, so the
+            // allowlist would drop every package and a probe run would report
+            // "no plans" for an app that is working. Under the real key the App
+            // Store ids match and this changes nothing.
+            #if DEBUG
+            let probing = RevenueCatProbe.isEnabled
+            #else
+            let probing = false
+            #endif
             let expectedProducts = Set(ProProduct.all)
             let ordered = (offerings.current?.availablePackages ?? [])
-                .filter { expectedProducts.contains($0.storeProduct.productIdentifier) }
+                .filter { probing || expectedProducts.contains($0.storeProduct.productIdentifier) }
                 .sorted {
                 let left = ProProduct.all.firstIndex(of: $0.storeProduct.productIdentifier)
                     ?? ProProduct.all.count
@@ -489,6 +499,12 @@ enum RevenueCatProbe {
 
     static var impressionID: String {
         ProcessInfo.processInfo.environment["RC_PROBE_SURFACE"] ?? "babydocs_paywall"
+    }
+
+    /// Drives a Test Store purchase after the impression, so the `converted_*`
+    /// half of the funnel record is exercised and not just the impression half.
+    static var wantsPurchase: Bool {
+        ProcessInfo.processInfo.arguments.contains("-rcfunnelprobepurchase")
     }
 }
 #endif
