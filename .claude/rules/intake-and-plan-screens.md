@@ -13,7 +13,7 @@ paths:
 
 # Baby Docs: the intake and the plan screens
 
-Moved verbatim from CLAUDE.md. Loads when a matching file is read; update it here.
+Moved verbatim from AGENTS.md. Loads when a matching file is read; update it here.
 
 - **"Not sure" is an answer, everywhere it is offered.** Coverage and parentage
   both filtered their `.unknown` case out of the intake and blocked Continue

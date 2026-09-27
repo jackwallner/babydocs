@@ -1,4 +1,4 @@
-# Baby Docs — Project Guide
+# Baby Docs Project Guide
 
 A newborn administrative concierge for US families: what paperwork applies to
 *this* household, when each window closes, what documents to bring, and a link
@@ -17,9 +17,9 @@ competitors and no reason to pick this.
 - RevenueCat, entitlement `BabyDocs+`, resolved as `store.isPro`
 
 ## Targets / bundle IDs
-- `BabyDocs` — `com.jackwallner.babydocs`
-- `BabyDocsTests` — `com.jackwallner.babydocs.tests`
-- `BabyDocsUITests` — `com.jackwallner.babydocs.uitests`
+- `BabyDocs`: `com.jackwallner.babydocs`
+- `BabyDocsTests`: `com.jackwallner.babydocs.tests`
+- `BabyDocsUITests`: `com.jackwallner.babydocs.uitests`
 - RevenueCat app: `appl_LIrLhMIPlUeqSjOlWhYtkPSTvtP`
 - No App Group (no widget or watch target in v1)
 - Entitlements file is deliberately empty. See the comment in it before adding one.
@@ -39,7 +39,7 @@ provisioned, so nothing was ever hosted and no user was ever affected.
   **source citation with the date someone last read it**. Rules are pure
   functions of `RuleInput`, a plain struct, so the whole catalog is testable
   without SwiftData, a container or a network.
-- `TaskPlanner.swift` — bucketing, sorting, the home-screen overview and the one
+- `TaskPlanner.swift`: bucketing, sorting, the home-screen overview and the one
   place a deadline is phrased in words.
 - `PlanTimeline.swift`: the same tasks read as an order rather than as dates.
   Pure, and deliberately separate: `TaskPlanner` answers "when does this close",
@@ -72,7 +72,7 @@ Condensed from the deep notes below; the reasoning behind each one lives there.
 - `design.md` is the design system: run `scripts/design-audit.py` before a release. `AppTheme.margin` is the only horizontal inset.
 
 ## Deep notes (load on demand)
-These files load automatically when you read a file matching their `paths:`. Agents that do not auto-load rules (AGENTS.md readers) should open the file for the area they are touching. Record new area-specific learnings in the matching file, not here.
+These files load automatically when you read a file matching their `paths:`. Agents that do not auto-load rules (Codex, Cursor) should open the file for the area they are touching. Record new area-specific learnings in the matching file, not here.
 
 | File | Covers | Read when |
 |---|---|---|
@@ -123,4 +123,4 @@ These files load automatically when you read a file matching their `paths:`. Age
 
 ---
 Shared iOS conventions (build, simulator, release/TestFlight, ASC key, signing,
-review funnel, gotchas): always-loaded global CLAUDE.md + the `ios-dev` skill.
+review funnel, gotchas): the global agent rules + the `ios-dev` skill.

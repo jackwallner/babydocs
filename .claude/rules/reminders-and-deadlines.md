@@ -10,7 +10,7 @@ paths:
 
 # Baby Docs: hard deadlines and reminders
 
-Moved verbatim from CLAUDE.md. Loads when a matching file is read; update it here.
+Moved verbatim from AGENTS.md. Loads when a matching file is read; update it here.
 
 - **Two dates are hard, the rest are not.** Job-based health plans must allow at
   least 30 days after a birth; the Marketplace is 60. Those are the only

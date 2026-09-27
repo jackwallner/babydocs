@@ -25,7 +25,7 @@ paths:
 
 # Baby Docs: pricing, free vs Plus, and the review ask
 
-Moved verbatim from CLAUDE.md. Loads when a matching file is read; update it here.
+Moved verbatim from AGENTS.md. Loads when a matching file is read; update it here.
 
 - **Pricing: weekly leads, lifetime keeps.** 3-day trial into $4.99/week, with
   $29.99/year and $59.99 once. Weekly is unusual and deliberate: the need is
