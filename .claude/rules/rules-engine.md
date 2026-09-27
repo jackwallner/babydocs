@@ -13,11 +13,11 @@ paths:
 
 # Baby Docs: the rules engine
 
-Moved verbatim from CLAUDE.md. Loads when a matching file is read; update it here.
+Moved verbatim from AGENTS.md. Loads when a matching file is read; update it here.
 
 ### Catalog files
 
-- `StateVitalRecords.swift` — per-state birth certificate offices, now all fifty
+- `StateVitalRecords.swift`: per-state birth certificate offices, now all fifty
   states and DC rather than California alone. **Never bulk import a list of state
   URLs into here**: a generic-but-correct link beats a specific-but-guessed one,
   because a parent who follows a wrong link to a wrong office loses a fortnight.
@@ -32,12 +32,12 @@ Moved verbatim from CLAUDE.md. Loads when a matching file is read; update it her
   note says so in words and lets the parent find their own, because three
   thousand guessed county URLs is the failure this file exists to prevent. The
   five territories still fall back to the federal directory and say so.
-- `USCounties.swift` — 3,110 county names from the Census, and *only* names.
+- `USCounties.swift`: 3,110 county names from the Census, and *only* names.
   Same rule as above, harder: it routes nothing. It exists to spell a county
   correctly and to let CoreLocation prefill one. A generated list of three
   thousand county clerk URLs would be wrong often enough to cost somebody a
   fortnight, so the birth certificate link stays at state level.
-- `RequirementEngine.swift` — reconciles the catalog into `RequirementTask`
+- `RequirementEngine.swift`: reconciles the catalog into `RequirementTask`
   rows. Three rules, all load-bearing: the engine owns the rule and the family
   owns the work (completion, assignment, receipts and ticked documents are never
   rewritten); row ids are derived from (child, catalog key), which is what lets a

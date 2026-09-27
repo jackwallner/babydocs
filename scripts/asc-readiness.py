@@ -60,7 +60,7 @@ EXPECTED_SCREENSHOTS = {"APP_IPHONE_67": 6}
 EXPECTED_ASC_LOCALES = {"en-US"}
 EXPECTED_TERRITORIES = 175
 # Weekly only. The yearly exists to make the comparison legible and is not the
-# CTA, so it carries no intro offer. See CLAUDE.md on why the trial is 3 days.
+# CTA, so it carries no intro offer. See AGENTS.md on why the trial is 3 days.
 EXPECTED_TRIAL_TERRITORIES = EXPECTED_TERRITORIES
 EXPECTED_TRIAL_PRODUCT = "com.jackwallner.babydocs.pro.weekly"
 EXPECTED_SUBSCRIPTIONS = {

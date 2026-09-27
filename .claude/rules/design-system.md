@@ -10,7 +10,7 @@ paths:
 
 # Baby Docs: the design system
 
-Moved verbatim from CLAUDE.md. Loads when a matching file is read; update it here.
+Moved verbatim from AGENTS.md. Loads when a matching file is read; update it here.
 
 - **`design.md` is the design system, and `scripts/design-audit.py` is what
   stops it being a document nobody reads.** Tokens live in `AppTheme`; the audit

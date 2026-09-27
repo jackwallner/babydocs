@@ -14,7 +14,7 @@ cd "$PROJECT_DIR"
 
 # The schema drift check went with the backend. There is no server, no database
 # and no DTO that can fall out of step with one, so there is nothing here to
-# verify before a build. See CLAUDE.md for why that is the architecture rather
+# verify before a build. See AGENTS.md for why that is the architecture rather
 # than a gap.
 #
 # One thing does need a human eye instead: docs/plan.html has to be published at

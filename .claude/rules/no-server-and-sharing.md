@@ -12,7 +12,7 @@ paths:
 
 # Baby Docs: no server, sharing, and what the copy may claim
 
-Moved verbatim from CLAUDE.md. Loads when a matching file is read; update it here.
+Moved verbatim from AGENTS.md. Loads when a matching file is read; update it here.
 
 ### Why there is no server
 

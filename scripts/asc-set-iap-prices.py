@@ -26,7 +26,7 @@ DRY_RUN = os.environ.get("DRY_RUN") == "1"
 # Empty means every product below.
 ONLY = set(sys.argv[1:])
 
-# Weekly leads, lifetime keeps: see the pricing note in CLAUDE.md.
+# Weekly leads, lifetime keeps: see the pricing note in AGENTS.md.
 SUB_PRICES = {
     "com.jackwallner.babydocs.pro.weekly": "4.99",
     "com.jackwallner.babydocs.pro.yearly": "29.99",
@@ -141,7 +141,7 @@ def set_intro_offers(asc: ASC) -> None:
     """FREE_TRIAL on whichever subscriptions `TRIALS` names.
 
     The trial length is a deliberate bet, not the fleet default: see the SOSA
-    benchmark note in CLAUDE.md before changing it, and measure
+    benchmark note in AGENTS.md before changing it, and measure
     conversions / (conversions + expirations) rather than RC's headline.
     """
     groups = asc.get(f"/apps/{APP_ID}/subscriptionGroups", limit=20).get("data", [])
