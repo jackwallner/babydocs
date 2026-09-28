@@ -69,7 +69,7 @@ Condensed from the deep notes below; the reasoning behind each one lives there.
 - Never put a question in front of `requestReview()`.
 - Sales copy may never imply live sync, and "no server" is a claim about household data, never about the purchase.
 - `docs/plan.html` must stay published at that exact path, and the plan payload stays in the URL fragment, never the query string.
-- `design.md` is the design system: run `scripts/design-audit.py` before a release. `AppTheme.margin` is the only horizontal inset.
+- `project-docs/design/design.md` is the design system: run `scripts/design-audit.py` before a release. `AppTheme.margin` is the only horizontal inset.
 
 ## Deep notes (load on demand)
 These files load automatically when you read a file matching their `paths:`. Agents that do not auto-load rules (Codex, Cursor) should open the file for the area they are touching. Record new area-specific learnings in the matching file, not here.
@@ -80,7 +80,7 @@ These files load automatically when you read a file matching their `paths:`. Age
 | `.claude/rules/reminders-and-deadlines.md` | Two dates are hard, the rest are not | Reminders, the notification budget, `hard` deadlines |
 | `.claude/rules/plus-pricing-and-review.md` | Pricing, free vs Plus, vault lapse, the review ask, where Plus gates drift, the pitch tab | `StoreService`, the paywall, Plus tools, review prompt, metadata about paid features |
 | `.claude/rules/intake-and-plan-screens.md` | "Not sure" answers, ticked tasks and documents, the intake's shape and footer | Onboarding, the plan, documents, task rows |
-| `.claude/rules/design-system.md` | `design.md` and the audit, one margin and one colour system, the tab-bar inset | Any view or layout work |
+| `.claude/rules/design-system.md` | `project-docs/design/design.md` and the audit, one margin and one colour system, the tab-bar inset | Any view or layout work |
 | `.claude/rules/no-server-and-sharing.md` | Why there is no server, what sales copy may claim, the privacy claim, `docs/plan.html` | Sharing, `PlanSeed`, privacy copy, the site, anything tempting you to add sync |
 
 ## App-specific notes
@@ -104,7 +104,7 @@ These files load automatically when you read a file matching their `paths:`. Age
   will ever exist. `SaveFailureReporter` carries the error to a single alert in
   `RootView`, so a parent who ticks a task and sees it move is not being told
   something the disk disagreed with.
-- Keyword-field notes and the acquisition plan are in `aso-plan.md`. App Store
+- Keyword-field notes and the acquisition plan are in `project-docs/marketing/aso-plan.md`. App Store
   search is not the channel, and the numbers now say so rather than the brief:
   every tracked term with popularity at or above 25 has difficulty at or above
   62 and resolves to somebody else's field, while every right-intent term sits

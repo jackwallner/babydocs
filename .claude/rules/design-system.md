@@ -1,6 +1,6 @@
 ---
 paths:
-  - "design.md"
+  - "project-docs/design/design.md"
   - "scripts/design-audit.py"
   - "Shared/Utilities/AppTheme.swift"
   - "BabyDocs/Views/**/*.swift"
@@ -12,7 +12,7 @@ paths:
 
 Moved verbatim from AGENTS.md. Loads when a matching file is read; update it here.
 
-- **`design.md` is the design system, and `scripts/design-audit.py` is what
+- **`project-docs/design/design.md` is the design system, and `scripts/design-audit.py` is what
   stops it being a document nobody reads.** Tokens live in `AppTheme`; the audit
   reads them out of that file and fails on any view that types a spacing number
   of its own, draws a `RoundedRectangle` without a continuous curve, defines a
