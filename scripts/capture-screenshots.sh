@@ -11,9 +11,9 @@
 # /tmp. The attachment is what this reads: the runner is sandboxed, so its /tmp
 # is not the device's /tmp and the files are not where they look like they are.
 #
-# Capture must run on the default checkout (iPhone 17 Pro, 1206x2622). A
-# different device changes the geometry the composer scales from, so never use
-# `agent-sim checkout --any` for this.
+# Capture must run on slot 1 (iPhone 17 Pro, 1206x2622). Bare checkout now uses
+# iPhone 18 Pro on iOS 27. A different device changes the geometry the composer
+# scales from, so never use `agent-sim checkout --any` for this.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -23,7 +23,7 @@ if [ -n "${1:-}" ]; then
   UDID="$1"
 else
   if ! UDID=$(agent-sim udid babydocs 2>/dev/null) || [ -z "$UDID" ]; then
-    echo "No simulator lease. Run: agent-sim checkout babydocs" >&2
+    echo "No simulator lease. Run: agent-sim checkout babydocs --slot 1" >&2
     exit 1
   fi
 fi
