@@ -41,7 +41,7 @@ DERIVED="$(mktemp -d "${TMPDIR:-/tmp}/babydocs-screenshot-derived.XXXXXX")"
 RESULT="$DERIVED/capture.xcresult"
 xcodebuild test \
   -project BabyDocs.xcodeproj \
-  -scheme BabyDocs \
+  -scheme BabyDocsUITests \
   -destination "id=$UDID" \
   -only-testing:BabyDocsUITests/ScreenshotUITests \
   -derivedDataPath "$DERIVED" \
