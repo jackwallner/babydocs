@@ -219,7 +219,7 @@ extension View {
     ///
     /// The last row of every list still has to clear the bar: on a task detail
     /// it is the source footnote, the one element that carries the app's whole
-    /// claim to be checkable. `LayoutUITests` asserts it stays reachable.
+    /// claim to be checkable.
     ///
     /// Pass `underTabBar: false` on a sheet. A sheet is presented over the tab
     /// bar rather than behind it, so reserving the bar's height there is 96

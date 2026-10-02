@@ -35,6 +35,21 @@ schemes:
       storeKitConfiguration: BabyDocs/Services/Products.storekit
       targets:
         - BabyDocsTests
+  # UI tests are slow, so they get their own scheme and stay out of the
+  # default `xcodebuild test -scheme BabyDocs` run.
+  BabyDocsUITests:
+    build:
+      targets:
+        BabyDocs: all
+        BabyDocsUITests: [test]
+    run:
+      config: Debug
+      storeKitConfiguration: BabyDocs/Services/Products.storekit
+    test:
+      config: Debug
+      gatherCoverageData: false
+      storeKitConfiguration: BabyDocs/Services/Products.storekit
+      targets:
         - BabyDocsUITests
 
 targets:

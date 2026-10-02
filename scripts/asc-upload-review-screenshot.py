@@ -10,7 +10,7 @@ The picture has to be the app's own paywall. Generate it from StoreKit Testing
 rather than by hand:
 
     UDID=$(agent-sim udid babydocs)
-    xcodebuild test -project BabyDocs.xcodeproj -scheme BabyDocs \
+    xcodebuild test -project BabyDocs.xcodeproj -scheme BabyDocsUITests \
       -destination "id=$UDID" \
       -only-testing:BabyDocsUITests/ScreenshotUITests/testCaptureTheMainScreens \
       -derivedDataPath build/dd

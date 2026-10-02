@@ -5,7 +5,6 @@ paths:
   - "Shared/Utilities/AppTheme.swift"
   - "BabyDocs/Views/**/*.swift"
   - "BabyDocs/RootView.swift"
-  - "BabyDocsUITests/LayoutUITests.swift"
 ---
 
 # Baby Docs: the design system
