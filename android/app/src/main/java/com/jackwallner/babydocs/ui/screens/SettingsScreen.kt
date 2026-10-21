@@ -70,10 +70,12 @@ fun SettingsScreen(activity: MainActivity) {
 
     Page("Settings") {
         item {
+            LocalGraph.current.store.revision
             SectionHeader("What this app is")
             Card { Text(PlanExporter.DISCLAIMER, style = Type.subheadline, color = c.label) }
         }
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Sources")
             Card(padding = PaddingValues(0.dp)) {
                 NavRow("Oldest source check", value = RequirementCatalog.reviewedOn.medium()) { nav.push(Overlay.Sources) }
@@ -83,6 +85,7 @@ fun SettingsScreen(activity: MainActivity) {
             Footnote("A rule set is only as fresh as its stalest page, so the date above is the oldest of them. Every state and DC links to that state's own vital records office, and the list says which of them somebody has read end to end and which have been checked against the office's own guidance without a full read. The five territories still link to the national directory, which has a picker: we would rather send you somewhere general and correct than somewhere specific and guessed.")
         }
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Reminders")
             Card(padding = PaddingValues(0.dp)) {
                 if (notificationsOn) {
@@ -104,11 +107,13 @@ fun SettingsScreen(activity: MainActivity) {
             Footnote("The two dates that are real doors closing are announced for everybody, free, whatever else is switched off: the job-based health plan and the Marketplace. The rest of the plan is dates Baby Docs suggests, and those stay quiet unless you turn them on in Plus, because a suggestion that fires at 9am unbidden is what teaches someone to switch the whole category off, and then they miss the one that mattered.")
         }
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Document vault")
             Card { Text("On this phone", style = Type.body, color = c.label) }
             Footnote("Photographs of your documents live in this app's private storage, behind the phone's own lock, and are excluded from every cloud and device-transfer backup. That is the trade: nothing can leak them, and nothing can restore them to a new phone either. The originals are still the record.")
         }
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Plus")
             Card(padding = PaddingValues(0.dp)) {
                 NavRow("Status", value = if (subs.isPro) "Active" else "Not active") { if (!subs.isPro) nav.push(Overlay.Paywall("settings")) }
@@ -127,6 +132,7 @@ fun SettingsScreen(activity: MainActivity) {
             }
         }
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Your data")
             Card {
                 Text(
@@ -137,6 +143,7 @@ fun SettingsScreen(activity: MainActivity) {
             }
         }
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Support")
             Card(padding = PaddingValues(0.dp)) {
                 NavRow("Send feedback", icon = Icons.Rounded.MailOutline, modifier = Modifier.testTag("send-feedback")) { nav.push(Overlay.Feedback) }
@@ -148,6 +155,7 @@ fun SettingsScreen(activity: MainActivity) {
             Footnote("A rule that was wrong for your state or a link that went nowhere is worth more to us than a rating. Feedback opens a mail draft and nothing else.")
         }
         item {
+            LocalGraph.current.store.revision
             // Long-press for Google Play's reviewer code; nothing else is behind it.
             Text(
                 "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", style = Type.footnote, color = c.secondary,
@@ -204,8 +212,9 @@ fun SourcesScreen() {
     val c = AppTheme.colors
     val context = LocalContext.current
     Page("Sources", onBack = { nav.pop() }) {
-        item { SectionHeader("State offices") }
+        item { LocalGraph.current.store.revision; SectionHeader("State offices") }
         item {
+            LocalGraph.current.store.revision
             Card(padding = PaddingValues(0.dp)) {
                 StateVitalRecords.allOffices.forEachIndexed { i, office ->
                     if (i > 0) RowDivider()
@@ -218,8 +227,9 @@ fun SourcesScreen() {
             }
             Footnote("The five territories are not in this list. Nobody has researched them, so the birth certificate task there links to the national directory and says so rather than sending you to an office we picked.")
         }
-        item { SectionHeader("Pages the rules cite") }
+        item { LocalGraph.current.store.revision; SectionHeader("Pages the rules cite") }
         item {
+            LocalGraph.current.store.revision
             Card(padding = PaddingValues(0.dp)) {
                 com.jackwallner.babydocs.rules.SourceManifest.all.forEachIndexed { i, entry ->
                     if (i > 0) RowDivider()
@@ -230,6 +240,7 @@ fun SourcesScreen() {
             }
         }
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Cites nothing, on purpose")
             Card {
                 Text("These tasks are on the list because they matter, not because a government page says to do them. Rather than link a plausible-looking page that does not support the advice, they say where the answer actually comes from.", style = Type.subheadline, color = c.label)
@@ -248,13 +259,15 @@ fun FeedbackScreen() {
     val context = LocalContext.current
     var body by rememberSaveable { mutableStateOf("") }
     Page("Tell us what is missing", onBack = { nav.pop() }) {
-        item { Footnote("A rule that was wrong for your state, a deadline we do not have, a link that went nowhere. Whatever it is, it goes straight to the person who writes the rules.") }
+        item { LocalGraph.current.store.revision; Footnote("A rule that was wrong for your state, a deadline we do not have, a link that went nowhere. Whatever it is, it goes straight to the person who writes the rules.") }
         item {
+            LocalGraph.current.store.revision
             Card {
                 OutlinedTextField(body, { body = it }, placeholder = { Text("Describe what is missing or incorrect") }, minLines = 5, modifier = Modifier.fillMaxWidth().testTag("feedback-body"))
             }
         }
         item {
+            LocalGraph.current.store.revision
             PrimaryButton("Send feedback", enabled = body.isNotBlank()) {
                 val uri = Uri.parse("mailto:$FEEDBACK_EMAIL?subject=" + Uri.encode("Baby Docs feedback") + "&body=" + Uri.encode(body))
                 runCatching { context.startActivity(Intent(Intent.ACTION_SENDTO, uri)) }

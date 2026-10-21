@@ -127,6 +127,7 @@ fun PlusPurchaseScreen(placement: String, onDone: () -> Unit, onSkip: (() -> Uni
 
     Page("Baby Docs Plus", onBack = onBack) {
         item {
+            LocalGraph.current.store.revision
             Column(Modifier.fillMaxWidth().padding(vertical = AppTheme.tightSpacing), horizontalAlignment = Alignment.Start) {
                 Icon(Icons.Rounded.EventAvailable, contentDescription = null, tint = c.accent, modifier = Modifier.size(40.dp))
                 Spacer(Modifier.height(AppTheme.spacing))
@@ -142,6 +143,7 @@ fun PlusPurchaseScreen(placement: String, onDone: () -> Unit, onSkip: (() -> Uni
             }
         }
         item {
+            LocalGraph.current.store.revision
             Card {
                 Benefit(Icons.Rounded.NotificationsActive, "A reminder for every date, not just the two that close", "Most of your plan is dates Baby Docs suggests rather than dates the law sets. Free warns you about the two legal windows. Plus warns you about the rest, three days out, and lets you set your own on any task.")
                 Benefit(Icons.Rounded.FormatListNumbered, "The order to do it in", "The passport is really the birth certificate wearing a hat, and the \$1,000 election is the Social Security card wearing one. Plus shows the plan as a sequence: what to start this week, what is next, and what is simply waiting on something else to arrive.")
@@ -153,12 +155,14 @@ fun PlusPurchaseScreen(placement: String, onDone: () -> Unit, onSkip: (() -> Uni
             }
         }
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Free, and staying free")
             Card {
                 Text("Every task that applies to your household, every official link, every document list, reminders for both deadlines that legally close, every child you add, and sending the whole plan to the other parent.", style = Type.subheadline, color = c.label)
             }
         }
         item {
+            LocalGraph.current.store.revision
             Spacer(Modifier.height(AppTheme.tightSpacing))
             when {
                 plans.isEmpty() && subs.isLoadingProducts -> Row(Modifier.fillMaxWidth().padding(AppTheme.spacing), horizontalArrangement = Arrangement.Center) { CircularProgressIndicator() }
@@ -175,6 +179,7 @@ fun PlusPurchaseScreen(placement: String, onDone: () -> Unit, onSkip: (() -> Uni
             }
         }
         item {
+            LocalGraph.current.store.revision
             Spacer(Modifier.height(AppTheme.spacing))
             selected?.let {
                 Text(disclosure(it, subs.isEligibleForIntroOffer(it)), style = Type.footnote.copy(fontWeight = FontWeight.Medium), color = c.label, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(bottom = AppTheme.tightSpacing))
@@ -295,12 +300,14 @@ fun PlusTab() {
 
     Page("Baby Docs Plus") {
         item {
+            LocalGraph.current.store.revision
             SectionHeader("The order to do it in")
             Card(padding = PaddingValues(0.dp)) {
                 NavRow("Timeline", subtitle = "What to start this week, what is next, and what is waiting on something else.", icon = Icons.Rounded.FormatListNumbered, modifier = Modifier.testTag("open-timeline")) { nav.push(Overlay.Timeline) }
             }
         }
         item {
+            LocalGraph.current.store.revision
             SectionHeader("What gets said out loud")
             Card(padding = PaddingValues(0.dp)) {
                 ToggleRow("Suggested dates", suggested, modifier = Modifier.testTag("toggle-suggested")) {
@@ -326,6 +333,7 @@ fun PlusTab() {
             Footnote("The two windows that legally close are always announced, for everybody, whatever is switched off here. These are the rest: the dates Baby Docs suggests, three days out, and one Sunday message about the week ahead that stays silent on a week with nothing in it. Any single task can also carry a reminder you set yourself.")
         }
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Pages that leave the phone")
             Card(padding = PaddingValues(0.dp)) {
                 children.forEachIndexed { i, child ->
@@ -344,6 +352,7 @@ fun PlusTab() {
             Footnote("The calendar file carries the dates, why each one exists and the official link, and nothing else: no notes, no confirmation numbers, and nothing at all from the document vault. Import it and the deadlines sit beside the appointments they are competing with, where the other parent can see them too.")
         }
         item {
+            LocalGraph.current.store.revision
             SecondaryButton("Restore purchases") { scope.launch { graph.subscriptions.restorePurchases() } }
             Footnote("Anything already in the document vault stays readable if a subscription lapses. Lapsing stops you adding more; it never takes back what is there.")
             if (graph.subscriptions.hasReviewAccess) Footnote("Plus is unlocked with the Google Play review code on this device.")
@@ -381,7 +390,7 @@ fun TimelineScreen() {
     }
     val data = graph.store.data
     Page("Timeline", onBack = { nav.pop() }) {
-        item { Footnote("Every date on your plan is somebody else's. The order is Baby Docs' own opinion, and a closing window always goes first.") }
+        item { LocalGraph.current.store.revision; Footnote("Every date on your plan is somebody else's. The order is Baby Docs' own opinion, and a closing window always goes first.") }
         data.liveChildren.forEach { child ->
             val groups = PlanTimeline.groups(data.liveTasks(child), { data.child(it.childId)?.birthDate })
             if (data.liveChildren.size > 1) item { SectionHeader(child.displayName) }
@@ -419,8 +428,8 @@ fun ExportScreen(childID: UUID, kind: ExportKind) {
         if (kind == ExportKind.SUMMARY) PlanExporter.summary(child, data.profile, data) else PlanExporter.employerPacket(child, data.profile, data)
     }
     Page(if (kind == ExportKind.SUMMARY) "Printable summary" else "Employer packet", onBack = { nav.pop() }) {
-        item { PrimaryButton("Share or print", tag = "export-share") { shareText(context, text) } }
-        item { Card { Text(text, style = Type.footnote.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace), color = AppTheme.colors.label) } }
+        item { LocalGraph.current.store.revision; PrimaryButton("Share or print", tag = "export-share") { shareText(context, text) } }
+        item { LocalGraph.current.store.revision; Card { Text(text, style = Type.footnote.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace), color = AppTheme.colors.label) } }
     }
 }
 
@@ -436,6 +445,7 @@ fun SharePlanScreen(childID: UUID) {
     val plus = graph.subscriptions.isPro
     Page("Send the plan", onBack = { nav.pop() }) {
         item {
+            LocalGraph.current.store.revision
             SectionHeader("The other parent")
             Card(padding = PaddingValues(0.dp)) {
                 NavRow("Send the plan", icon = Icons.Rounded.EventAvailable, modifier = Modifier.testTag("send-link")) {
@@ -448,6 +458,7 @@ fun SharePlanScreen(childID: UUID) {
             )
         }
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Printable")
             Card(padding = PaddingValues(0.dp)) {
                 NavRow("Printable summary", value = if (plus) "" else "Plus", icon = Icons.Rounded.Description) {
@@ -458,6 +469,7 @@ fun SharePlanScreen(childID: UUID) {
         }
         if (data.profile.insuranceKind == InsuranceKind.EMPLOYER) {
             item {
+                LocalGraph.current.store.revision
                 SectionHeader("For work")
                 Card(padding = PaddingValues(0.dp)) {
                     NavRow("Employer packet", value = if (plus) "" else "Plus", icon = Icons.Rounded.Description) {
@@ -467,7 +479,7 @@ fun SharePlanScreen(childID: UUID) {
                 Footnote("The qualifying-life-event page HR asks for: the event, the date, what you are enclosing and where the enrollment window comes from. The 30-day window is the hardest deadline in this app, and it is missed more often by sending something incomplete than by forgetting.")
             }
         }
-        item { Text("The link carries your answers between two phones. Baby Docs has no server to keep a copy on, and the payload rides in the part of the address a browser never sends anywhere.", style = Type.caption, color = c.secondary, modifier = Modifier.padding(4.dp)) }
+        item { LocalGraph.current.store.revision; Text("The link carries your answers between two phones. Baby Docs has no server to keep a copy on, and the payload rides in the part of the address a browser never sends anywhere.", style = Type.caption, color = c.secondary, modifier = Modifier.padding(4.dp)) }
     }
 }
 
@@ -491,6 +503,7 @@ fun ImportPlanScreen(payload: String) {
     val match = data.children.firstOrNull { it.id == seed.childID && !it.isEphemeralDraft }
     Page("A plan was shared with you", onBack = { nav.pop() }) {
         item {
+            LocalGraph.current.store.revision
             SectionHeader("What was sent")
             Card {
                 Text("${seed.name.ifBlank { "A baby" }}, born ${seed.birthDate.medium()} in ${USState.displayName(seed.birthStateCode)}", style = Type.headline, color = c.label)
@@ -499,6 +512,7 @@ fun ImportPlanScreen(payload: String) {
             Footnote("These answers, and nothing else. No completed tasks, no documents and no photographs travel in a link.")
         }
         item {
+            LocalGraph.current.store.revision
             Footnote(
                 if (match == null) "Nothing on this phone obviously matches, so this will be added as another child. Twins share a birth date and a birth state, so Baby Docs will not guess between them."
                 else "The household answers above replace the ones on this phone, and update ${match.displayName}. What you have already done is kept: completed tasks, notes, confirmations and your documents are untouched.",

@@ -138,13 +138,14 @@ class SmokeTest {
     @Test fun documentsTabTicksMoveIntoInHand() {
         seeded()
         find(tag("tab-documents")).click()
-        find(By.text("STILL TO FIND"))
-        find(tag("gather-row")).click()
-        findScrolling(By.textStartsWith("ALREADY IN HAND"))
         find(tag("documents-mode-1")).click()
         // Rosa is eleven days old, inside the free twelve weeks.
         find(tag("vault-add"))
         assertNull(device.findObject(tag("vault-add-locked")))
+        find(tag("documents-mode-0")).click()
+        find(By.text("STILL TO FIND"))
+        find(tag("gather-row")).click()
+        findScrolling(By.textStartsWith("ALREADY IN HAND"))
     }
 
     @Test fun reviewerCodeUnlocksPlus() {

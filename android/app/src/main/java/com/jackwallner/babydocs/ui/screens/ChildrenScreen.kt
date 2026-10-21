@@ -63,9 +63,10 @@ fun ChildrenScreen() {
 
     Page("Children") {
         data.liveChildren.forEach { child ->
-            item(key = child.id.toString()) { ChildCard(child) }
+            item(key = child.id.toString()) { LocalGraph.current.store.revision; ChildCard(child) }
         }
         item {
+            LocalGraph.current.store.revision
             Spacer(Modifier.padding(top = 4.dp))
             Card(padding = PaddingValues(0.dp)) {
                 NavRow("Add another child", icon = Icons.Rounded.Add, modifier = Modifier.testTag("add-child")) { nav.push(Overlay.ChildEditor(null)) }
@@ -73,6 +74,7 @@ fun ChildrenScreen() {
             Footnote("A second baby inherits your household answers, so the questions are not asked twice. Every child is free.")
         }
         item {
+            LocalGraph.current.store.revision
             Card(padding = PaddingValues(0.dp)) {
                 NavRow("Household answers", icon = Icons.Rounded.Tune) { nav.push(Overlay.Household) }
             }
@@ -80,6 +82,7 @@ fun ChildrenScreen() {
         }
         if (archived.isNotEmpty()) {
             item {
+                LocalGraph.current.store.revision
                 SectionHeader("Archived children")
                 Card(padding = PaddingValues(0.dp)) {
                     archived.forEachIndexed { i, child ->
@@ -97,6 +100,7 @@ fun ChildrenScreen() {
 
 @Composable
 private fun ChildCard(child: Child) {
+    LocalGraph.current.store.revision
     val graph = LocalGraph.current
     val c = AppTheme.colors
     val data = graph.store.data
@@ -172,6 +176,7 @@ fun ChildEditorScreen(childID: UUID?) {
 
     Page(if (existing == null) "Add a child" else "Edit details", onBack = { nav.pop() }) {
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Baby")
             Card(padding = PaddingValues(0.dp)) {
                 OutlinedTextField(name, { name = it }, label = { Text("First name") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(AppTheme.spacing).testTag("child-name"))
@@ -185,6 +190,7 @@ fun ChildEditorScreen(childID: UUID?) {
             }
         }
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Where the birth was registered")
             Card(padding = PaddingValues(0.dp)) {
                 StatePickerRow("State of birth", state, tag = "child-state") { if (it != state) county = ""; state = it }
@@ -199,6 +205,7 @@ fun ChildEditorScreen(childID: UUID?) {
             }
         }
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Citizenship")
             Card(padding = PaddingValues(0.dp)) {
                 ChoiceRow("US citizen", citizen == true) { citizen = true }
@@ -207,6 +214,7 @@ fun ChildEditorScreen(childID: UUID?) {
             }
         }
         item {
+            LocalGraph.current.store.revision
             Spacer(Modifier.padding(top = AppTheme.spacing))
             PrimaryButton(if (existing == null) "Add to the plan" else "Save", enabled = valid, tag = "child-save") {
                 val day = LocalDate.parse(birth!!)
