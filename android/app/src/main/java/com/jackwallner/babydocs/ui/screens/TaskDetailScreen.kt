@@ -1,5 +1,6 @@
 package com.jackwallner.babydocs.ui.screens
 
+import androidx.core.net.toUri
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
@@ -59,6 +60,7 @@ import com.jackwallner.babydocs.ui.DateRow
 import com.jackwallner.babydocs.ui.LocalGraph
 import com.jackwallner.babydocs.ui.medium
 import com.jackwallner.babydocs.ui.theme.AppTheme
+import com.jackwallner.babydocs.ui.theme.DialogTags
 import com.jackwallner.babydocs.ui.theme.Card
 import com.jackwallner.babydocs.ui.theme.DuePill
 import com.jackwallner.babydocs.ui.theme.Footnote
@@ -168,7 +170,7 @@ fun TaskDetailScreen(taskID: UUID, activity: MainActivity) {
                 SectionHeader("Where to do it")
                 Card(padding = PaddingValues(0.dp)) {
                     Row(
-                        Modifier.fillMaxWidth().heightIn(min = AppTheme.minTouch).clickable(role = Role.Button) { Uri.parse(task.officialURLString).open(context) }
+                        Modifier.fillMaxWidth().heightIn(min = AppTheme.minTouch).clickable(role = Role.Button) { task.officialURLString.toUri().open(context) }
                             .padding(AppTheme.spacing).testTag("official-link"),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -356,6 +358,7 @@ private fun ReceiptDialog(onDismiss: () -> Unit, onSave: (ReceiptKind, String) -
     var value by remember { mutableStateOf("") }
     var kind by remember { mutableStateOf(ReceiptKind.CONFIRMATION_NUMBER) }
     AlertDialog(
+        modifier = DialogTags,
         onDismissRequest = onDismiss,
         title = { Text("Record a confirmation") },
         text = {
@@ -385,7 +388,7 @@ fun SourceFootnote(task: RequirementTask) {
         if (task.sourceURLString.isNotEmpty()) {
             Text(
                 "Where this comes from", style = Type.caption.copy(fontWeight = FontWeight.SemiBold), color = c.accent,
-                modifier = Modifier.heightIn(min = 32.dp).clickable { Uri.parse(task.sourceURLString).open(context) }.testTag("source-link"),
+                modifier = Modifier.heightIn(min = 32.dp).clickable { task.sourceURLString.toUri().open(context) }.testTag("source-link"),
             )
             source?.let { Text(it.title, style = Type.caption, color = c.secondary) }
             task.sourceVerifiedOn?.let { day ->

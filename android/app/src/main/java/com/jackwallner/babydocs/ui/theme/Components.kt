@@ -55,10 +55,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.jackwallner.babydocs.model.RequirementCategory
+
+/** Dialogs are their own window, so test tags must be exposed again inside each one. */
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
+val DialogTags: Modifier = Modifier.semantics { testTagsAsResourceId = true }
 
 val RequirementCategory.icon: ImageVector
     get() = when (this) {

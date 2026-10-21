@@ -38,6 +38,7 @@ import com.jackwallner.babydocs.ui.LocalGraph
 import com.jackwallner.babydocs.ui.StatePickerRow
 import com.jackwallner.babydocs.ui.medium
 import com.jackwallner.babydocs.ui.theme.AppTheme
+import com.jackwallner.babydocs.ui.theme.DialogTags
 import com.jackwallner.babydocs.ui.theme.Avatar
 import com.jackwallner.babydocs.ui.theme.Card
 import com.jackwallner.babydocs.ui.theme.ChoiceRow
@@ -231,6 +232,7 @@ fun ChildEditorScreen(childID: UUID?) {
 
     if (confirmArchive && existing != null) {
         AlertDialog(
+            modifier = DialogTags,
             onDismissRequest = { confirmArchive = false },
             title = { Text("Archive this child?") },
             text = { Text("The plan, completed work and receipts stay on this phone and can be restored from Children.") },
