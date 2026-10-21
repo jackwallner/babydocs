@@ -74,8 +74,8 @@ paths:
 
 ## Build and test (fleet Pro, jmbp)
 
-- `JAVA_HOME=~/jdks/temurin-17/Contents/Home ./gradlew clean assembleDebug assembleDebugAndroidTest assembleQa lintDebug testDebugUnitTest`
-  from `android/`. Lint has 0 errors; the warnings are dependency bumps, `toUri`
+- `fm-gradle clean assembleDebug assembleDebugAndroidTest assembleQa lintDebug testDebugUnitTest`
+  from `android/` (runs on jmbp; never `./gradlew` on the Air). Lint has 0 errors; the warnings are dependency bumps, `toUri`
   style hints and the legacy round-icon shape.
 - Connected tests: boot a leased AVD headless (`emulator -avd agent-emu-1
   -port 5556 -no-window -no-audio -no-boot-anim -no-metrics -gpu host -cores 3
