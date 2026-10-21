@@ -97,6 +97,19 @@ paths:
   agent-emu-1 (API 36 Play image), lint clean, QA build ignores debug hooks and
   runs without a store key. No Play app, upload key, RevenueCat Play app, Play
   products or upload yet.
+- Package acceptance on the Air (run shift-android-package-babydocs-1-1792570786,
+  2026-10-21): blocked, no signed APK or AAB exists. Preflight found no
+  `~/.android/keystores/babydocs-upload.p12` (and no backup), no
+  `android/local.properties`, no `PLAY_REVIEW_CODE` in the Air's
+  `~/.babydocs_credentials`, and RevenueCat `proj1aaf9104` holds only
+  `app_store` and `test_store` apps (no `goog_` key). The guard-permitted
+  `./gradlew --no-daemon assembleRelease bundleRelease` stops at
+  `:app:validateReleaseConfiguration` as designed. Evidence:
+  `~/fleet-evidence/shift-android-package-babydocs-1-1792570786/`. Play state:
+  no Play app record, no track, nothing staged or in review. Rerun the package
+  task after steps 1 to 4 below; it then checks apksigner/jarsigner
+  certificates, aapt2 badging (id, versionCode 1, target 36), absence of the
+  debug launch hooks, `zipalign -c -P 16` and every ELF `LOAD` alignment.
 - Remaining, in order (Air release worker / Console):
   1. Decide the Android US price (fleet rule $3.99 / $23.99 / $47.99, or iOS parity).
   2. Create the upload keystore `~/.android/keystores/babydocs-upload.p12` and
