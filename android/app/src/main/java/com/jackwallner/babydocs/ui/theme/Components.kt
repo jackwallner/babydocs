@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -89,10 +92,13 @@ fun Page(
     onBack: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
     bottomInset: Boolean = false,
+    /** Pushed screens and the intake's offer have no tab bar under them, so they clear the gesture bar and keyboard themselves. */
+    clearNavigationBar: Boolean = onBack != null,
     content: LazyListScope.() -> Unit,
 ) {
     val c = AppTheme.colors
-    Column(modifier.fillMaxSize().background(c.page).windowInsetsPadding(WindowInsets.statusBars)) {
+    val navBottom = if (clearNavigationBar) WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() else 0.dp
+    Column(modifier.fillMaxSize().background(c.page).windowInsetsPadding(WindowInsets.statusBars).then(if (clearNavigationBar) Modifier.imePadding() else Modifier)) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(horizontal = if (onBack != null) 4.dp else AppTheme.margin),
             verticalAlignment = Alignment.CenterVertically,
@@ -109,7 +115,7 @@ fun Page(
         }
         LazyColumn(
             Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = AppTheme.margin, end = AppTheme.margin, top = 8.dp, bottom = if (bottomInset) 24.dp else 32.dp),
+            contentPadding = PaddingValues(start = AppTheme.margin, end = AppTheme.margin, top = 8.dp, bottom = (if (bottomInset) 24.dp else 32.dp) + navBottom),
             verticalArrangement = Arrangement.spacedBy(AppTheme.tightSpacing),
             content = content,
         )

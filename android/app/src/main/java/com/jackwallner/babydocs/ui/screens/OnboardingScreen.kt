@@ -370,7 +370,7 @@ fun OnboardingScreen(activity: MainActivity, onFinished: () -> Unit) {
             Step.DONE -> {
                 val hasHard = graph.store.data.allLiveTasks().any { it.deadlineKind == com.jackwallner.babydocs.model.DeadlineKind.HARD }
                 val offerReminders = hasHard && !askedReminders && !graph.reminders.hasPermission()
-                Column(Modifier.fillMaxSize().background(c.page).windowInsetsPadding(WindowInsets.statusBars).windowInsetsPadding(WindowInsets.navigationBars)) {
+                Column(Modifier.fillMaxSize().background(c.page).windowInsetsPadding(WindowInsets.statusBars)) {
                     Column(
                         Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = AppTheme.margin),
                         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
@@ -383,7 +383,7 @@ fun OnboardingScreen(activity: MainActivity, onFinished: () -> Unit) {
                         Spacer(Modifier.height(AppTheme.spacing))
                         Text(PlanExporter.DISCLAIMER, style = Type.caption, color = c.secondary, textAlign = TextAlign.Center)
                     }
-                    Column(Modifier.background(c.surface).padding(horizontal = AppTheme.margin, vertical = AppTheme.spacing), verticalArrangement = Arrangement.spacedBy(AppTheme.tightSpacing)) {
+                    Column(Modifier.background(c.surface).windowInsetsPadding(WindowInsets.navigationBars).padding(horizontal = AppTheme.margin, vertical = AppTheme.spacing), verticalArrangement = Arrangement.spacedBy(AppTheme.tightSpacing)) {
                         if (offerReminders) {
                             PrimaryButton("Remind me before deadlines", tag = "remind-me") {
                                 askedReminders = true
@@ -426,7 +426,7 @@ private fun StepScaffold(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val c = AppTheme.colors
-    Column(Modifier.fillMaxSize().background(c.page).windowInsetsPadding(WindowInsets.statusBars).windowInsetsPadding(WindowInsets.navigationBars).imePadding()) {
+    Column(Modifier.fillMaxSize().background(c.page).windowInsetsPadding(WindowInsets.statusBars).imePadding()) {
         Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             if (onBack != null) {
                 IconButton(onClick = onBack, modifier = Modifier.testTag("back")) {
@@ -440,7 +440,7 @@ private fun StepScaffold(
             content = content,
         )
         // Pinned, with two footnote lines held open so Continue never moves within a screen.
-        Column(Modifier.fillMaxWidth().background(c.surface).padding(horizontal = AppTheme.margin, vertical = AppTheme.spacing)) {
+        Column(Modifier.fillMaxWidth().background(c.surface).windowInsetsPadding(WindowInsets.navigationBars).padding(horizontal = AppTheme.margin, vertical = AppTheme.spacing)) {
             PrimaryButton(footerTitle, enabled = enabled, tag = footerTag, onClick = onContinue)
             Text(
                 footerNote.ifEmpty { " \n " }, style = Type.footnote, color = c.secondary, minLines = 2, textAlign = TextAlign.Center,

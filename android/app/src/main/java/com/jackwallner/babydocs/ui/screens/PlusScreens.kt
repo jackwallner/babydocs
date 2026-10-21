@@ -125,7 +125,7 @@ fun PlusPurchaseScreen(placement: String, onDone: () -> Unit, onSkip: (() -> Uni
         if (plans.isEmpty()) subs.fetchProducts()
     }
 
-    Page("Baby Docs Plus", onBack = onBack) {
+    Page("Baby Docs Plus", onBack = onBack, clearNavigationBar = onBack != null || onSkip != null) {
         item {
             LocalGraph.current.store.revision
             Column(Modifier.fillMaxWidth().padding(vertical = AppTheme.tightSpacing), horizontalAlignment = Alignment.Start) {
