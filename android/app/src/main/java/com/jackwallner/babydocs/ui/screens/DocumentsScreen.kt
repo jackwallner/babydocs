@@ -1,5 +1,6 @@
 package com.jackwallner.babydocs.ui.screens
 
+import androidx.activity.compose.LocalActivity
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -62,6 +63,7 @@ import com.jackwallner.babydocs.rules.RequirementCatalog
 import com.jackwallner.babydocs.ui.LocalGraph
 import com.jackwallner.babydocs.ui.SearchListDialog
 import com.jackwallner.babydocs.ui.theme.AppTheme
+import com.jackwallner.babydocs.ui.theme.DialogTags
 import com.jackwallner.babydocs.ui.theme.Card
 import com.jackwallner.babydocs.ui.theme.Footnote
 import com.jackwallner.babydocs.ui.theme.NavRow
@@ -132,7 +134,7 @@ fun DocumentsScreen() {
     val data = graph.store.data
     val nav = graph.navigator
     val c = AppTheme.colors
-    val activity = LocalContext.current as? FragmentActivity
+    val activity = LocalActivity.current as? FragmentActivity
     var mode by rememberSaveable { mutableStateOf(0) }
     val gather = gatherList(graph)
     val multipleChildren = data.liveChildren.size > 1
@@ -316,6 +318,7 @@ fun VaultAddScreen(childID: UUID) {
     }
     if (sensitiveNote) {
         AlertDialog(
+            modifier = DialogTags,
             onDismissRequest = { sensitiveNote = false },
             text = { Text("This copy stays on this phone. It is not backed up and never leaves the device, so if you lose the phone the copy is gone. The card itself is still the record: keep it somewhere safe.") },
             confirmButton = { TextButton(onClick = { sensitiveNote = false; acknowledged = true; pick() }) { Text("I understand") } },
@@ -323,7 +326,7 @@ fun VaultAddScreen(childID: UUID) {
         )
     }
     error?.let { message ->
-        AlertDialog(onDismissRequest = { error = null }, text = { Text(message) }, confirmButton = { TextButton(onClick = { error = null }) { Text("OK") } })
+        AlertDialog(modifier = DialogTags, onDismissRequest = { error = null }, text = { Text(message) }, confirmButton = { TextButton(onClick = { error = null }) { Text("OK") } })
     }
 }
 
@@ -357,6 +360,7 @@ fun VaultViewScreen(documentID: UUID) {
     }
     if (confirmDelete) {
         AlertDialog(
+            modifier = DialogTags,
             onDismissRequest = { confirmDelete = false },
             title = { Text("Delete the photos?") },
             text = { Text("The photos are removed from this phone now and cannot be recovered: they are not backed up anywhere. The document itself is unaffected.") },

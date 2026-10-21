@@ -49,6 +49,7 @@ import com.jackwallner.babydocs.ui.screens.TimelineScreen
 import com.jackwallner.babydocs.ui.screens.VaultAddScreen
 import com.jackwallner.babydocs.ui.screens.VaultViewScreen
 import com.jackwallner.babydocs.ui.theme.AppTheme
+import com.jackwallner.babydocs.ui.theme.DialogTags
 
 val LocalGraph = staticCompositionLocalOf<AppGraph> { error("No AppGraph") }
 
@@ -152,6 +153,7 @@ private fun SaveFailureAlert() {
     val store = LocalGraph.current.store
     val message = store.failureMessage ?: return
     AlertDialog(
+        modifier = DialogTags,
         onDismissRequest = { store.failureMessage = null },
         title = { Text("Not saved") },
         text = { Text(message) },

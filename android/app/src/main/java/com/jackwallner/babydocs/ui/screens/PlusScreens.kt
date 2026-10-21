@@ -1,5 +1,7 @@
 package com.jackwallner.babydocs.ui.screens
 
+import androidx.activity.compose.LocalActivity
+import androidx.core.net.toUri
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -71,6 +73,7 @@ import com.jackwallner.babydocs.rules.PlanTimeline
 import com.jackwallner.babydocs.ui.LocalGraph
 import com.jackwallner.babydocs.ui.medium
 import com.jackwallner.babydocs.ui.theme.AppTheme
+import com.jackwallner.babydocs.ui.theme.DialogTags
 import com.jackwallner.babydocs.ui.theme.Card
 import com.jackwallner.babydocs.ui.theme.Footnote
 import com.jackwallner.babydocs.ui.theme.NavRow
@@ -109,6 +112,7 @@ fun PlusPurchaseScreen(placement: String, onDone: () -> Unit, onSkip: (() -> Uni
     val subs = graph.subscriptions
     val c = AppTheme.colors
     val context = LocalContext.current
+    val hostActivity = LocalActivity.current
     val scope = rememberCoroutineScope()
     var selection by rememberSaveable { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
@@ -184,7 +188,7 @@ fun PlusPurchaseScreen(placement: String, onDone: () -> Unit, onSkip: (() -> Uni
             }
             PrimaryButton(buyTitle, enabled = !busy && !subs.isPro && selected != null, tag = "buy") {
                 val plan = selected ?: return@PrimaryButton
-                val activity = context as? MainActivity ?: return@PrimaryButton
+                val activity = hostActivity as? MainActivity ?: return@PrimaryButton
                 busy = true
                 scope.launch {
                     try {
@@ -216,14 +220,14 @@ fun PlusPurchaseScreen(placement: String, onDone: () -> Unit, onSkip: (() -> Uni
                 style = Type.caption, color = c.secondary, modifier = Modifier.padding(top = AppTheme.tightSpacing),
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                TextButton(onClick = { Uri.parse(TERMS_URL).open(context) }) { Text("Terms of Use", style = Type.footnote) }
-                TextButton(onClick = { Uri.parse(PRIVACY_URL).open(context) }) { Text("Privacy Policy", style = Type.footnote) }
+                TextButton(onClick = { TERMS_URL.toUri().open(context) }) { Text("Terms of Use", style = Type.footnote) }
+                TextButton(onClick = { PRIVACY_URL.toUri().open(context) }) { Text("Privacy Policy", style = Type.footnote) }
             }
         }
     }
 
     message?.let {
-        AlertDialog(onDismissRequest = { message = null }, title = { Text("Purchases") }, text = { Text(it) }, confirmButton = { TextButton(onClick = { message = null }) { Text("OK") } })
+        AlertDialog(modifier = DialogTags, onDismissRequest = { message = null }, title = { Text("Purchases") }, text = { Text(it) }, confirmButton = { TextButton(onClick = { message = null }) { Text("OK") } })
     }
 }
 
@@ -281,6 +285,7 @@ fun PlusTab() {
     val nav = graph.navigator
     val c = AppTheme.colors
     val context = LocalContext.current
+    val hostActivity = LocalActivity.current
     val scope = rememberCoroutineScope()
     graph.store.revision
     var suggested by remember { mutableStateOf(graph.reminderPreferences.suggestedDateReminders) }
@@ -308,7 +313,7 @@ fun PlusTab() {
                 if (!graph.reminders.hasPermission()) {
                     RowDivider()
                     NavRow("Turn on notifications", titleColor = c.accent) {
-                        val activity = context as? MainActivity
+                        val activity = hostActivity as? MainActivity
                         scope.launch {
                             if (activity?.requestNotificationPermission() != true) {
                                 context.startActivity(Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName))
@@ -344,7 +349,7 @@ fun PlusTab() {
             if (graph.subscriptions.hasReviewAccess) Footnote("Plus is unlocked with the Google Play review code on this device.")
         }
     }
-    message?.let { AlertDialog(onDismissRequest = { message = null }, text = { Text(it) }, confirmButton = { TextButton(onClick = { message = null }) { Text("OK") } }) }
+    message?.let { AlertDialog(modifier = DialogTags, onDismissRequest = { message = null }, text = { Text(it) }, confirmButton = { TextButton(onClick = { message = null }) { Text("OK") } }) }
 }
 
 /** Writes an export to the cache's exports folder and opens the share sheet. Never touches the vault. */
@@ -475,6 +480,7 @@ fun ImportPlanScreen(payload: String) {
     val seed = remember(payload) { PlanSeed.decodeURL(payload) }
     if (seed == null) {
         AlertDialog(
+            modifier = DialogTags,
             onDismissRequest = { nav.pop() },
             text = { Text("This link does not hold a plan Baby Docs can read.") },
             confirmButton = { TextButton(onClick = { nav.pop() }) { Text("OK") } },

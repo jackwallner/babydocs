@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.jackwallner.babydocs.model.USState
 import com.jackwallner.babydocs.rules.USCounties
 import com.jackwallner.babydocs.ui.theme.AppTheme
+import com.jackwallner.babydocs.ui.theme.DialogTags
 import com.jackwallner.babydocs.ui.theme.NavRow
 import com.jackwallner.babydocs.ui.theme.Type
 import java.time.Instant
@@ -80,6 +81,7 @@ fun SearchListDialog(title: String, options: List<Pair<String, String>>, onDismi
     var query by remember { mutableStateOf("") }
     val filtered = options.filter { query.isBlank() || it.second.contains(query.trim(), ignoreCase = true) }
     AlertDialog(
+        modifier = DialogTags,
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
@@ -129,6 +131,7 @@ fun DateRow(
         },
     )
     DatePickerDialog(
+        modifier = DialogTags,
         onDismissRequest = { open = false },
         confirmButton = {
             TextButton(onClick = {

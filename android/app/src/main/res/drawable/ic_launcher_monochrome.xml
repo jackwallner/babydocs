@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Themed-icon layer: the launcher icon's page and tick, as strokes, on the 108dp adaptive canvas. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="4" android:fillColor="#00000000"
+        android:strokeLineJoin="round"
+        android:pathData="M40,30h20l12,12v32a4,4 0 0,1 -4,4h-28a4,4 0 0,1 -4,-4v-40a4,4 0 0,1 4,-4z" />
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="5" android:fillColor="#00000000"
+        android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M44,58l7,7l13,-15" />
+</vector>

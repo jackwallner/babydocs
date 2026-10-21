@@ -1,5 +1,6 @@
 package com.jackwallner.babydocs.ui.screens
 
+import androidx.core.net.toUri
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -41,6 +42,7 @@ import com.jackwallner.babydocs.model.USState
 import com.jackwallner.babydocs.ui.LocalGraph
 import com.jackwallner.babydocs.ui.medium
 import com.jackwallner.babydocs.ui.theme.AppTheme
+import com.jackwallner.babydocs.ui.theme.DialogTags
 import com.jackwallner.babydocs.ui.theme.Card
 import com.jackwallner.babydocs.ui.theme.Footnote
 import com.jackwallner.babydocs.ui.theme.NavRow
@@ -120,7 +122,7 @@ fun SettingsScreen(activity: MainActivity) {
                 }
                 RowDivider()
                 NavRow("Manage subscription") {
-                    Uri.parse("https://play.google.com/store/account/subscriptions?package=$PACKAGE_NAME").open(context)
+                    "https://play.google.com/store/account/subscriptions?package=$PACKAGE_NAME".toUri().open(context)
                 }
             }
         }
@@ -131,7 +133,7 @@ fun SettingsScreen(activity: MainActivity) {
                     "Baby Docs has no account. Everything you enter, and every photograph you add, stays on this phone unless you choose to send it: nothing is uploaded on its own, so there is nothing for us to delete on your behalf and nothing for anyone to breach. Sending a plan to the other parent puts your household answers and the baby's first name in that link, deliberately, and only when you tap it. Photographs never travel at all. If you buy Plus, Google Play and RevenueCat hold the purchase itself; that record carries nothing about your family. The privacy policy sets out exactly what it contains.",
                     style = Type.subheadline, color = c.label,
                 )
-                TextButton(onClick = { Uri.parse(PRIVACY_URL).open(context) }) { Text("Privacy Policy") }
+                TextButton(onClick = { PRIVACY_URL.toUri().open(context) }) { Text("Privacy Policy") }
             }
         }
         item {
@@ -140,7 +142,7 @@ fun SettingsScreen(activity: MainActivity) {
                 NavRow("Send feedback", icon = Icons.Rounded.MailOutline, modifier = Modifier.testTag("send-feedback")) { nav.push(Overlay.Feedback) }
                 RowDivider()
                 NavRow("Rate Baby Docs on Google Play", icon = Icons.Rounded.StarOutline) {
-                    Uri.parse("https://play.google.com/store/apps/details?id=$PACKAGE_NAME").open(context)
+                    "https://play.google.com/store/apps/details?id=$PACKAGE_NAME".toUri().open(context)
                 }
             }
             Footnote("A rule that was wrong for your state or a link that went nowhere is worth more to us than a rating. Feedback opens a mail draft and nothing else.")
@@ -156,7 +158,7 @@ fun SettingsScreen(activity: MainActivity) {
     }
 
     restoreMessage?.let {
-        AlertDialog(onDismissRequest = { restoreMessage = null }, text = { Text(it) }, confirmButton = { TextButton(onClick = { restoreMessage = null }) { Text("OK") } })
+        AlertDialog(modifier = DialogTags, onDismissRequest = { restoreMessage = null }, text = { Text(it) }, confirmButton = { TextButton(onClick = { restoreMessage = null }) { Text("OK") } })
     }
     if (reviewEntry) ReviewCodeDialog { reviewEntry = false }
 }
@@ -167,6 +169,7 @@ private fun ReviewCodeDialog(onDismiss: () -> Unit) {
     var code by remember { mutableStateOf("") }
     var failed by remember { mutableStateOf(false) }
     AlertDialog(
+        modifier = DialogTags,
         onDismissRequest = onDismiss,
         title = { Text("Reviewer access") },
         text = {
@@ -210,7 +213,7 @@ fun SourcesScreen() {
                     NavRow(
                         USState.displayName(office.stateCode),
                         subtitle = office.officeName + "\n" + if (office.check == VitalRecordsOffice.Check.PAGEREAD) "Page read end to end $day" else "Address and detail checked $day. Not read end to end.",
-                    ) { Uri.parse(office.urlString).open(context) }
+                    ) { office.urlString.toUri().open(context) }
                 }
             }
             Footnote("The five territories are not in this list. Nobody has researched them, so the birth certificate task there links to the national directory and says so rather than sending you to an office we picked.")
@@ -221,7 +224,7 @@ fun SourcesScreen() {
                 com.jackwallner.babydocs.rules.SourceManifest.all.forEachIndexed { i, entry ->
                     if (i > 0) RowDivider()
                     NavRow(entry.title, subtitle = "${entry.agency} · checked ${entry.reviewedOn.medium()}" + if (entry.limitations.isNotEmpty()) "\nWhat it does not tell you: ${entry.limitations}" else "") {
-                        Uri.parse(entry.urlString).open(context)
+                        entry.urlString.toUri().open(context)
                     }
                 }
             }
