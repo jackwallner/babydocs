@@ -76,7 +76,12 @@ val RequirementCategory.icon: ImageVector
         RequirementCategory.HOUSEHOLD -> Icons.Rounded.Home
     }
 
-/** A tab page or pushed screen: grouped background, large title, one scrolling list. */
+/**
+ * A tab page or pushed screen: grouped background, large title, one scrolling list.
+ * Records are plain mutable objects behind `BabyStore.revision`, so every lazy
+ * item reads that revision itself: strong skipping would otherwise keep an item
+ * whose captured record is the same instance and draw it stale after a commit.
+ */
 @Composable
 fun Page(
     title: String,

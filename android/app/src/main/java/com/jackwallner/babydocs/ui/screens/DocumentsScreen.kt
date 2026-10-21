@@ -141,11 +141,17 @@ fun DocumentsScreen() {
 
     Page("Documents") {
         item {
+            LocalGraph.current.store.revision
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                 listOf("To bring", "Photos").forEachIndexed { i, label ->
                     SegmentedButton(
                         selected = mode == i, onClick = { mode = i },
                         shape = SegmentedButtonDefaults.itemShape(i, 2),
+                        colors = SegmentedButtonDefaults.colors(
+                            activeContainerColor = c.accent.copy(alpha = 0.14f), activeContentColor = c.accent,
+                            inactiveContainerColor = c.surface, inactiveContentColor = c.label,
+                            activeBorderColor = c.separator, inactiveBorderColor = c.separator,
+                        ),
                         modifier = Modifier.testTag("documents-mode-$i"),
                     ) { Text(label) }
                 }
@@ -155,6 +161,7 @@ fun DocumentsScreen() {
             val toFind = gather.filter { !it.isOnHand }
             val inHand = gather.filter { it.isOnHand }
             item {
+                LocalGraph.current.store.revision
                 SectionHeader(
                     "Still to find",
                     blurb = if (multipleChildren) "What to take to each errand. Tick something and it ticks on every task that wants it for that child, and never for the other child."
@@ -162,18 +169,19 @@ fun DocumentsScreen() {
                 )
             }
             if (toFind.isEmpty()) {
-                item { Card { Text("Everything your open tasks ask for is gathered.", style = Type.body, color = c.secondary) } }
+                item { LocalGraph.current.store.revision; Card { Text("Everything your open tasks ask for is gathered.", style = Type.body, color = c.secondary) } }
             } else {
-                item { GatherCard(toFind, graph, multipleChildren) }
+                item { LocalGraph.current.store.revision; GatherCard(toFind, graph, multipleChildren) }
             }
             if (inHand.isNotEmpty()) {
                 item {
+                    LocalGraph.current.store.revision
                     SectionHeader("Already in hand · ${inHand.size}", blurb = "Ticked, and deliberately still here: the question at the counter is \"did I already deal with this one\", not only \"what is left\".")
                     GatherCard(inHand, graph, multipleChildren)
                 }
             }
         } else {
-            item { Footnote("Photographs of papers you already have. Nothing here is a task.") }
+            item { LocalGraph.current.store.revision; Footnote("Photographs of papers you already have. Nothing here is a task.") }
             data.liveChildren.forEach { child ->
                 item(key = "vault-${child.id}") {
                     val docs = data.liveVault(child)
@@ -267,6 +275,7 @@ fun VaultAddScreen(childID: UUID) {
 
     Page("Add a document", onBack = { nav.pop() }) {
         item {
+            LocalGraph.current.store.revision
             SectionHeader("What is it")
             Card(padding = PaddingValues(0.dp)) {
                 NavRow("Document type", value = kind.label, modifier = Modifier.testTag("vault-kind")) { choosingKind = true }
@@ -276,6 +285,7 @@ fun VaultAddScreen(childID: UUID) {
             }
         }
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Photos")
             Card(padding = PaddingValues(0.dp)) {
                 pages.forEachIndexed { i, name ->
@@ -293,6 +303,7 @@ fun VaultAddScreen(childID: UUID) {
             Footnote("Both sides, or every page. The photo is scaled down and saved as a copy; the one in your gallery is untouched, and you may want to delete that one.")
         }
         item {
+            LocalGraph.current.store.revision
             Spacer(Modifier.padding(top = AppTheme.spacing))
             PrimaryButton("Save", enabled = pages.isNotEmpty(), tag = "vault-save") {
                 val ok = graph.store.commit(reconcile = false) {
@@ -355,6 +366,7 @@ fun VaultViewScreen(documentID: UUID) {
             }
         }
         item {
+            LocalGraph.current.store.revision
             TextButton(onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth().testTag("vault-delete")) { Text("Delete the photos", color = c.red) }
         }
     }

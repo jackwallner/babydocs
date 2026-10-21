@@ -51,6 +51,7 @@ fun HouseholdScreen() {
 
     Page("Household", onBack = { nav.pop() }) {
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Where you live")
             Card(padding = PaddingValues(AppTheme.spacing * 0)) {
                 StatePickerRow("State you live in", residence, tag = "household-state") { residence = it }
@@ -58,6 +59,7 @@ fun HouseholdScreen() {
             Footnote("Decides the Medicaid and CHIP agency, and whether there is a state paid-leave programme to file with.")
         }
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Parents")
             Card(padding = PaddingValues(AppTheme.spacing * 0)) {
                 ParentageSituation.entries.forEachIndexed { i, option ->
@@ -71,6 +73,7 @@ fun HouseholdScreen() {
             }
         }
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Health coverage")
             Card(padding = PaddingValues(AppTheme.spacing * 0)) {
                 listOf(InsuranceKind.EMPLOYER, InsuranceKind.MARKETPLACE, InsuranceKind.MEDICAID_CHIP, InsuranceKind.NONE, InsuranceKind.UNKNOWN).forEachIndexed { i, option ->
@@ -93,6 +96,7 @@ fun HouseholdScreen() {
             }
         }
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Parental leave")
             Card(padding = PaddingValues(AppTheme.spacing * 0)) {
                 listOf(ParentalLeaveTakers.ONE_PARENT, ParentalLeaveTakers.BOTH_PARENTS, ParentalLeaveTakers.NOBODY).forEachIndexed { i, option ->
@@ -103,6 +107,7 @@ fun HouseholdScreen() {
             Footnote("Both parents taking leave means two claims, with two employers and two windows, so it puts two tasks on the plan rather than one.")
         }
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Optional tasks")
             Card(padding = PaddingValues(AppTheme.spacing * 0)) {
                 ToggleRow("\$1,000 newborn account", newborn) { newborn = it }
@@ -113,6 +118,7 @@ fun HouseholdScreen() {
             }
         }
         item {
+            LocalGraph.current.store.revision
             Spacer(Modifier.height(AppTheme.spacing))
             PrimaryButton("Done", enabled = residence.isNotEmpty(), tag = "household-done") {
                 val saved = graph.store.commit { d ->

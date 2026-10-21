@@ -122,6 +122,7 @@ fun PlanScreen() {
         },
     ) {
         item {
+            LocalGraph.current.store.revision
             Card(Modifier.clickable { nav.push(Overlay.Household) }.testTag("household-card")) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.Tune, contentDescription = null, tint = AppTheme.colors.accent)
@@ -134,15 +135,16 @@ fun PlanScreen() {
                 }
             }
         }
-        item { PlanHeaderCard(overview) { nav.push(Overlay.TaskDetail(it)) } }
+        item { LocalGraph.current.store.revision; PlanHeaderCard(overview) { nav.push(Overlay.TaskDetail(it)) } }
 
         if (late.isNotEmpty()) {
-            item { SectionHeader("Sent, and still not here", blurb = "Past the date the office told you to expect it. Nothing else in your life is going to mention this, which is why it is at the top.") }
+            item { LocalGraph.current.store.revision; SectionHeader("Sent, and still not here", blurb = "Past the date the office told you to expect it. Nothing else in your life is going to mention this, which is why it is at the top.") }
             taskCard(late, graph, children.size > 1)
         }
 
         if (children.size > 1) {
             item {
+                LocalGraph.current.store.revision
                 Card(padding = PaddingValues(0.dp)) {
                     ChoiceRow("Everyone", selectedChild == null) { selected = null; nav.selectedChildID = null }
                     children.forEach { child ->
@@ -164,6 +166,7 @@ fun PlanScreen() {
 
         if (dismissed.isNotEmpty()) {
             item {
+                LocalGraph.current.store.revision
                 Text(
                     "Does not apply to us (${dismissed.size})",
                     style = Type.subheadline, color = AppTheme.colors.accent,
@@ -188,6 +191,7 @@ fun LazyListScope.taskCard(tasks: List<RequirementTask>, graph: AppGraph, showCh
 
 @Composable
 fun TaskRow(task: RequirementTask, graph: AppGraph, showChildName: Boolean) {
+    graph.store.revision
     val c = AppTheme.colors
     val haptics = LocalHapticFeedback.current
     val data = graph.store.data

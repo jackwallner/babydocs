@@ -124,6 +124,7 @@ fun TaskDetailScreen(taskID: UUID, activity: MainActivity) {
 
     Page(rule?.shortTitle ?: task.title, onBack = { nav.pop() }) {
         item {
+            LocalGraph.current.store.revision
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 4.dp, top = 4.dp)) {
                 Icon(task.category.icon, contentDescription = null, tint = c.secondary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
@@ -131,6 +132,7 @@ fun TaskDetailScreen(taskID: UUID, activity: MainActivity) {
             }
         }
         item {
+            LocalGraph.current.store.revision
             Card {
                 Text(task.title, style = Type.title3, color = c.label, modifier = Modifier.testTag("detail-title"))
                 Spacer(Modifier.height(AppTheme.tightSpacing))
@@ -140,6 +142,7 @@ fun TaskDetailScreen(taskID: UUID, activity: MainActivity) {
 
         // Deadline
         item {
+            LocalGraph.current.store.revision
             SectionHeader(when (task.deadlineKind) { DeadlineKind.HARD -> "Hard deadline"; DeadlineKind.RECOMMENDED -> "Suggested by"; DeadlineKind.NONE -> "Timing" })
             Card {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -167,6 +170,7 @@ fun TaskDetailScreen(taskID: UUID, activity: MainActivity) {
         // Where to do it
         if (task.officialURLString.isNotEmpty()) {
             item {
+                LocalGraph.current.store.revision
                 SectionHeader("Where to do it")
                 Card(padding = PaddingValues(0.dp)) {
                     Row(
@@ -184,6 +188,7 @@ fun TaskDetailScreen(taskID: UUID, activity: MainActivity) {
 
         // Who has this
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Who has this")
             Card {
                 OutlinedTextField(assignee, { assignee = it }, placeholder = { Text("Nobody assigned") }, singleLine = true, modifier = Modifier.fillMaxWidth().testTag("assignee"))
@@ -193,6 +198,7 @@ fun TaskDetailScreen(taskID: UUID, activity: MainActivity) {
 
         // Your own reminder (Plus)
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Your own reminder")
             Card(padding = PaddingValues(0.dp)) {
                 if (isPlus) {
@@ -222,6 +228,7 @@ fun TaskDetailScreen(taskID: UUID, activity: MainActivity) {
         val documents = data.liveDocuments(task)
         if (documents.isNotEmpty()) {
             item {
+                LocalGraph.current.store.revision
                 SectionHeader("Have these ready")
                 Card(padding = PaddingValues(0.dp)) {
                     documents.forEachIndexed { i, item ->
@@ -255,6 +262,7 @@ fun TaskDetailScreen(taskID: UUID, activity: MainActivity) {
         // Sent and waiting (Plus)
         if (task.isPostedAway) {
             item {
+                LocalGraph.current.store.revision
                 SectionHeader("Sent and waiting")
                 Card(padding = PaddingValues(0.dp)) {
                     if (!isPlus) {
@@ -300,6 +308,7 @@ fun TaskDetailScreen(taskID: UUID, activity: MainActivity) {
 
         // Confirmations
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Confirmations")
             Card(padding = PaddingValues(0.dp)) {
                 data.liveReceipts(task).forEach { receipt ->
@@ -321,6 +330,7 @@ fun TaskDetailScreen(taskID: UUID, activity: MainActivity) {
 
         // Notes
         item {
+            LocalGraph.current.store.revision
             SectionHeader("Your notes")
             Card {
                 OutlinedTextField(notes, { notes = it }, minLines = 3, modifier = Modifier.fillMaxWidth().testTag("notes"))
@@ -330,6 +340,7 @@ fun TaskDetailScreen(taskID: UUID, activity: MainActivity) {
 
         // Done / dismiss
         item {
+            LocalGraph.current.store.revision
             Spacer(Modifier.height(AppTheme.tightSpacing))
             Card(padding = PaddingValues(0.dp)) {
                 NavRow(if (task.isDone) "Mark not done" else "Mark done", titleColor = c.accent, modifier = Modifier.testTag("mark-done")) { graph.toggle(task) }
@@ -342,7 +353,7 @@ fun TaskDetailScreen(taskID: UUID, activity: MainActivity) {
         }
 
         // Source
-        item { SourceFootnote(task) }
+        item { LocalGraph.current.store.revision; SourceFootnote(task) }
     }
 
     if (addingReceipt) {
