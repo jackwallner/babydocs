@@ -12,6 +12,15 @@ TEAM_ID="YXG4MP6W39"
 
 cd "$PROJECT_DIR"
 
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run|--help|-h)
+      exec "$HOME/ios/release/testflight.sh" --project BabyDocs.xcodeproj --scheme BabyDocs "$@"
+      ;;
+    --) break ;;
+  esac
+done
+
 # The schema drift check went with the backend. There is no server, no database
 # and no DTO that can fall out of step with one, so there is nothing here to
 # verify before a build. See AGENTS.md for why that is the architecture rather
@@ -45,5 +54,5 @@ fi
 # Connect API key, upload, then commit and push the bump once Apple accepts it.
 # Flags (--upload-only, --no-bump, --clean, --post-archive) and credentials are
 # documented in ~/ios/release/testflight.sh.
-"$HOME/ios/release/testflight.sh" --project BabyDocs.xcodeproj --scheme BabyDocs --clean -- CODE_SIGN_IDENTITY="Apple Development" DEVELOPMENT_TEAM="$TEAM_ID" "$@"
+"$HOME/ios/release/testflight.sh" --project BabyDocs.xcodeproj --scheme BabyDocs --clean "$@" -- CODE_SIGN_IDENTITY="Apple Development" DEVELOPMENT_TEAM="$TEAM_ID"
 exit $?
