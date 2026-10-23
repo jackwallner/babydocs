@@ -82,6 +82,7 @@ These files load automatically when you read a file matching their `paths:`. Age
 | `.claude/rules/intake-and-plan-screens.md` | "Not sure" answers, ticked tasks and documents, the intake's shape and footer | Onboarding, the plan, documents, task rows |
 | `.claude/rules/design-system.md` | `project-docs/design/design.md` and the audit, one margin and one colour system, the tab-bar inset | Any view or layout work |
 | `.claude/rules/no-server-and-sharing.md` | Why there is no server, what sales copy may claim, the privacy claim, `docs/plan.html` | Sharing, `PlanSeed`, privacy copy, the site, anything tempting you to add sync |
+| `.claude/rules/iphone-duo.md` | The unfolded split (Plan beside Documents), fold math, the vertical-toolbar trap, screenshot routes | `RootView`'s tab layout, `UnfoldedSplit`, Duo captures |
 | `.claude/rules/android.md` | The Kotlin/Compose port in `android/`, the Swift parity export, Play and RevenueCat state | Anything under `android/` or the `scripts/android-*` and `scripts/sync-android-*` scripts |
 
 ## App-specific notes
