@@ -86,40 +86,43 @@ struct BabyDocsApp: App {
                     }
                     #endif
                 }
+                #if DEBUG
+                .task { await openScreenshotRoute() }
+                #endif
                 .onOpenURL { url in
-                    #if DEBUG
-                    if openScreenshotRoute(url) { return }
-                    #endif
                     AppNavigator.shared.open(url)
                 }
         }
     }
 
     #if DEBUG
-    /// Screenshot routes, so an unattended capture can walk the main screens
-    /// without a UI test: `babydocs://screen/<plan|children|plus|settings>` and
-    /// `babydocs://screen/task/<catalog key>`. Debug only, and never a link a
-    /// parent can be sent, since a shipping build hands every URL to the seed
-    /// decoder.
+    /// Screenshot routes, so an unattended capture can show each main screen
+    /// without a UI test: `-duo-screen <plan|children|documents|plus|settings>`
+    /// or `-duo-screen task/<catalog key>`. Applied a few seconds after launch
+    /// rather than at it, so a native recording shows the move, and through
+    /// launch arguments rather than links, which the simulator puts behind an
+    /// "Open in Baby Docs?" alert.
     @MainActor
-    private func openScreenshotRoute(_ url: URL) -> Bool {
-        guard url.host == "screen" else { return false }
-        let parts = url.pathComponents.filter { $0 != "/" }
+    private func openScreenshotRoute() async {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: "-duo-screen"), index + 1 < arguments.count else { return }
+        let parts = arguments[index + 1].split(separator: "/").map(String.init)
+        try? await Task.sleep(for: .seconds(7))
         let navigator = AppNavigator.shared
-        switch parts.first {
-        case "children": navigator.selectedTab = .children
-        case "documents": navigator.selectedTab = .documents
-        case "plus": navigator.selectedTab = .plus
-        case "settings": navigator.selectedTab = .settings
-        case "task":
-            navigator.selectedTab = .plan
-            let key = parts.dropFirst().first
-            let match = ((try? container.mainContext.fetch(FetchDescriptor<RequirementTask>())) ?? [])
-                .first { $0.catalogKey == key && $0.deletedAt == nil }
-            navigator.pendingTaskID = match?.id
-        default: navigator.selectedTab = .plan
+        withAnimation {
+            switch parts.first {
+            case "children": navigator.selectedTab = .children
+            case "documents": navigator.selectedTab = .documents
+            case "plus": navigator.selectedTab = .plus
+            case "settings": navigator.selectedTab = .settings
+            case "task":
+                navigator.selectedTab = .plan
+                let match = ((try? container.mainContext.fetch(FetchDescriptor<RequirementTask>())) ?? [])
+                    .first { $0.catalogKey == parts.last && $0.deletedAt == nil }
+                navigator.pendingTaskID = match?.id
+            default: navigator.selectedTab = .plan
+            }
         }
-        return true
     }
     #endif
 }

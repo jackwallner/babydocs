@@ -29,6 +29,15 @@ paths:
 - Still across the fold: the intake, the storage recovery and archived-children
   screens, and sheets (household answers, paywall, add a document). None are in
   the store set.
-- Unattended captures: `-uitest-seed -uitest-pro` plus the DEBUG routes
-  `babydocs://screen/<plan|children|documents|plus|settings>` and
-  `babydocs://screen/task/<catalog key>` (`BabyDocsApp.openScreenshotRoute`).
+- Unattended captures: `-uitest-seed -uitest-pro -duo-screen <route>`, where
+  the route is `plan`, `children`, `documents`, `plus`, `settings` or
+  `task/<catalog key>` (`BabyDocsApp.openScreenshotRoute`, DEBUG only). It
+  animates there seven seconds after launch, so gh-sim's recording of the
+  unfolded relaunch catches the move. `documents` folded shows the Documents
+  tab and unfolded lands on Plan beside it. One route per gh-sim run: gh-sim
+  only shoots the launch and one shot per `--url`, and `simctl openurl` puts
+  every custom-scheme link behind an "Open in Baby Docs?" alert, so links
+  cannot drive captures.
+- The folded outer display gets iOS 27.1's own vertical bar (toolbar buttons
+  and the tab bar on the trailing edge). That is the system default and
+  untouched here.
