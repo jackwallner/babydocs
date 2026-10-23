@@ -60,13 +60,14 @@ paths:
 - Billing: RevenueCat project `proj1aaf9104` (shared with iOS). Debug uses the
   Test Store app `appddec789928` (key in ignored `local.properties`
   `REVENUECAT_TEST_KEY`), offering `default`. Plus is entitlement `BabyDocs+`
-  or the legacy `pro` / `BabyDocsPro`, as on iOS. Release needs a `goog_` key:
-  no RevenueCat Play app exists yet, so release builds fail
-  `validateReleaseConfiguration` by design.
+  or the legacy `pro` / `BabyDocsPro`, as on iOS. Release uses the Play app
+  `babydocs (Play)` (`goog_` key in the Air's ignored `local.properties`
+  `REVENUECAT_PLAY_KEY`); without it `validateReleaseConfiguration` fails by
+  design.
 - Reviewer access: Settings, long-press the Version line, code
   `PLAY_REVIEW_CODE` in `~/.babydocs_credentials` (created on jmbp
-  2026-10-20; copy it and `PLAY_REVIEW_CODE_SHA256` to the Air before the
-  release build).
+  2026-10-20; the Air has it as `BABYDOCS_PLAY_REVIEW_CODE` and the digest in
+  `local.properties`).
 - Debug launch extras (debug only, `src/debug/.../DebugLaunchOptions.kt`):
   `uiTest`, `resetAll`, `seed` (the iOS `SampleData` family), `demoPro`,
   `previewStore`, `previewTrialUsed`, `tab plan|children|documents|plus|settings`,
@@ -90,25 +91,50 @@ paths:
 - jmbp is an Intel i7-5557U: interaction video records at about 4 fps, so
   native 60 fps cannot be proven there. Motion review belongs on the Air.
 
-## Release state (2026-10-20)
+## Signed release build (Air only)
+
+- The upload key `~/.android/keystores/babydocs-upload.p12` (alias `upload`,
+  cert SHA-256 `BA:49:81:EC:C5:C2:8B:43:10:CD:7C:9E:88:86:0B:D6:86:4D:4D:A3:83:69:5A:49:99:FE:17:75:E9:12:BC:E8`,
+  backup in `~/.android/keystores/backups/`) and `android/local.properties`
+  live only on the Air. `baby-upload.p12` beside it is a different app's key.
+- `fm-gradle assembleRelease bundleRelease` does not work here: it ships
+  release tasks to `clawd-mac` (a MacBook Pro) with the keys stripped, so it
+  fails `validateReleaseConfiguration`. On the Air, from `android/` with the
+  ignored `local.properties` in place, run
+  `JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home ./gradlew --no-daemon assembleRelease bundleRelease`
+  (the Air's Gradle guard allows exactly these tasks).
+- Verify: `apksigner verify --verbose --print-certs`, `jarsigner -verify -verbose -certs`
+  (the "signed in JarFile but not in JarInputStream" lines are normal for an
+  AAB), `aapt2 dump badging` on the APK and on the AAB's proto manifest,
+  `zipalign -c -P 16 -v 4`, ELF PT_LOAD alignment of every `.so` (only
+  `libandroidx.graphics.path.so`, 4 ABIs, all 0x4000), and no debug launch
+  extras or `test_` key in the release dex.
+
+## Release state (2026-10-23)
 
 - Build and test acceptance on jmbp (run shift-android-babydocs-1-1792552123):
   32 JVM tests (5,520 Swift parity comparisons), 9/9 device tests on
   agent-emu-1 (API 36 Play image), lint clean, QA build ignores debug hooks and
   runs without a store key. No Play app, upload key, RevenueCat Play app, Play
   products or upload yet.
+- Signed package (2026-10-23, run shift-android-package-babydocs-3-1792775706,
+  android tree `175d7a29`, commit f451f9e): 1.1.2 (versionCode 1), target 36,
+  min 26, signed with the upload key above, 16 KB aligned, release hooks
+  stripped. Artifacts on the Air:
+  `~/fleet-artifacts/shift-android-package-babydocs-3-1792775706/babydocs-1.1.2-vc1.{aab,apk}`
+  (plus `mapping.txt`, `SHA256SUMS`). Not uploaded to any track.
+- Done since 2026-10-20: upload key and backup, `local.properties`, the
+  RevenueCat Play app `babydocs (Play)` with its `goog_` key, the
+  `~/.rc-clean/apps.json` android block. RevenueCat has the Play product ids
+  `com.jackwallner.babydocs.pro.weekly` / `.yearly` / `.lifetime`; Play Console
+  products and their state were not verified on 2026-10-23.
 - Remaining, in order (Air release worker / Console):
-  1. Decide the Android US price (fleet rule $3.99 / $23.99 / $47.99, or iOS parity).
-  2. Create the upload keystore `~/.android/keystores/babydocs-upload.p12` and
-     `PLAY_UPLOAD_*` in `local.properties`; build signed AAB/APK; verify 16 KB
-     alignment of the RevenueCat native libs.
-  3. Create the Play app (E3 Apps) and the three products (`trial-3d` on weekly).
-  4. Add a RevenueCat Play app to `proj1aaf9104`, attach the Play products to
-     the `default` offering's `$rc_weekly` / `$rc_annual` / `$rc_lifetime`
-     packages and the `BabyDocs+` entitlement, put its `goog_` key in
-     `local.properties`, and register it in `~/.rc-clean/apps.json` (android
-     block plus `"ios": {"filter_platform": "iOS"}`) the same day.
-  5. Listing, graphics and policy answers from `android/play-assets/listing-en-US.md`;
+  1. Confirm the Play app record and the three Play products exist and are
+     active (`trial-3d` on weekly), and that the Android US price was decided.
+  2. Attach the Play products to the `default` offering's `$rc_weekly` /
+     `$rc_annual` / `$rc_lifetime` packages and the `BabyDocs+` entitlement.
+  3. Listing, graphics and policy answers from `android/play-assets/listing-en-US.md`;
      publish the updated `docs/privacy-policy.html` (Android section).
-  6. Internal track upload, licensed-tester purchase and restore, then a
-     production draft. Production send waits for its pacing slot.
+  4. Internal track upload of the AAB above (bump versionCode for any
+     rebuild), licensed-tester purchase and restore, then a production draft.
+     Production send waits for its pacing slot.
