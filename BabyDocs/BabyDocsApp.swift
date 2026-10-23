@@ -87,8 +87,39 @@ struct BabyDocsApp: App {
                     #endif
                 }
                 .onOpenURL { url in
+                    #if DEBUG
+                    if openScreenshotRoute(url) { return }
+                    #endif
                     AppNavigator.shared.open(url)
                 }
         }
     }
+
+    #if DEBUG
+    /// Screenshot routes, so an unattended capture can walk the main screens
+    /// without a UI test: `babydocs://screen/<plan|children|plus|settings>` and
+    /// `babydocs://screen/task/<catalog key>`. Debug only, and never a link a
+    /// parent can be sent, since a shipping build hands every URL to the seed
+    /// decoder.
+    @MainActor
+    private func openScreenshotRoute(_ url: URL) -> Bool {
+        guard url.host == "screen" else { return false }
+        let parts = url.pathComponents.filter { $0 != "/" }
+        let navigator = AppNavigator.shared
+        switch parts.first {
+        case "children": navigator.selectedTab = .children
+        case "documents": navigator.selectedTab = .documents
+        case "plus": navigator.selectedTab = .plus
+        case "settings": navigator.selectedTab = .settings
+        case "task":
+            navigator.selectedTab = .plan
+            let key = parts.dropFirst().first
+            let match = ((try? container.mainContext.fetch(FetchDescriptor<RequirementTask>())) ?? [])
+                .first { $0.catalogKey == key && $0.deletedAt == nil }
+            navigator.pendingTaskID = match?.id
+        default: navigator.selectedTab = .plan
+        }
+        return true
+    }
+    #endif
 }

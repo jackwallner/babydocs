@@ -19,6 +19,10 @@ struct RootView: View {
     /// screen, so a launch with a plan already in the store never opens it.
     @State private var hasFinishedIntake = true
     @Environment(\.requestReview) private var requestReview
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    /// The container's width and fold, measured so the unfolded iPhone Duo can
+    /// put the plan and the documents on opposite sides of the fold.
+    @State private var paneGeometry = PaneGeometry(width: 0, fold: nil)
 
     init() {
         _selectedTab = State(initialValue: AppNavigator.shared.selectedTab)
@@ -50,32 +54,7 @@ struct RootView: View {
             } else if children.isEmpty {
                 ArchivedChildrenRecoveryView(children: archivedChildren)
             } else {
-                TabView(selection: $selectedTab) {
-                    PlanView()
-                        .tabItem { Label("Plan", systemImage: "checklist") }
-                        .tag(AppNavigator.Tab.plan)
-
-                    ChildrenView()
-                        .tabItem { Label("Children", systemImage: "figure.and.child.holdinghands") }
-                        .tag(AppNavigator.Tab.children)
-
-                    DocumentsView()
-                        .tabItem { Label("Documents", systemImage: "folder") }
-                        .tag(AppNavigator.Tab.documents)
-
-                    // A permanent slot rather than a sheet nobody opens on
-                    // purpose. Before Plus is bought it is the pitch; after, it
-                    // is the timeline, the reminder switches and the pages that
-                    // leave the phone, so the tab is worth its place in the bar
-                    // to a customer who has already paid.
-                    PlusView()
-                        .tabItem { Label("Plus", systemImage: "sparkles") }
-                        .tag(AppNavigator.Tab.plus)
-
-                    SettingsView()
-                        .tabItem { Label("Settings", systemImage: "gearshape") }
-                        .tag(AppNavigator.Tab.settings)
-                }
+                tabs
                 // **Nothing is set on the tab bar on purpose.**
                 //
                 // It used to be forced visible and painted with the page
@@ -160,6 +139,80 @@ struct RootView: View {
             purgeTombstonedVaultDocuments()
             purgeOrphanedVaultPages()
         }
+    }
+
+    /// Unfolded, Documents has its own pane beside the tabs, so it is never a
+    /// tab: what to do on one side of the fold, what to bring on the other.
+    private var split: UnfoldedSplit? {
+        UnfoldedSplit.make(
+            width: paneGeometry.width,
+            isRegularWidth: horizontalSizeClass == .regular,
+            fold: paneGeometry.fold
+        )
+    }
+
+    /// Each unfolded pane is phone-width, so its screen lays out as on a phone.
+    private var paneSizeClass: UserInterfaceSizeClass? {
+        split == nil ? horizontalSizeClass : .compact
+    }
+
+    /// One view tree in every pose. Opening or closing the Duo only moves these
+    /// frames, so the plan keeps its tab, its pushed task and its scroll.
+    private var tabs: some View {
+        ZStack(alignment: .topLeading) {
+            TabView(selection: $selectedTab) {
+                PlanView()
+                    .tabItem { Label("Plan", systemImage: "checklist") }
+                    .tag(AppNavigator.Tab.plan)
+
+                ChildrenView()
+                    .tabItem { Label("Children", systemImage: "figure.and.child.holdinghands") }
+                    .tag(AppNavigator.Tab.children)
+
+                if split == nil {
+                    DocumentsView()
+                        .tabItem { Label("Documents", systemImage: "folder") }
+                        .tag(AppNavigator.Tab.documents)
+                }
+
+                // A permanent slot rather than a sheet nobody opens on
+                // purpose. Before Plus is bought it is the pitch; after, it
+                // is the timeline, the reminder switches and the pages that
+                // leave the phone, so the tab is worth its place in the bar
+                // to a customer who has already paid.
+                PlusView()
+                    .tabItem { Label("Plus", systemImage: "sparkles") }
+                    .tag(AppNavigator.Tab.plus)
+
+                SettingsView()
+                    .tabItem { Label("Settings", systemImage: "gearshape") }
+                    .tag(AppNavigator.Tab.settings)
+            }
+            .environment(\.horizontalSizeClass, paneSizeClass)
+            // The tab bar sits within the leading pane, never across the fold.
+            .frame(maxWidth: split?.primaryWidth ?? .infinity, maxHeight: .infinity)
+
+            if let split {
+                DocumentsView()
+                    .environment(\.horizontalSizeClass, .compact)
+                    .frame(maxWidth: split.secondaryWidth, maxHeight: .infinity)
+                    .padding(.leading, split.secondaryX)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(AppTheme.pageBackground.ignoresSafeArea())
+        .horizontalToolbarsInPanes(split != nil)
+        .onGeometryChange(for: PaneGeometry.self) { proxy in
+            PaneGeometry(width: proxy.size.width, fold: proxy.verticalFold())
+        } action: { paneGeometry = $0 }
+        .onChange(of: split != nil) { _, _ in leaveDocumentsTabIfSplit() }
+        .onChange(of: selectedTab) { _, _ in leaveDocumentsTabIfSplit() }
+    }
+
+    /// A route that still asks for the Documents tab lands on the plan, with
+    /// Documents already open beside it.
+    private func leaveDocumentsTabIfSplit() {
+        if split != nil, selectedTab == .documents { selectedTab = .plan }
     }
 
     /// A process can die while the add-child sheet is open. Those rows are

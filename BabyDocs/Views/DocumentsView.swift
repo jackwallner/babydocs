@@ -47,7 +47,10 @@ struct DocumentsView: View {
     @State private var pendingDeletion: VaultDocument?
     /// Ticked documents stay on screen. See `onHandSection`.
     @State private var isShowingOnHand = true
-    @State private var mode: Mode = .checklist
+    /// Scene storage rather than state: unfolding an iPhone Duo moves this
+    /// screen out of the tab bar and into its own pane, a new view, and the
+    /// switch should not flip back to the checklist when that happens.
+    @SceneStorage("documents.mode") private var mode: Mode = .checklist
 
     var body: some View {
         NavigationStack {
