@@ -4,6 +4,7 @@ paths:
   - "Shared/Utilities/UnfoldedSplit.swift"
   - "BabyDocs/Views/DocumentsView.swift"
   - "BabyDocs/BabyDocsApp.swift"
+  - "Shared/Utilities/AppTheme.swift"
 ---
 
 # Baby Docs: iPhone Duo (2026-10-22)
@@ -26,18 +27,25 @@ paths:
   trailing edge, which in the leading pane sits against the fold and narrows
   the Plan by about 84 pt. While split, `horizontalToolbarsInPanes` sets
   `toolbarVerticalBehavior(.disabled)`.
+- Under the bar: on the phone, rows pass under the glass tab bar with an 80 pt
+  cushion past the last one. In the leading pane that read as rows showing
+  through the bar beside a clean Documents pane (the fleet review flags it), so
+  `RootView` sets `\.tabBarBackdrop` to `.solid` there: `planPageBackground`
+  ends the page in a 20 pt fade and paints it solid behind the bar. The
+  trailing pane has no bar, so it gets `.none` (a 20 pt cushion). Folded keeps
+  `.glass`, the phone treatment.
 - Still across the fold: the intake, the storage recovery and archived-children
   screens, and sheets (household answers, paywall, add a document). None are in
   the store set.
 - Unattended captures: `-uitest-seed -uitest-pro -duo-screen <route>`, where
   the route is `plan`, `children`, `documents`, `plus`, `settings` or
   `task/<catalog key>` (`BabyDocsApp.openScreenshotRoute`, DEBUG only). It
-  animates there seven seconds after launch, so gh-sim's recording of the
-  unfolded relaunch catches the move. `documents` folded shows the Documents
-  tab and unfolded lands on Plan beside it. One route per gh-sim run: gh-sim
-  only shoots the launch and one shot per `--url`, and `simctl openurl` puts
-  every custom-scheme link behind an "Open in Baby Docs?" alert, so links
-  cannot drive captures.
+  animates there seven seconds after launch, so gh-sim's recording catches the
+  move. `documents` folded shows the Documents tab and unfolded lands on Plan
+  beside it. Capture every surface in one `gh-sim all --device "iPhone Duo"`
+  with one `--screen "-duo-screen <route>"` each (plan,
+  task/insurance_employer, plus, children). Never `--url`: `simctl openurl`
+  puts every custom-scheme link behind an "Open in Baby Docs?" alert.
 - The folded outer display gets iOS 27.1's own vertical bar (toolbar buttons
   and the tab bar on the trailing edge). That is the system default and
   untouched here.
