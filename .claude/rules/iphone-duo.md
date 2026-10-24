@@ -39,9 +39,8 @@ paths:
   and starts both panes just under that band, so the Plan and Documents
   titles share a line. Placed below the safe area instead, it pushed both
   titles 60 pt down (first capture of 2026-10-23). Both panes run to the
-  display's bottom edge: they fade out over 40 pt (`paneEdgeFade`) above
-  the home indicator and are solid page across it, so the last line
-  dissolves. A 28 pt fade to the very edge still showed letters sliced by it. Text labels, not icons: no SF Symbol can push
+  display's bottom edge, where a 28 pt fade (`paneEdgeFade`) stops the last
+  line being sliced mid-glyph. Text labels, not icons: no SF Symbol can push
   one label off the others' baseline. Folded keeps `.glass`, the phone's
   system bar, unchanged.
 - Still across the fold: the intake, the storage recovery and archived-children
