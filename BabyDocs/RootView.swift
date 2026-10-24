@@ -189,7 +189,8 @@ struct RootView: View {
                     .tag(AppNavigator.Tab.settings)
             }
             .environment(\.horizontalSizeClass, paneSizeClass)
-            .environment(\.tabBarBackdrop, split == nil ? .glass : .solid)
+            .environment(\.tabBarBackdrop, split == nil ? .glass : .none)
+            .padding(.top, UnfoldedSplit.paneTopInset(split))
             // The tab bar sits within the leading pane, never across the fold.
             .frame(maxWidth: split?.primaryWidth ?? .infinity, maxHeight: .infinity)
 
@@ -197,18 +198,45 @@ struct RootView: View {
                 DocumentsView()
                     .environment(\.horizontalSizeClass, .compact)
                     .environment(\.tabBarBackdrop, .none)
+                    .padding(.top, UnfoldedSplit.paneTopInset(split))
                     .frame(maxWidth: split.secondaryWidth, maxHeight: .infinity)
                     .padding(.leading, split.secondaryX)
+
+                // Unfolded, the bar heads the leading pane, as on iPad, so both
+                // panes run to the display's bottom edge and no row ever ends
+                // against a floating bar. Folded, the system's own bar.
+                PaneTabBar(selection: $selectedTab)
+                    .padding(.top, UnfoldedSplit.paneTabBarGap)
+                    .frame(width: split.primaryWidth)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(AppTheme.pageBackground.ignoresSafeArea())
+        .overlay { paneEdgeFade }
         .horizontalToolbarsInPanes(split != nil)
         .onGeometryChange(for: PaneGeometry.self) { proxy in
             PaneGeometry(width: proxy.size.width, fold: proxy.verticalFold())
         } action: { paneGeometry = $0 }
         .onChange(of: split != nil) { _, _ in leaveDocumentsTabIfSplit() }
         .onChange(of: selectedTab) { _, _ in leaveDocumentsTabIfSplit() }
+    }
+
+    /// Both panes scroll off the display's bottom edge; a short fade there keeps
+    /// the last line from being sliced mid-glyph. No height folded, where the
+    /// system's bar sits on that edge.
+    private var paneEdgeFade: some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+            LinearGradient(
+                colors: [AppTheme.pageBackground.opacity(0), AppTheme.pageBackground],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: UnfoldedSplit.bottomFade(split))
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     /// A route that still asks for the Documents tab lands on the plan, with
@@ -341,6 +369,74 @@ private struct StorageRecoveryView: View {
             .planPageBackground(underTabBar: false)
             .navigationTitle("Storage")
             .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+}
+
+/// The unfolded leading pane's tab bar: the four tabs left beside the
+/// Documents pane, as text in one glass capsule, the way iPad heads a regular
+/// width screen. Text alone, so no glyph can push one label off the others'
+/// baseline.
+private struct PaneTabBar: View {
+    @Binding var selection: AppNavigator.Tab
+
+    private static let tabs: [AppNavigator.Tab] = [.plan, .children, .plus, .settings]
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(Self.tabs, id: \.self) { tab in
+                Button {
+                    selection = tab
+                } label: {
+                    Text(Self.title(tab))
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                        .foregroundStyle(selection == tab ? Color.accentColor : Color.primary)
+                        .padding(.horizontal, AppTheme.margin)
+                        .frame(maxHeight: .infinity)
+                        .background {
+                            if selection == tab {
+                                Capsule().fill(Color.primary.opacity(0.08))
+                            }
+                        }
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(PaneTabButtonStyle())
+                .accessibilityAddTraits(selection == tab ? .isSelected : [])
+            }
+        }
+        .padding(AppTheme.hairSpacing)
+        .frame(height: UnfoldedSplit.paneTabBarHeight)
+        .paneTabBarGlass()
+        .animation(.snappy, value: selection)
+    }
+
+    private static func title(_ tab: AppNavigator.Tab) -> String {
+        switch tab {
+        case .plan: "Plan"
+        case .children: "Children"
+        case .documents: "Documents"
+        case .plus: "Plus"
+        case .settings: "Settings"
+        }
+    }
+}
+
+/// Answers a press the way a system tab does, without tinting the label.
+private struct PaneTabButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.6 : 1)
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func paneTabBarGlass() -> some View {
+        if #available(iOS 26.0, *) {
+            glassEffect(.regular, in: Capsule())
+        } else {
+            background(.regularMaterial, in: Capsule())
         }
     }
 }

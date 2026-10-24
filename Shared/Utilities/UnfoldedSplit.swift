@@ -14,6 +14,28 @@ struct UnfoldedSplit: Equatable, Sendable {
     /// Narrowest pane that still fits the compact Plan and Documents layouts.
     static let minimumPaneWidth: CGFloat = 360
 
+    /// The tab bar that heads the leading pane while split, as on iPad, so
+    /// both panes run to the display's bottom edge and no row ends against a
+    /// floating bar.
+    static let paneTabBarHeight: CGFloat = 44
+    /// The gap above and below that bar.
+    static let paneTabBarGap: CGFloat = 8
+    /// The last stretch of the display over which both panes fade out while
+    /// split, so the last visible line is never sliced mid-glyph.
+    static let paneEdgeFade: CGFloat = 28
+
+    /// How far each pane's own screen starts below the top safe area: the bar
+    /// and its gaps while split, nothing folded. Both panes take it, so the
+    /// Plan and Documents titles sit on one line either side of the fold.
+    static func paneTopInset(_ split: UnfoldedSplit?) -> CGFloat {
+        split == nil ? 0 : paneTabBarHeight + paneTabBarGap * 2
+    }
+
+    /// Zero folded, where the system's own bar sits on that edge.
+    static func bottomFade(_ split: UnfoldedSplit?) -> CGFloat {
+        split == nil ? 0 : paneEdgeFade
+    }
+
     /// - Parameters:
     ///   - width: the container's width.
     ///   - fold: the vertical fold's leading and trailing edge in the same

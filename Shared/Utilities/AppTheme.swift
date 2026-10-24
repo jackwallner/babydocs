@@ -236,10 +236,9 @@ extension View {
 enum TabBarBackdrop: Sendable {
     /// The phone: rows pass under the glass bar, with a cushion past the last.
     case glass
-    /// The unfolded leading pane: the page ends in a short fade and is solid
-    /// behind the bar, so no row ever reads through it beside the other pane.
-    case solid
-    /// The unfolded trailing pane, which has no bar at all.
+    /// Either pane of the unfolded iPhone Duo. The leading pane's bar heads it
+    /// instead, so the system's bottom bar is hidden and the page runs to the
+    /// display's edge like the Documents pane beside it.
     case none
 }
 
@@ -257,32 +256,19 @@ private struct PlanPageBackground: ViewModifier {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 Color.clear
                     .frame(height: inset)
-                    .background(alignment: .top) {
-                        if isSolid {
-                            VStack(spacing: 0) {
-                                LinearGradient(
-                                    colors: [AppTheme.pageBackground.opacity(0), AppTheme.pageBackground],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                                .frame(height: AppTheme.looseSpacing)
-                                AppTheme.pageBackground
-                            }
-                            .ignoresSafeArea(edges: .bottom)
-                        }
-                    }
                     .allowsHitTesting(false)
             }
+            // Here rather than on the TabView: the visibility a tab bar obeys is
+            // the one set inside the NavigationStack, on every page it pushes.
+            .toolbar(backdrop == .glass ? .automatic : .hidden, for: .tabBar)
             .background(AppTheme.pageBackground.ignoresSafeArea())
     }
-
-    private var isSolid: Bool { underTabBar && backdrop == .solid }
 
     private var inset: CGFloat {
         guard underTabBar else { return AppTheme.looseSpacing }
         switch backdrop {
         case .glass: return AppTheme.floatingTabBarInset
-        case .solid, .none: return AppTheme.looseSpacing
+        case .none: return AppTheme.looseSpacing
         }
     }
 }
