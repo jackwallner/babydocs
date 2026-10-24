@@ -7,10 +7,10 @@ paths:
   - "Shared/Utilities/AppTheme.swift"
 ---
 
-# Baby Docs: iPhone Duo (2026-10-22)
+# Baby Docs: iPhone Duo (2026-10-22, bar moved 2026-10-23)
 
 - Unfolded (regular width, room for two panes of at least 360 pt), `RootView`
-  puts the tab bar and its open tab (Plan, Children, Plus or Settings) on the
+  puts the tab bar (at the top) and its open tab (Plan, Children, Plus or Settings) on the
   leading side of the fold and Documents on the trailing side: what to do
   beside what to bring. The Documents tab drops out of the bar while split, and
   a route that asks for it lands on Plan with Documents already open beside it.
@@ -27,13 +27,19 @@ paths:
   trailing edge, which in the leading pane sits against the fold and narrows
   the Plan by about 84 pt. While split, `horizontalToolbarsInPanes` sets
   `toolbarVerticalBehavior(.disabled)`.
-- Under the bar: on the phone, rows pass under the glass tab bar with an 80 pt
-  cushion past the last one. In the leading pane that read as rows showing
-  through the bar beside a clean Documents pane (the fleet review flags it), so
-  `RootView` sets `\.tabBarBackdrop` to `.solid` there: `planPageBackground`
-  ends the page in a 20 pt fade and paints it solid behind the bar. The
-  trailing pane has no bar, so it gets `.none` (a 20 pt cushion). Folded keeps
-  `.glass`, the phone treatment.
+- The tab bar heads the leading pane while split (2026-10-23). Every docked
+  or floating bottom bar ended the leading pane's last visible row against
+  it: rows read through glass, then a solid backdrop sliced and faded them,
+  and the fleet review rejected both. Now `planPageBackground` hides the
+  system bar when `\.tabBarBackdrop` is `.none` (both panes while split),
+  `PaneTabBar` in `RootView` draws Plan, Children, Plus and Settings as text
+  in one glass capsule at the top of the leading pane, as iPad does at
+  regular width, and both panes start `UnfoldedSplit.paneTopInset` (60 pt)
+  down so the Plan and Documents titles share a line. Both panes run to the
+  display's bottom edge, where a 28 pt fade (`paneEdgeFade`) stops the last
+  line being sliced mid-glyph. Text labels, not icons: no SF Symbol can push
+  one label off the others' baseline. Folded keeps `.glass`, the phone's
+  system bar, unchanged.
 - Still across the fold: the intake, the storage recovery and archived-children
   screens, and sheets (household answers, paywall, add a document). None are in
   the store set.
