@@ -23,8 +23,9 @@ struct RootView: View {
     /// The container's width and fold, measured so the unfolded iPhone Duo can
     /// put the plan and the documents on opposite sides of the fold.
     @State private var paneGeometry = PaneGeometry(width: 0, fold: nil)
-    /// The status bar's band, which the unfolded leading pane's bar sits in.
-    @State private var safeTop: CGFloat = 0
+    /// The status bar's band, which the unfolded leading pane's bar sits in,
+    /// and the home indicator's, where both panes finish fading out.
+    @State private var safeArea = EdgeInsets()
 
     init() {
         _selectedTab = State(initialValue: AppNavigator.shared.selectedTab)
@@ -154,7 +155,7 @@ struct RootView: View {
     }
 
     private var chrome: PaneChrome {
-        UnfoldedSplit.chrome(split, safeTop: safeTop)
+        UnfoldedSplit.chrome(split, safeTop: safeArea.top)
     }
 
     /// Each unfolded pane is phone-width, so its screen lays out as on a phone.
@@ -224,14 +225,15 @@ struct RootView: View {
         .onGeometryChange(for: PaneGeometry.self) { proxy in
             PaneGeometry(width: proxy.size.width, fold: proxy.verticalFold())
         } action: { paneGeometry = $0 }
-        .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.top } action: { safeTop = $0 }
+        .onGeometryChange(for: EdgeInsets.self) { $0.safeAreaInsets } action: { safeArea = $0 }
         .onChange(of: split != nil) { _, _ in leaveDocumentsTabIfSplit() }
         .onChange(of: selectedTab) { _, _ in leaveDocumentsTabIfSplit() }
     }
 
-    /// Both panes scroll off the display's bottom edge; a short fade there keeps
-    /// the last line from being sliced mid-glyph. No height folded, where the
-    /// system's bar sits on that edge.
+    /// Both panes scroll off the display's bottom edge. They fade out above the
+    /// home indicator and are solid page across it, so the last line dissolves
+    /// rather than being sliced mid-glyph by the edge. No height folded, where
+    /// the system's bar sits on that edge.
     private var paneEdgeFade: some View {
         VStack(spacing: 0) {
             Spacer(minLength: 0)
@@ -241,6 +243,8 @@ struct RootView: View {
                 endPoint: .bottom
             )
             .frame(height: UnfoldedSplit.bottomFade(split))
+            AppTheme.pageBackground
+                .frame(height: split == nil ? 0 : safeArea.bottom)
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)

@@ -20,9 +20,11 @@ struct UnfoldedSplit: Equatable, Sendable {
     static let paneTabBarHeight: CGFloat = 44
     /// The gap above and below that bar.
     static let paneTabBarGap: CGFloat = 8
-    /// The last stretch of the display over which both panes fade out while
-    /// split, so the last visible line is never sliced mid-glyph.
-    static let paneEdgeFade: CGFloat = 28
+    /// The stretch above the home indicator over which both panes fade out
+    /// while split, so the last visible line dissolves instead of being sliced
+    /// mid-glyph by the display's edge. 28 pt still showed the bottoms of
+    /// letters cut off by the edge.
+    static let paneEdgeFade: CGFloat = 40
 
     /// Where the leading pane's bar and both panes' screens start.
     ///
