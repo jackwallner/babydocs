@@ -73,15 +73,24 @@ extension NotificationService: UNUserNotificationCenterDelegate {
     /// The id is only recorded here. Navigation is the plan screen's job,
     /// because on a cold launch this runs before the store has been read and
     /// there is nothing yet to navigate to.
+    // Completion handler form, answered on the main thread. The async form's
+    // compiler-made thunk calls UIKit's handler from a background thread, and
+    // UIKit asserts the main thread there, so a tap could abort the app (the
+    // crash Baby build 66 and Recharge build 39 shipped).
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse
-    ) async {
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
         let userInfo = response.notification.request.content.userInfo
-        guard let taskID = DeadlineReminderScheduler.taskID(fromUserInfo: userInfo) else { return }
-        await MainActor.run {
-            AppNavigator.shared.pendingTaskID = taskID
-            AppNavigator.shared.selectedTab = .plan
+        let taskID = DeadlineReminderScheduler.taskID(fromUserInfo: userInfo)
+        nonisolated(unsafe) let done = completionHandler
+        Task { @MainActor in
+            if let taskID {
+                AppNavigator.shared.pendingTaskID = taskID
+                AppNavigator.shared.selectedTab = .plan
+            }
+            done()
         }
     }
 }
