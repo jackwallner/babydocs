@@ -23,6 +23,8 @@ struct RootView: View {
     /// The container's width and fold, measured so the unfolded iPhone Duo can
     /// put the plan and the documents on opposite sides of the fold.
     @State private var paneGeometry = PaneGeometry(width: 0, fold: nil)
+    /// The status bar's band, which the unfolded leading pane's bar sits in.
+    @State private var safeTop: CGFloat = 0
 
     init() {
         _selectedTab = State(initialValue: AppNavigator.shared.selectedTab)
@@ -151,6 +153,10 @@ struct RootView: View {
         )
     }
 
+    private var chrome: PaneChrome {
+        UnfoldedSplit.chrome(split, safeTop: safeTop)
+    }
+
     /// Each unfolded pane is phone-width, so its screen lays out as on a phone.
     private var paneSizeClass: UserInterfaceSizeClass? {
         split == nil ? horizontalSizeClass : .compact
@@ -190,7 +196,7 @@ struct RootView: View {
             }
             .environment(\.horizontalSizeClass, paneSizeClass)
             .environment(\.tabBarBackdrop, split == nil ? .glass : .none)
-            .padding(.top, UnfoldedSplit.paneTopInset(split))
+            .padding(.top, chrome.contentInset)
             // The tab bar sits within the leading pane, never across the fold.
             .frame(maxWidth: split?.primaryWidth ?? .infinity, maxHeight: .infinity)
 
@@ -198,7 +204,7 @@ struct RootView: View {
                 DocumentsView()
                     .environment(\.horizontalSizeClass, .compact)
                     .environment(\.tabBarBackdrop, .none)
-                    .padding(.top, UnfoldedSplit.paneTopInset(split))
+                    .padding(.top, chrome.contentInset)
                     .frame(maxWidth: split.secondaryWidth, maxHeight: .infinity)
                     .padding(.leading, split.secondaryX)
 
@@ -206,8 +212,9 @@ struct RootView: View {
                 // panes run to the display's bottom edge and no row ever ends
                 // against a floating bar. Folded, the system's own bar.
                 PaneTabBar(selection: $selectedTab)
-                    .padding(.top, UnfoldedSplit.paneTabBarGap)
+                    .padding(.top, chrome.barTop)
                     .frame(width: split.primaryWidth)
+                    .ignoresSafeArea(edges: .top)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -217,6 +224,7 @@ struct RootView: View {
         .onGeometryChange(for: PaneGeometry.self) { proxy in
             PaneGeometry(width: proxy.size.width, fold: proxy.verticalFold())
         } action: { paneGeometry = $0 }
+        .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.top } action: { safeTop = $0 }
         .onChange(of: split != nil) { _, _ in leaveDocumentsTabIfSplit() }
         .onChange(of: selectedTab) { _, _ in leaveDocumentsTabIfSplit() }
     }

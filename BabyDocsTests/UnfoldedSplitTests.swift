@@ -39,15 +39,26 @@ struct UnfoldedSplitTests {
 
     @Test func foldedKeepsThePhoneEdges() {
         // Folded, the system's bottom bar is the phone's and nothing moves.
-        #expect(UnfoldedSplit.paneTopInset(nil) == 0)
+        #expect(UnfoldedSplit.chrome(nil, safeTop: 82) == PaneChrome(barTop: 0, contentInset: 0))
         #expect(UnfoldedSplit.bottomFade(nil) == 0)
     }
 
-    @Test func splitHeadsTheLeadingPaneWithItsBar() {
+    @Test func barSitsInTheStatusBarBandBesideTheClock() {
+        // The inner display's top safe area is the status bar's 82 pt.
         let split = UnfoldedSplit.make(width: 951, isRegularWidth: true, fold: 455.5...495.5)
-        // The bar plus a gap either side, so neither pane's title sits under it.
-        #expect(UnfoldedSplit.paneTopInset(split) == 60)
-        #expect(UnfoldedSplit.paneTopInset(split) > UnfoldedSplit.paneTabBarHeight)
+        let chrome = UnfoldedSplit.chrome(split, safeTop: 82)
+        #expect(chrome.barTop == 30)
+        #expect(chrome.barTop + UnfoldedSplit.paneTabBarHeight <= 82)
+        // Just under the band, never on its edge.
+        #expect(chrome.contentInset == 4)
         #expect(UnfoldedSplit.bottomFade(split) == UnfoldedSplit.paneEdgeFade)
+    }
+
+    @Test func aShortSafeAreaPushesTheScreensBelowTheBar() {
+        let split = UnfoldedSplit.make(width: 951, isRegularWidth: true, fold: nil)
+        let chrome = UnfoldedSplit.chrome(split, safeTop: 20)
+        #expect(chrome.barTop == UnfoldedSplit.paneTabBarGap)
+        // The screens start a gap below the bar's bottom edge.
+        #expect(20 + chrome.contentInset == chrome.barTop + UnfoldedSplit.paneTabBarHeight + UnfoldedSplit.paneTabBarGap)
     }
 }

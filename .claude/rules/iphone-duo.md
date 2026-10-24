@@ -34,8 +34,11 @@ paths:
   system bar when `\.tabBarBackdrop` is `.none` (both panes while split),
   `PaneTabBar` in `RootView` draws Plan, Children, Plus and Settings as text
   in one glass capsule at the top of the leading pane, as iPad does at
-  regular width, and both panes start `UnfoldedSplit.paneTopInset` (60 pt)
-  down so the Plan and Documents titles share a line. Both panes run to the
+  regular width. `UnfoldedSplit.chrome` puts it in the status bar's band
+  (the 82 pt top safe area, whose clock only draws over the trailing pane)
+  and starts both panes just under that band, so the Plan and Documents
+  titles share a line. Placed below the safe area instead, it pushed both
+  titles 60 pt down (first capture of 2026-10-23). Both panes run to the
   display's bottom edge, where a 28 pt fade (`paneEdgeFade`) stops the last
   line being sliced mid-glyph. Text labels, not icons: no SF Symbol can push
   one label off the others' baseline. Folded keeps `.glass`, the phone's
