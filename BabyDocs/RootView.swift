@@ -189,12 +189,14 @@ struct RootView: View {
                     .tag(AppNavigator.Tab.settings)
             }
             .environment(\.horizontalSizeClass, paneSizeClass)
+            .environment(\.tabBarBackdrop, split == nil ? .glass : .solid)
             // The tab bar sits within the leading pane, never across the fold.
             .frame(maxWidth: split?.primaryWidth ?? .infinity, maxHeight: .infinity)
 
             if let split {
                 DocumentsView()
                     .environment(\.horizontalSizeClass, .compact)
+                    .environment(\.tabBarBackdrop, .none)
                     .frame(maxWidth: split.secondaryWidth, maxHeight: .infinity)
                     .padding(.leading, split.secondaryX)
             }

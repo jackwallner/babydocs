@@ -224,19 +224,66 @@ extension View {
     /// Pass `underTabBar: false` on a sheet. A sheet is presented over the tab
     /// bar rather than behind it, so reserving the bar's height there is 96
     /// points of empty page under the last row and nothing else.
+    ///
+    /// Each pane of the unfolded iPhone Duo says what sits under it through
+    /// `\.tabBarBackdrop`, which this reads, so the folded phone is unchanged.
     func planPageBackground(underTabBar: Bool = true) -> some View {
-        self
+        modifier(PlanPageBackground(underTabBar: underTabBar))
+    }
+}
+
+/// What is under a page's bottom edge.
+enum TabBarBackdrop: Sendable {
+    /// The phone: rows pass under the glass bar, with a cushion past the last.
+    case glass
+    /// The unfolded leading pane: the page ends in a short fade and is solid
+    /// behind the bar, so no row ever reads through it beside the other pane.
+    case solid
+    /// The unfolded trailing pane, which has no bar at all.
+    case none
+}
+
+extension EnvironmentValues {
+    @Entry var tabBarBackdrop: TabBarBackdrop = .glass
+}
+
+private struct PlanPageBackground: ViewModifier {
+    let underTabBar: Bool
+    @Environment(\.tabBarBackdrop) private var backdrop
+
+    func body(content: Content) -> some View {
+        content
             .scrollContentBackground(.hidden)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 Color.clear
-                    .frame(
-                        height: underTabBar
-                            ? AppTheme.floatingTabBarInset
-                            : AppTheme.looseSpacing
-                    )
+                    .frame(height: inset)
+                    .background(alignment: .top) {
+                        if isSolid {
+                            VStack(spacing: 0) {
+                                LinearGradient(
+                                    colors: [AppTheme.pageBackground.opacity(0), AppTheme.pageBackground],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                                .frame(height: AppTheme.looseSpacing)
+                                AppTheme.pageBackground
+                            }
+                            .ignoresSafeArea(edges: .bottom)
+                        }
+                    }
                     .allowsHitTesting(false)
             }
             .background(AppTheme.pageBackground.ignoresSafeArea())
+    }
+
+    private var isSolid: Bool { underTabBar && backdrop == .solid }
+
+    private var inset: CGFloat {
+        guard underTabBar else { return AppTheme.looseSpacing }
+        switch backdrop {
+        case .glass: return AppTheme.floatingTabBarInset
+        case .solid, .none: return AppTheme.looseSpacing
+        }
     }
 }
 
