@@ -8,7 +8,6 @@ SCHEME="BabyDocs"
 ARCHIVE_PATH="$PROJECT_DIR/build/BabyDocs.xcarchive"
 PLAN_URL="https://jackwallner.com/ios/babydocs/plan.html"
 PRIVACY_URL="https://jackwallner.com/ios/babydocs/privacy-policy.html"
-TEAM_ID="YXG4MP6W39"
 
 cd "$PROJECT_DIR"
 
@@ -54,5 +53,5 @@ fi
 # Connect API key, upload, then commit and push the bump once Apple accepts it.
 # Flags (--upload-only, --no-bump, --clean, --post-archive) and credentials are
 # documented in ~/ios/release/testflight.sh.
-"$HOME/ios/release/testflight.sh" --project BabyDocs.xcodeproj --scheme BabyDocs --clean "$@" -- CODE_SIGN_IDENTITY="Apple Development" DEVELOPMENT_TEAM="$TEAM_ID"
+"$HOME/ios/release/testflight.sh" --project BabyDocs.xcodeproj --scheme BabyDocs --clean "$@"
 exit $?
