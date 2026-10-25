@@ -25,6 +25,7 @@ struct RootView: View {
     @State private var paneGeometry = PaneGeometry(width: 0, fold: nil)
     /// The status bar's band, which the unfolded leading pane's bar sits in.
     @State private var safeTop: CGFloat = 0
+    @State private var safeSide: CGFloat = 0
 
     init() {
         _selectedTab = State(initialValue: AppNavigator.shared.selectedTab)
@@ -196,6 +197,7 @@ struct RootView: View {
             }
             .environment(\.horizontalSizeClass, paneSizeClass)
             .environment(\.tabBarBackdrop, split == nil ? .glass : .none)
+            .environment(\.hasSideToolbar, safeSide > AppTheme.margin)
             .padding(.top, chrome.contentInset)
             // The tab bar sits within the leading pane, never across the fold.
             .frame(maxWidth: split?.primaryWidth ?? .infinity, maxHeight: .infinity)
@@ -225,6 +227,9 @@ struct RootView: View {
             PaneGeometry(width: proxy.size.width, fold: proxy.verticalFold())
         } action: { paneGeometry = $0 }
         .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.top } action: { safeTop = $0 }
+        .onGeometryChange(for: CGFloat.self) {
+            max($0.safeAreaInsets.leading, $0.safeAreaInsets.trailing)
+        } action: { safeSide = $0 }
         .onChange(of: split != nil) { _, _ in leaveDocumentsTabIfSplit() }
         .onChange(of: selectedTab) { _, _ in leaveDocumentsTabIfSplit() }
     }

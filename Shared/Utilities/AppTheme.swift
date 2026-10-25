@@ -243,15 +243,29 @@ enum TabBarBackdrop: Sendable {
 
 extension EnvironmentValues {
     @Entry var tabBarBackdrop: TabBarBackdrop = .glass
+    @Entry var hasSideToolbar = false
 }
 
 private struct PlanPageBackground: ViewModifier {
     let underTabBar: Bool
     @Environment(\.tabBarBackdrop) private var backdrop
+    @Environment(\.hasSideToolbar) private var hasSideToolbar
 
     func body(content: Content) -> some View {
         content
             .scrollContentBackground(.hidden)
+            .overlay(alignment: .bottom) {
+                if phoneClearance > 0 {
+                    LinearGradient(
+                        colors: [AppTheme.pageBackground.opacity(0), AppTheme.pageBackground],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: AppTheme.looseSpacing)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+                }
+            }
             .padding(.bottom, phoneClearance)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 Color.clear
@@ -273,7 +287,7 @@ private struct PlanPageBackground: ViewModifier {
     }
 
     private var phoneClearance: CGFloat {
-        underTabBar && backdrop == .glass ? AppTheme.floatingTabBarInset : 0
+        underTabBar && backdrop == .glass && !hasSideToolbar ? AppTheme.floatingTabBarInset : 0
     }
 }
 
