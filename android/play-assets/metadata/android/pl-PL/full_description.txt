@@ -1,0 +1,45 @@
+Formalności po narodzinach dziecka nie są trudne. Trudno jest wiedzieć, co dotyczy Ciebie i które terminy naprawdę upływają.
+
+Baby Docs zadaje kilka krótkich pytań, a potem podaje zadania pasujące do Twojego domu, w kolejności, w jakiej się zamykają. W małżeństwie lub nie. Plan przez pracodawcę albo Marketplace. Urodzone w jednym stanie, mieszkacie w innym.
+
+CO DOSTAJESZ
+
+- Spersonalizowany plan, a nie ogólną listę kontrolną. Każde zadanie wyjaśnia, dlaczego dotyczy Ciebie.
+- Prawdziwe terminy, oznaczone jako takie. Plan pracodawcy musi dawać co najmniej 30 dni po urodzeniu na dodanie dziecka; w Marketplace zwykle jest to 60. Większość listy nie ma żadnego terminu, i aplikacja to mówi.
+- Co zabrać. Każde zadanie ma własną listę dokumentów, więc o poświadczonej kopii dowiadujesz się przed wizytą przy okienku, a nie po niej.
+- Dokąd naprawdę iść. Każdy stan i DC odsyła do własnego urzędu aktów stanu cywilnego, a aplikacja pokazuje, które strony zostały przeczytane w całości.
+- Miejsce na numer potwierdzenia i przypomnienie oparte na tym, co powiedział urząd, a nie na czasie realizacji, który aplikacja odgadła.
+- Miejsce na same dokumenty. Zrób zdjęcie poświadczonej kopii i formularza zapisu; zdjęcia nigdy nie opuszczają tego telefonu.
+- Bezpłatne przypomnienia o terminach, które naprawdę upływają, i nic więcej bez Twojej prośby.
+- Działa bez zasięgu, bez konta i bez serwera z danymi domowników.
+
+WYŚLIJ DRUGIEMU RODZICOWI
+
+Jeden link. Wystarczy go dotknąć, a telefon drugiej osoby zbuduje ten sam plan z tych samych odpowiedzi, z własnymi przypomnieniami. Odpowiedzi podróżują w samym linku, gdy zdecydujesz się go wysłać. Oba plany nie aktualizują się nawzajem.
+
+POKAZUJE SWOJE ŹRÓDŁA
+
+Każda reguła ze źródłem odsyła do strony urzędowej, z której pochodzi, wraz z datą ostatniego jej przeczytania. Tam, gdzie nie ma uczciwego źródła, zadanie wyjaśnia to ograniczenie.
+
+CZEGO NIE ROBI
+
+Nigdy niczego nie składa za Ciebie. Żaden formularz nie jest wysyłany ani podpisywany w Twoim imieniu i aplikacja nigdy nie loguje się na żadne Twoje konto. Prowadzi do oficjalnej strony i schodzi z drogi.
+
+Nigdy nie prosi o numer Social Security. Śledzi, czy numer został zamówiony i czy karta dotarła, nigdy sam numer.
+
+To nie jest dziennik dziecka. Bez karmień, wagi, siatek centylowych i dzienników snu.
+
+BABY DOCS PLUS
+
+Każde zadanie, termin, lista dokumentów i oficjalny link są bezpłatne, dla każdego dziecka. Tak samo wysyłanie planu drugiemu rodzicowi i przypomnienia o dwóch terminach wynikających z prawa.
+
+Plus to czas i kolejność: przypomnienia w sugerowanych dniach, przypomnienie ustawiane przez Ciebie, niedzielne podsumowanie i zalecana kolejność, także dla zadań czekających na coś innego. Dodaje też eksport do kalendarza, śledzenie spraw, sejf na dokumenty po pierwszych dwunastu tygodniach, podsumowanie do wydruku i pakiet dla pracodawcy.
+
+Gdy Plus wygaśnie, nie dodasz nowych zdjęć. Te, które już są, zostają i można je otwierać.
+
+Baby Docs Plus to tygodniowa lub roczna subskrypcja z automatycznym odnawianiem, tygodniowa z bezpłatnym okresem próbnym dla uprawnionych nowych subskrybentów, albo jednorazowy zakup dożywotni. Ceny są pokazane w aplikacji. Zarządzaj lub anuluj w Google Play, w sekcji Płatności i subskrypcje.
+
+Polityka prywatności: https://jackwallner.com/ios/babydocs/privacy-policy.html
+Warunki korzystania: https://jackwallner.com/ios/babydocs/terms.html
+
+Baby Docs nie udziela porad prawnych, podatkowych, medycznych ani ubezpieczeniowych. Terminy ustalone przez Twój plan, pracodawcę lub stan mają pierwszeństwo przed tym, co pokazuje aplikacja. Sprawdź źródło, zanim zaufasz dacie.

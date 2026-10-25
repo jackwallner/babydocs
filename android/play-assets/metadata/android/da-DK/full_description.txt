@@ -1,0 +1,45 @@
+Papirarbejdet efter en baby er ikke svært. Det svære er at vide, hvad der gælder for dig, og hvilke datoer der rent faktisk lukker.
+
+Baby Docs stiller et par korte spørgsmål og giver dig derefter de opgaver, der passer til din husstand, i den rækkefølge de lukker. Gift eller ej. En plan via jobbet eller Marketplace. Født i en delstat, bosat i en anden.
+
+DET FÅR DU
+
+- En personlig plan, ikke en generel tjekliste. Hver opgave forklarer, hvorfor den gælder for dig.
+- De reelle frister, markeret som sådan. En arbejdsgiverplan skal give mindst 30 dage efter fødslen til at tilføje barnet; på Marketplace er det typisk 60. Det meste af listen har slet ingen frist, og appen siger det.
+- Hvad du skal medbringe. Hver opgave har sin egen dokumentliste, så du hører om den bekræftede kopi, før du står ved skranken, ikke bagefter.
+- Hvor du reelt skal hen. Hver delstat og DC linker til sit eget kontor for personregistre, og appen viser, hvilke sider der er læst fra ende til anden.
+- Et sted til bekræftelsesnummeret og en påmindelse baseret på det, kontoret har sagt, ikke på en sagsbehandlingstid, appen har gættet.
+- Et sted til selve papirerne. Fotografér den bekræftede kopi og tilmeldingsblanketten; billederne forlader aldrig denne telefon.
+- Gratis påmindelser om de frister, der rent faktisk lukker, og ellers intet uopfordret.
+- Virker uden dækning, uden konto og uden server med husstandens data.
+
+SEND DET TIL DEN ANDEN FORÆLDER
+
+Ét link. Den anden trykker på det, og telefonen bygger samme plan ud fra de samme svar, med egne påmindelser. Svarene følger med i selve linket, når du vælger at sende det. De to planer opdaterer ikke hinanden.
+
+DEN VISER SINE KILDER
+
+Hver regel med kilde linker til den offentlige side, den stammer fra, med datoen for seneste gennemlæsning. Hvor der ikke findes en ærlig kilde, forklarer opgaven den begrænsning.
+
+DET GØR DEN IKKE
+
+Den indsender aldrig noget for dig. Ingen blanket sendes eller underskrives på dine vegne, og den logger aldrig ind på nogen af dine konti. Den fører dig til den officielle side og går af vejen.
+
+Den beder aldrig om et Social Security-nummer. Den holder styr på, om nummeret er søgt, og om kortet er kommet, aldrig selve nummeret.
+
+Den er ikke en babytracker. Ingen madninger, vægt, vækstkurver eller søvnlogs.
+
+BABY DOCS PLUS
+
+Hver opgave, frist, dokumentliste og officielt link er gratis, for hvert barn. Det samme gælder at sende planen til den anden forælder og påmindelserne om de to lovbestemte frister.
+
+Plus handler om timing og rækkefølge: påmindelser på foreslåede datoer, en påmindelse du selv sætter, et søndagsoverblik og den anbefalede rækkefølge, også for det, der venter på noget andet. Dertil kommer kalendereksport, opfølgning, dokumentboks efter de første tolv uger, udskrivbart resumé og arbejdsgiverpakke.
+
+Hvis Plus udløber, kan du ikke tilføje nye fotos. De, der allerede er der, bliver og kan åbnes.
+
+Baby Docs Plus er et ugentligt eller årligt abonnement med automatisk fornyelse, det ugentlige med gratis prøveperiode for berettigede nye abonnenter, eller et engangskøb for livet. Priserne vises i appen. Administrer eller opsig i Google Play under Betalinger og abonnementer.
+
+Privatlivspolitik: https://jackwallner.com/ios/babydocs/privacy-policy.html
+Brugsvilkår: https://jackwallner.com/ios/babydocs/terms.html
+
+Baby Docs giver ikke juridisk, skattemæssig, medicinsk eller forsikringsmæssig rådgivning. Frister fastsat af din egen plan, arbejdsgiver eller delstat går forud for alt, hvad appen viser. Tjek den linkede kilde, før du stoler på en dato.

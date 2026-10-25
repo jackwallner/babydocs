@@ -1,0 +1,45 @@
+A baba születése utáni ügyintézés nem nehéz. Nehéz azt tudni, mi vonatkozik önre, és mely határidők járnak le valóban.
+
+A Baby Docs néhány rövid kérdést tesz fel, majd megadja a háztartásához illő feladatokat abban a sorrendben, ahogy lejárnak. Házasok vagy nem. Munkáltatón keresztüli terv vagy Marketplace. Az egyik államban született, a másikban élnek.
+
+MIT KAP
+
+- Személyre szabott tervet, nem általános ellenőrzőlistát. Minden feladat megmondja, miért vonatkozik önre.
+- A valódi határidőket, annak jelölve. A munkáltatói tervnek a születés után legalább 30 napot kell adnia a baba hozzáadására; a Marketplace-en ez általában 60. A lista nagy részének egyáltalán nincs határideje, és az alkalmazás ezt kimondja.
+- Mit vigyen magával. Minden feladatnak saját dokumentumlistája van, így a hitelesített másolatról még az ügyfélablak előtt értesül, nem utána.
+- Hová menjen valójában. Minden állam és DC a saját anyakönyvi hivatalára hivatkozik, és az alkalmazás megmutatja, mely oldalakat olvasták végig.
+- Hely a visszaigazoló számnak, és emlékeztető arra építve, amit a hivatal mondott, nem az alkalmazás által megsejtett ügyintézési időre.
+- Hely magának a papíroknak. Fényképezze le a hitelesített másolatot és a regisztrációs űrlapot; a fotók soha nem hagyják el ezt a telefont.
+- Ingyenes emlékeztetők a valóban lejáró határidőkről, és semmi más kéretlenül.
+- Működik térerő, fiók és a háztartás adatait tároló szerver nélkül.
+
+KÜLDJE EL A MÁSIK SZÜLŐNEK
+
+Egyetlen link. Megérinti, és a telefonja ugyanazokból a válaszokból ugyanazt a tervet építi fel, saját emlékeztetőkkel. A válaszok magában a linkben utaznak, amikor úgy dönt, hogy elküldi. A két terv nem frissíti egymást.
+
+MUTATJA A FORRÁSAIT
+
+Minden forrással ellátott szabály arra a hatósági oldalra hivatkozik, ahonnan származik, az oldal utolsó elolvasásának dátumával. Ahol nincs tisztességes forrás, a feladat elmagyarázza ezt a korlátot.
+
+MIT NEM CSINÁL
+
+Soha nem nyújt be semmit az ön nevében. Egyetlen űrlapot sem küld el és nem ír alá helyette, és soha nem jelentkezik be egyik fiókjába sem. A hivatalos oldalra viszi, majd félreáll.
+
+Soha nem kér Social Security-számot. Azt követi, hogy kérték-e a számot, és megérkezett-e a kártya, soha magát a számot.
+
+Nem babanapló. Nincs szoptatás, súly, növekedési görbe vagy alvásnapló.
+
+BABY DOCS PLUS
+
+Minden feladat, határidő, dokumentumlista és hivatalos link ingyenes, minden gyermekre. Ugyanígy a terv elküldése a másik szülőnek és a két jogszabályi határidő emlékeztetői.
+
+A Plus az időzítésről és a sorrendről szól: emlékeztetők javasolt napokra, saját beállítású emlékeztető, vasárnapi összefoglaló és az ajánlott sorrend, a máson múló feladatokkal együtt. Emellett naptárexport, követés, dokumentumtár az első tizenkét hét után, nyomtatható összefoglaló és munkáltatói csomag.
+
+Ha a Plus lejár, nem adhat hozzá új fotókat. A meglévők megmaradnak és megnyithatók.
+
+A Baby Docs Plus heti vagy éves, automatikusan megújuló előfizetés, a heti ingyenes próbaidővel a jogosult új előfizetőknek, vagy egyszeri élethosszig tartó vásárlás. Az árak az alkalmazásban láthatók. Kezelés vagy lemondás a Google Playben, a Fizetések és előfizetések alatt.
+
+Adatvédelmi irányelvek: https://jackwallner.com/ios/babydocs/privacy-policy.html
+Felhasználási feltételek: https://jackwallner.com/ios/babydocs/terms.html
+
+A Baby Docs nem ad jogi, adózási, orvosi vagy biztosítási tanácsot. A saját terve, munkáltatója vagy állama által megszabott határidők felülírnak mindent, amit az alkalmazás mutat. Ellenőrizze a hivatkozott forrást, mielőtt egy dátumra támaszkodik.

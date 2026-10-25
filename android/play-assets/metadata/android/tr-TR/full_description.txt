@@ -1,0 +1,45 @@
+Bebek geldikten sonraki evrak işleri zor değil. Zor olan, hangisinin size uyduğunu ve hangi tarihlerin gerçekten kapandığını bilmek.
+
+Baby Docs birkaç kısa soru sorar, ardından hanenize uyan görevleri kapanma sırasına göre verir. Evli ya da değil. İşveren planı ya da Marketplace. Bir eyalette doğmuş, başka bir eyalette yaşıyorsunuz.
+
+NELER SUNAR
+
+- Genel bir kontrol listesi değil, size özel bir plan. Her görev neden size uyduğunu söyler.
+- Gerçek son tarihler, öyle olarak işaretlenmiş. İşveren planı, doğumdan sonra bebeği eklemek için en az 30 gün tanımalıdır; Marketplace'te bu genellikle 60'tır. Listenin çoğunun hiç son tarihi yoktur ve uygulama bunu söyler.
+- Yanınızda ne götüreceğiniz. Her görevin kendi belge listesi vardır; onaylı sureyi gişeye gelmeden önce öğrenirsiniz, sonra değil.
+- Gerçekte nereye gideceğiniz. Her eyalet ve DC kendi nüfus kayıt dairesine bağlanır ve uygulama hangi sayfaların baştan sona okunduğunu belirtir.
+- Onay numarası için bir yer ve uygulamanın tahmin ettiği bir işlem süresine değil, dairenin size söylediğine dayanan bir hatırlatma.
+- Evrakların kendisi için bir yer. Onaylı sureyi ve kayıt formunu fotoğraflayın; fotoğraflar bu telefondan asla çıkmaz.
+- Gerçekten kapanan son tarihler için ücretsiz hatırlatmalar, istemeden başka hiçbir şey yok.
+- Sinyal, hesap ve hane verilerini tutan sunucu olmadan çalışır.
+
+DİĞER EBEVEYNE GÖNDERİN
+
+Tek bir bağlantı. O dokunur, telefonu aynı yanıtlardan aynı planı kendi hatırlatmalarıyla oluşturur. Göndermeyi seçtiğinizde yanıtlar bağlantının içinde taşınır. İki plan birbirini güncellemez.
+
+KAYNAKLARINI GÖSTERİR
+
+Kaynaklı her kural, geldiği resmi sayfaya ve o sayfanın en son okunduğu tarihe bağlanır. Dürüst bir kaynak olmadığında görev bu sınırı açıklar.
+
+NE YAPMAZ
+
+Sizin adınıza hiçbir şey başvurmaz. Hiçbir form adınıza gönderilmez ya da imzalanmaz ve hiçbir hesabınıza giriş yapmaz. Sizi resmi sayfaya götürür ve yoldan çekilir.
+
+Asla Social Security numarası istemez. Numaranın istenip istenmediğini ve kartın gelip gelmediğini takip eder, numaranın kendisini asla.
+
+Bir bebek takip uygulaması değil. Emzirme, kilo, büyüme eğrisi ya da uyku kaydı yok.
+
+BABY DOCS PLUS
+
+Her görev, son tarih, belge listesi ve resmi bağlantı her çocuk için ücretsizdir. Planı diğer ebeveyne göndermek ve yasal olarak kapanan iki son tarihin hatırlatmaları da öyle.
+
+Plus zamanlama ve sıradır: önerilen tarihlerde hatırlatmalar, kendi kurduğunuz bir hatırlatma, pazar özeti ve başka bir şeyi bekleyenler dahil önerilen sıra. Ayrıca takvime aktarma, takip, ilk on iki haftadan sonra belge kasası, yazdırılabilir özet ve işveren paketi ekler.
+
+Plus sona ererse yeni fotoğraf ekleyemezsiniz. Zaten olanlar kalır ve açılabilir.
+
+Baby Docs Plus, haftalık veya yıllık otomatik yenilenen bir abonelik; haftalık olanda uygun yeni aboneler için ücretsiz deneme var; ya da tek seferlik ömür boyu satın alma. Fiyatlar uygulamada gösterilir. Google Play'de Ödemeler ve abonelikler bölümünden yönetin veya iptal edin.
+
+Gizlilik Politikası: https://jackwallner.com/ios/babydocs/privacy-policy.html
+Kullanım Koşulları: https://jackwallner.com/ios/babydocs/terms.html
+
+Baby Docs hukuki, vergi, tıbbi veya sigorta tavsiyesi vermez. Kendi planınızın, işvereninizin veya eyaletinizin belirlediği son tarihler, uygulamada gösterilenlerin önüne geçer. Bir tarihe güvenmeden önce bağlantılı kaynağı kontrol edin.

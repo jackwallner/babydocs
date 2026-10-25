@@ -1,0 +1,45 @@
+A papelada depois do nascimento de um bebé não é difícil. O difícil é saber o que se aplica a si e quais as datas que realmente fecham.
+
+O Baby Docs faz poucas perguntas e dá-lhe as tarefas que se adequam ao seu agregado, pela ordem em que terminam. Casados ou não. Plano através do trabalho ou do Marketplace. Nasceu num estado e vive noutro.
+
+O QUE RECEBE
+
+- Um plano personalizado, não uma lista genérica. Cada tarefa explica porque se aplica a si.
+- Os prazos reais, assinalados como tal. Um plano do empregador tem de dar pelo menos 30 dias após o nascimento para incluir o bebé; no Marketplace, em geral são 60. A maior parte da lista não tem prazo nenhum, e a app diz isso.
+- O que levar. Cada tarefa traz a sua lista de documentos, e fica a saber da cópia certificada antes de estar ao balcão, não depois.
+- Onde ir de facto. Cada estado e DC liga ao seu próprio serviço de registos civis, e a app indica quais as páginas lidas de ponta a ponta.
+- Um sítio para o número de confirmação e um aviso baseado no que o serviço lhe disse, não num prazo que a app adivinhou.
+- Um sítio para os próprios documentos. Fotografe a cópia certificada e o formulário de inscrição; as fotografias nunca saem deste telemóvel.
+- Lembretes gratuitos para os prazos que realmente fecham, e mais nada sem pedir.
+- Funciona sem rede, sem conta e sem servidor com dados do agregado.
+
+ENVIE AO OUTRO PROGENITOR
+
+Uma ligação. Toca nela, e o telemóvel dele cria o mesmo plano a partir das mesmas respostas, com os seus próprios lembretes. As respostas viajam na própria ligação quando decide enviá-la. Os dois planos não se atualizam entre si.
+
+MOSTRA AS FONTES
+
+Cada regra com fonte liga à página oficial de onde veio, com a data da última leitura. Onde não há fonte honesta para citar, a tarefa explica esse limite.
+
+O QUE NÃO FAZ
+
+Nunca submete nada por si. Nenhum formulário é enviado ou assinado em seu nome, e nunca inicia sessão em nenhuma das suas contas. Leva-o à página oficial e põe-se de lado.
+
+Nunca pede um número de Social Security. Regista se o número foi pedido e se o cartão chegou, nunca o número.
+
+Não é um diário do bebé. Sem mamadas, pesos, curvas de crescimento ou registos de sono.
+
+BABY DOCS PLUS
+
+Todas as tarefas, prazos, listas de documentos e ligações oficiais são gratuitas, para cada filho. Tal como enviar o plano ao outro progenitor e os lembretes dos dois prazos que fecham por lei.
+
+O Plus trata de tempo e ordem: lembretes em datas sugeridas, um lembrete que define você mesmo, um resumo de domingo e a ordem recomendada, incluindo o que depende de outra coisa. Inclui ainda exportação para o calendário, acompanhamento de pendências, o cofre de documentos após as primeiras doze semanas, o resumo imprimível e o pacote para o empregador.
+
+Se o Plus terminar, deixa de poder adicionar novas fotografias. As que já lá estão ficam e continuam a abrir.
+
+O Baby Docs Plus é uma subscrição semanal ou anual com renovação automática, a semanal com teste gratuito para novos subscritores elegíveis, ou uma compra única vitalícia. Os preços são mostrados na app. Gira ou cancele no Google Play, em Pagamentos e subscrições.
+
+Política de Privacidade: https://jackwallner.com/ios/babydocs/privacy-policy.html
+Termos de Utilização: https://jackwallner.com/ios/babydocs/terms.html
+
+O Baby Docs não presta aconselhamento jurídico, fiscal, médico ou de seguros. Os prazos definidos pelo seu plano, empregador ou estado prevalecem sobre o que a app mostra. Confirme a fonte indicada antes de confiar numa data.
