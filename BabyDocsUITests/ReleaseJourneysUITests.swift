@@ -15,7 +15,7 @@ final class ReleaseJourneysUITests: XCTestCase {
         page("Your baby", in: app)
 
         let date = app.switches["I checked this date"].firstMatch
-        XCTAssertTrue(date.waitForExistence(timeout: 5))
+        reveal(date, in: app)
         date.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
         tapScrolling(app.buttons["US citizen"].firstMatch, in: app)
         chooseCalifornia("State of birth", in: app)
@@ -25,10 +25,10 @@ final class ReleaseJourneysUITests: XCTestCase {
         tapScrolling(app.buttons["Prefer not to say"].firstMatch, in: app)
         proceed(app)
         page("Coverage", in: app)
-        app.buttons["Not sure yet"].firstMatch.tap()
+        tapScrolling(app.buttons["Not sure yet"].firstMatch, in: app)
         proceed(app)
         page("Leave", in: app)
-        app.buttons["Nobody is taking leave"].firstMatch.tap()
+        tapScrolling(app.buttons["Nobody is taking leave"].firstMatch, in: app)
         proceed(app)
         for title in ["Newborn account", "529", "Passport"] {
             page(title, in: app)
@@ -52,7 +52,7 @@ final class ReleaseJourneysUITests: XCTestCase {
             format: "label BEGINSWITH %@", "Order certified copies of the birth certificate"
         )).firstMatch
         tapScrolling(task, in: app)
-        XCTAssertTrue(app.staticTexts["Timing"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Birth certificate"].waitForExistence(timeout: 10))
         QA.checkpoint(app, "task-detail")
         app.navigationBars.buttons.element(boundBy: 0).tap()
         page("Plan", checkpoint: "plan-after-task", in: app)
@@ -87,15 +87,23 @@ final class ReleaseJourneysUITests: XCTestCase {
     }
 
     private func tapScrolling(_ element: XCUIElement, in app: XCUIApplication) {
-        XCTAssertTrue(element.waitForExistence(timeout: 5))
+        reveal(element, in: app)
+        element.tap()
+    }
+
+    private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
         let footer = app.buttons["Continue"].firstMatch
-        for _ in 0..<12 {
-            if element.isHittable && (!footer.exists || element.frame.maxY <= footer.frame.minY) {
-                break
+        let bar = app.tabBars.firstMatch
+        for _ in 0..<16 {
+            var bottom = app.frame.maxY
+            if footer.exists && footer.isHittable { bottom = min(bottom, footer.frame.minY) }
+            if bar.exists && bar.frame.width > app.frame.width / 2 { bottom = min(bottom, bar.frame.minY) }
+            if element.exists && element.isHittable && element.frame.maxY <= bottom {
+                return
             }
             app.swipeUp()
         }
-        element.tap()
+        XCTFail("Could not scroll the requested control into view: \(element)")
     }
 
     private func chooseCalifornia(_ label: String, in app: XCUIApplication) {

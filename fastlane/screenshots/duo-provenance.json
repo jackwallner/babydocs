@@ -1,0 +1,102 @@
+{
+  "source_commit": "109b1889546cc0fde91846553ef6b90752ddd8d7",
+  "capture_run": "icon-release-babydocs-20261024-mbairf51c-1024-233101-13211",
+  "github_run": "https://github.com/jackwallner/gh-sim/actions/runs/40169364176",
+  "test_summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "4C56FCAC-377C-469C-B415-8ABBC4375CBA",
+          "deviceName": "iPhone Duo",
+          "modelName": "iPhone",
+          "osBuildNumber": "24A94425",
+          "osVersion": "27.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 0,
+        "passedTests": 147,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "BabyDocs \u00b7 Built with macOS 27.0.1",
+    "expectedFailures": 0,
+    "failedTests": 0,
+    "finishTime": 1792910662.594,
+    "passedTests": 147,
+    "result": "Passed",
+    "runtimeWarnings": [],
+    "skippedTests": 0,
+    "startTime": 1792910392.516,
+    "statistics": [],
+    "testFailures": [],
+    "title": "Test - BabyDocs",
+    "topInsights": [
+      {
+        "category": "Longest Test Runs",
+        "impact": "51% of duration",
+        "text": "1 longest test run with outlier durations exceeding 1.00s (three standard deviations)"
+      }
+    ],
+    "totalTestCount": 147
+  },
+  "review": "Four distinct inner surfaces: Plan, insurance task, Plus timeline and Children beside Documents. No content crosses the fold. Navigation stays in the leading pane. Healthy complete sample data, no launch offer or transition overlay. The folded view retains the system side toolbar and full list height. Final frames require individual visual approval before upload.",
+  "files": [
+    {
+      "source": "screen1-duo-screen-plan-inner.png",
+      "source_sha256": "3c6faf8e5384e08fa4fefd468a47c7c2c76548efb18af5664bce8ce950139161",
+      "output": "duo_01.png",
+      "sha256": "4379dbc24be9b84ea75d8bca37c8ebae2ffe18603ae9287c231305a328246d93",
+      "dimensions": [
+        1398,
+        2034
+      ]
+    },
+    {
+      "source": "screen2-duo-screen-task-insurance-employer-inner.png",
+      "source_sha256": "469b9fb1f7de5e970b27fdb8f9a4b2aa894471babc9a61a9160ab40845854e19",
+      "output": "duo_02.png",
+      "sha256": "b1b08484529f67e18ef745f123378da11ef10fb8f52447a44894c8008923f514",
+      "dimensions": [
+        1398,
+        2034
+      ]
+    },
+    {
+      "source": "screen3-duo-screen-plus-inner.png",
+      "source_sha256": "1e96f0ff7d0627d0e2844237ed1486545793bb3a9a32e96229166814df816244",
+      "output": "duo_03.png",
+      "sha256": "0a7d5f293dbe02f156cc80ee28562dcf585c9d1f66ceba318d545a9ed537bdf2",
+      "dimensions": [
+        1398,
+        2034
+      ]
+    },
+    {
+      "source": "screen4-duo-screen-children-inner.png",
+      "source_sha256": "da4c199cb137f7a1c954f9a235541f971572e7285984eec5c4bd0dccdb829575",
+      "output": "duo_04.png",
+      "sha256": "be52d51d84f580a320947a32f363d0a75545cc1bd36eabe42a71d21711d41677",
+      "dimensions": [
+        1398,
+        2034
+      ]
+    },
+    {
+      "source": "screen1-duo-screen-plan-outer.png",
+      "source_sha256": "016f31c213f49fc465695f39d05f526792b8b94cc835527287fb996bd081100e",
+      "output": "duo_05.png",
+      "sha256": "04406ebea9f4a60c069f4caf52cf4f1c59c8719f2f2a5f4b4d6e4d57a03afe16",
+      "dimensions": [
+        1398,
+        2034
+      ]
+    }
+  ],
+  "visual_review": "PASS: every final frame inspected. One period-free header per frame, at most two lines. Four distinct two-pane inner screens and one folded outer screen. No capture rotation, crop, synthesized UI, launch offer or transition overlay. Colors and font match the live iPhone set."
+}
