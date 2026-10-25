@@ -94,14 +94,25 @@ final class ReleaseJourneysUITests: XCTestCase {
     private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
         let footer = app.buttons["Continue"].firstMatch
         let bar = app.tabBars.firstMatch
-        for _ in 0..<16 {
+        let navigation = app.navigationBars.firstMatch
+        for _ in 0..<32 {
+            let top = navigation.exists ? navigation.frame.maxY : app.frame.minY
             var bottom = app.frame.maxY
             if footer.exists && footer.isHittable { bottom = min(bottom, footer.frame.minY) }
             if bar.exists && bar.frame.width > app.frame.width / 2 { bottom = min(bottom, bar.frame.minY) }
-            if element.exists && element.isHittable && element.frame.maxY <= bottom {
+            let center = element.exists ? element.frame.midY : bottom
+            if element.exists && element.isHittable && center > top && center < bottom {
                 return
             }
-            app.swipeUp()
+            let down = element.exists && center <= top
+            let span = max(bottom - top, 100)
+            let start = top + span * (down ? 0.35 : 0.70)
+            let end = top + span * (down ? 0.60 : 0.45)
+            app.coordinate(withNormalizedOffset: CGVector(
+                dx: 0.5, dy: (start - app.frame.minY) / app.frame.height
+            )).press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(
+                dx: 0.5, dy: (end - app.frame.minY) / app.frame.height
+            )))
         }
         XCTFail("Could not scroll the requested control into view: \(element)")
     }
