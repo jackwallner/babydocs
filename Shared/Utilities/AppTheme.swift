@@ -210,12 +210,11 @@ extension View {
     /// continuous surface behind the system's floating tab bar. The list itself
     /// ends before the bar, so its rows cannot become unreadable behind glass.
     ///
-    /// The scroll view keeps its full height on purpose. It used to be given an
-    /// explicit one, 96 points short, inside a `GeometryReader`: that both cut
-    /// the page off at a hard horizontal edge above the bar and stopped the
-    /// system from insetting the list for the bar at all, which is why the inset
-    /// had to be guessed twice and was wrong twice. Full height, plus the
-    /// system's own safe area, plus a cushion, is the whole arrangement.
+    /// The phone's scroll viewport reserves the floating bar's footprint.
+    /// A transparent safe-area inset alone still draws rows behind its icons.
+    /// Padding keeps those rows above the bar while the page background fills
+    /// the available space. Unfolded panes keep their existing inset because
+    /// their navigation is at the top.
     ///
     /// The last row of every list still has to clear the bar: on a task detail
     /// it is the source footnote, the one element that carries the app's whole
@@ -226,7 +225,7 @@ extension View {
     /// points of empty page under the last row and nothing else.
     ///
     /// Each pane of the unfolded iPhone Duo says what sits under it through
-    /// `\.tabBarBackdrop`, which this reads, so the folded phone is unchanged.
+    /// `\.tabBarBackdrop`, which this reads.
     func planPageBackground(underTabBar: Bool = true) -> some View {
         modifier(PlanPageBackground(underTabBar: underTabBar))
     }
@@ -234,7 +233,7 @@ extension View {
 
 /// What is under a page's bottom edge.
 enum TabBarBackdrop: Sendable {
-    /// The phone: rows pass under the glass bar, with a cushion past the last.
+    /// The phone: the scroll viewport ends above the glass bar.
     case glass
     /// Either pane of the unfolded iPhone Duo. The leading pane's bar heads it
     /// instead, so the system's bottom bar is hidden and the page runs to the
@@ -253,9 +252,10 @@ private struct PlanPageBackground: ViewModifier {
     func body(content: Content) -> some View {
         content
             .scrollContentBackground(.hidden)
+            .padding(.bottom, phoneClearance)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 Color.clear
-                    .frame(height: inset)
+                    .frame(height: phoneClearance == 0 ? inset : 0)
                     .allowsHitTesting(false)
             }
             // Here rather than on the TabView: the visibility a tab bar obeys is
@@ -270,6 +270,10 @@ private struct PlanPageBackground: ViewModifier {
         case .glass: return AppTheme.floatingTabBarInset
         case .none: return AppTheme.looseSpacing
         }
+    }
+
+    private var phoneClearance: CGFloat {
+        underTabBar && backdrop == .glass ? AppTheme.floatingTabBarInset : 0
     }
 }
 

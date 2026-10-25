@@ -41,13 +41,13 @@ final class ReleaseJourneysUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Continue with the free plan"].waitForExistence(timeout: 20))
         QA.checkpoint(app, "onboarding-paywall", paywall: true)
         app.buttons["Continue with the free plan"].tap()
-        page("Plan", in: app)
+        page("Plan", checkpoint: "plan-after-onboarding", in: app)
     }
 
     func testPlanDocumentsPlusAndReturn() {
         let app = XCUIApplication()
         QA.launch(app, arguments: ["-uitest-wipe-store", "-uitest-seed"])
-        page("Plan", in: app)
+        page("Plan", checkpoint: "plan-launch", in: app)
         let task = app.buttons.matching(NSPredicate(
             format: "label BEGINSWITH %@", "Order certified copies of the birth certificate"
         )).firstMatch
@@ -55,7 +55,7 @@ final class ReleaseJourneysUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Timing"].waitForExistence(timeout: 10))
         QA.checkpoint(app, "task-detail")
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        page("Plan", in: app)
+        page("Plan", checkpoint: "plan-after-task", in: app)
 
         for (tab, title) in [("Documents", "Documents"), ("Children", "Children"),
                              ("Plus", "Baby Docs Plus"), ("Settings", "Settings")] {
@@ -64,17 +64,19 @@ final class ReleaseJourneysUITests: XCTestCase {
             QA.checkpoint(app, tab.lowercased(), paywall: tab == "Plus")
         }
         app.tabBars.buttons["Plan"].tap()
-        page("Plan", in: app)
+        page("Plan", checkpoint: "plan-return", in: app)
         QA.interrupt(app)
-        page("Plan", in: app)
+        page("Plan", checkpoint: "plan-after-background", in: app)
         app.launchArguments.removeAll { $0 == "-uitest-wipe-store" || $0 == "-uitest-seed" }
         QA.relaunch(app)
-        page("Plan", in: app)
+        page("Plan", checkpoint: "plan-after-relaunch", in: app)
     }
 
-    private func page(_ title: String, in app: XCUIApplication) {
+    private func page(_ title: String, checkpoint: String? = nil, in app: XCUIApplication,
+                      journey: String = #function) {
         XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 15))
-        QA.checkpoint(app, title.lowercased().replacingOccurrences(of: " ", with: "-"))
+        QA.checkpoint(app, checkpoint ?? title.lowercased().replacingOccurrences(of: " ", with: "-"),
+                      journey: journey)
     }
 
     private func proceed(_ app: XCUIApplication) {
