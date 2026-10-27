@@ -87,15 +87,14 @@ final class ReleaseJourneysUITests: XCTestCase {
             .replacingOccurrences(of: " done", with: "")
         open.tap()
         XCTAssertTrue(waitForDoneCount(before + 1, in: app), "done count did not go up after the tick")
-        XCTAssertTrue(tickedButton(title, in: app).waitForExistence(timeout: 10), "ticked row did not flip")
+        reveal(tickedButton(title, in: app), in: app)
         QA.checkpoint(app, "task-ticked")
 
         app.launchArguments.removeAll { $0 == "-uitest-wipe-store" || $0 == "-uitest-seed" }
         QA.relaunch(app)
         page("Plan", checkpoint: "plan-after-relaunch", in: app)
         XCTAssertEqual(doneCount(in: app), before + 1, "done count lost after relaunch")
-        XCTAssertTrue(tickedButton(title, in: app).waitForExistence(timeout: 10),
-                      "ticked task not done after relaunch")
+        reveal(tickedButton(title, in: app), in: app)
         QA.checkpoint(app, "task-still-ticked")
     }
 
