@@ -790,10 +790,12 @@ struct OnboardingFlow: View {
     private func restoreDraft() {
         guard !didLoadDraft else { return }
         didLoadDraft = true
+        #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-uitest-wipe-store") {
             OnboardingDraftStore.clear()
             return
         }
+        #endif
         guard let draft = OnboardingDraftStore.load(),
               let restoredStep = Step(rawValue: draft.step),
               restoredStep != .done, restoredStep != .plus else { return }

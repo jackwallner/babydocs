@@ -97,8 +97,12 @@ enum ReviewPromptTracker {
     /// the screen being captured, and a store screenshot of a rating prompt is
     /// both useless and against the spirit of the guideline.
     static var isSuppressed: Bool {
+        #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
         return arguments.contains("-uitest-seed") || arguments.contains("-uitest-wipe-store")
+        #else
+        return false
+        #endif
     }
 
     static func recordAppLaunch(now: Date = .now) {
