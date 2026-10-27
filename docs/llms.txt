@@ -1,0 +1,17 @@
+# Baby Docs: Newborn Paperwork
+
+> Baby Docs is a newborn paperwork checklist app for iPhone: birth certificate, Social Security card, health plan and leave, with deadlines and official links.
+
+## App
+
+- [Baby Docs: Newborn Paperwork Checklist for iPhone](https://jackwallner.com/ios/babydocs/index.html.md): Baby Docs is a newborn paperwork checklist app for iPhone: birth certificate, Social Security card, health plan and leave, with deadlines and official links.
+
+## Guides
+
+- [Newborn Paperwork Checklist: Certificate, SSN, Insurance](https://jackwallner.com/ios/babydocs/newborn-paperwork-checklist.html.md): A US newborn paperwork checklist: birth certificate, Social Security number and card, and health insurance deadlines (30 days job-based, 60 days Marketplace).
+
+## Optional
+
+- [Baby Docs: Privacy Policy](https://jackwallner.com/ios/babydocs/privacy-policy.html.md): Privacy policy for the Baby Docs newborn paperwork app by Jack Wallner.
+- [Baby Docs: Support](https://jackwallner.com/ios/babydocs/support.html.md): Help and contact for the Baby Docs newborn paperwork app by Jack Wallner.
+- [Baby Docs: Terms of Use](https://jackwallner.com/ios/babydocs/terms.html.md): Terms of use for the Baby Docs newborn paperwork app by Jack Wallner.

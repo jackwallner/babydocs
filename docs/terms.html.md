@@ -1,0 +1,114 @@
+# Baby Docs: Terms of Use
+
+> Terms of use for the Baby Docs newborn paperwork app by Jack Wallner.
+
+Web page: https://jackwallner.com/ios/babydocs/terms.html
+
+## Baby Docs Terms of Use
+
+Last updated: August 23, 2026
+
+Use of Baby Docs is also governed by Apple's
+[Standard Licensed Application End User License Agreement](https://www.apple.com/legal/internet-services/itunes/dev/stdeula/).
+
+## What the app is
+
+Baby Docs helps a family keep track of the administrative paperwork that
+follows a birth in the United States. It generates a personalized list of
+tasks from the answers you give, shows the deadline attached to each one,
+lists the documents you will be asked for, and links you to the official
+government page that handles it.
+
+## What the app is not
+
+**Baby Docs does not give legal, tax, medical, financial or insurance
+advice.**
+It is an organizational tool. Nothing in it is a substitute for a lawyer,
+an accountant, a benefits administrator or your own state's rules.
+
+**Baby Docs does not file anything for you.** It never
+submits, transmits or signs a government, tax, insurance or legal form on
+your behalf, and it never logs in to any account of yours. Every task ends
+with you going to the official site and doing it yourself.
+
+**The deadlines in the app are guidance, not guarantees.**
+They come from federal rules that apply generally. Your own health plan,
+your own employer and your own state can and do set different ones, and
+those override anything the app shows. Each task links to the source its
+rule came from, with the date that source was last read. Check it before
+you rely on a date, especially where money or coverage depends on it.
+
+Rules change. We update the catalog and record when it was last reviewed
+(visible in Settings), but there will be periods where a rule in the app
+is behind the rule in the world.
+
+## No accounts
+
+There is no household-data account, no household-data login and no
+household-data server. Your household data stays on your iPhone. You can
+send another parent a link that lets their own phone rebuild the same plan
+from your answers; from that point the two plans are independent, and
+neither one updates the other. Purchases, if any, are handled separately
+by Apple and RevenueCat.
+
+A link you send is readable by anyone you send it to, and by anyone they
+forward it to. It carries your household answers (a birth date, a
+state, how you are covered), so treat it as you would any message
+containing those.
+
+## Baby Docs Plus
+
+Every task, deadline, document checklist and official link is free for
+every child, as is sending the plan to another parent and the warnings for
+the two hard deadlines. Baby Docs Plus adds suggested-date reminders, a
+Sunday digest, reminders you set yourself, the recommended order, calendar
+export, follow-up tracking, the document vault beyond the first twelve
+weeks, the employer packet and the printable one-page summary. It is
+available as a subscription or as a one-time purchase.
+
+Subscriptions renew automatically unless cancelled at least 24 hours
+before the end of the current period, and are managed in your Apple
+Account settings. A free trial period, where offered, is forfeited if you
+buy the subscription during the trial. Purchases are handled by Apple;
+refunds are requested from Apple, not from us.
+
+The available subscription period, one-time purchase option, price, and
+any introductory offer are shown in the app before purchase and may vary
+by region. Apple charges your Apple Account at confirmation.
+
+Documents you have already added to the vault stay readable if a
+subscription lapses. Lapsing stops you adding new ones; it never removes
+what is there.
+
+## Your responsibilities
+
+- Give accurate answers. A wrong date of birth or a wrong coverage type
+  produces a wrong plan, and the app has no way to know.
+- Confirm anything that matters against the official source before acting.
+- Do not enter Social Security numbers. The app never asks for one.
+- Use it for your own family, and only send a plan link to people entitled
+  to see it.
+
+## Liability
+
+Baby Docs is provided as is, without warranty of any kind. To the extent
+permitted by law, we are not liable for any loss arising from a missed
+deadline, an out-of-date rule, an incorrect link, or reliance on anything
+the app displayed. You remain responsible for your own filings.
+
+## Ending it
+
+Delete the app and the household data stored on that iPhone goes with it.
+There is no household-data account to close and no household-data copy on
+our side. Apple and RevenueCat may retain purchase records as described in
+the privacy policy.
+
+Questions about these terms:
+[jackwallner+babydocs@gmail.com](mailto:jackwallner+babydocs@gmail.com)
+
+[Support](https://jackwallner.com/ios/babydocs/support.html) ·
+[Privacy Policy](https://jackwallner.com/ios/babydocs/privacy-policy.html)
+
+[Home](https://jackwallner.com/ios/babydocs/)
+[Privacy](https://jackwallner.com/ios/babydocs/privacy-policy.html)
+[Support](https://jackwallner.com/ios/babydocs/support.html)
