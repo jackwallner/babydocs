@@ -86,18 +86,27 @@ final class ReleaseJourneysUITests: XCTestCase {
             .replacingOccurrences(of: "Mark ", with: "")
             .replacingOccurrences(of: " done", with: "")
         open.tap()
-        let ticked = app.buttons["Mark \(title) not done"]
-        XCTAssertTrue(ticked.waitForExistence(timeout: 10), "ticked row did not flip")
-        XCTAssertEqual(doneCount(in: app), before + 1)
+        XCTAssertTrue(waitForDoneCount(before + 1, in: app), "done count did not go up after the tick")
+        XCTAssertTrue(tickedButton(title, in: app).waitForExistence(timeout: 10), "ticked row did not flip")
         QA.checkpoint(app, "task-ticked")
 
         app.launchArguments.removeAll { $0 == "-uitest-wipe-store" || $0 == "-uitest-seed" }
         QA.relaunch(app)
         page("Plan", checkpoint: "plan-after-relaunch", in: app)
         XCTAssertEqual(doneCount(in: app), before + 1, "done count lost after relaunch")
-        XCTAssertTrue(app.buttons["Mark \(title) not done"].waitForExistence(timeout: 10),
+        XCTAssertTrue(tickedButton(title, in: app).waitForExistence(timeout: 10),
                       "ticked task not done after relaunch")
         QA.checkpoint(app, "task-still-ticked")
+    }
+
+    private func tickedButton(_ title: String, in app: XCUIApplication) -> XCUIElement {
+        app.buttons.matching(NSPredicate(format: "label == %@", "Mark \(title) not done")).firstMatch
+    }
+
+    private func waitForDoneCount(_ expected: Int, in app: XCUIApplication) -> Bool {
+        app.staticTexts.matching(NSPredicate(
+            format: "label BEGINSWITH %@ AND label ENDSWITH ' done'", "\(expected) of "
+        )).firstMatch.waitForExistence(timeout: 10)
     }
 
     private func doneCount(in app: XCUIApplication) -> Int {
