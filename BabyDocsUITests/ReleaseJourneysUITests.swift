@@ -72,6 +72,42 @@ final class ReleaseJourneysUITests: XCTestCase {
         page("Plan", checkpoint: "plan-after-relaunch", in: app)
     }
 
+    func testCoreLoopTickTaskCountsAndSurvivesRelaunch() {
+        let app = XCUIApplication()
+        QA.launch(app, arguments: ["-uitest-wipe-store", "-uitest-seed"])
+        page("Plan", checkpoint: "plan-seeded", in: app)
+        let before = doneCount(in: app)
+
+        let open = app.buttons.matching(NSPredicate(
+            format: "label BEGINSWITH 'Mark Order certified copies' AND label ENDSWITH ' done' AND NOT label ENDSWITH ' not done'"
+        )).firstMatch
+        tapScrolling(open, in: app)
+        let title = open.label
+            .replacingOccurrences(of: "Mark ", with: "")
+            .replacingOccurrences(of: " done", with: "")
+        open.tap()
+        let ticked = app.buttons["Mark \(title) not done"]
+        XCTAssertTrue(ticked.waitForExistence(timeout: 10), "ticked row did not flip")
+        XCTAssertEqual(doneCount(in: app), before + 1)
+        QA.checkpoint(app, "task-ticked")
+
+        app.launchArguments.removeAll { $0 == "-uitest-wipe-store" || $0 == "-uitest-seed" }
+        QA.relaunch(app)
+        page("Plan", checkpoint: "plan-after-relaunch", in: app)
+        XCTAssertEqual(doneCount(in: app), before + 1, "done count lost after relaunch")
+        XCTAssertTrue(app.buttons["Mark \(title) not done"].waitForExistence(timeout: 10),
+                      "ticked task not done after relaunch")
+        QA.checkpoint(app, "task-still-ticked")
+    }
+
+    private func doneCount(in app: XCUIApplication) -> Int {
+        let label = app.staticTexts.matching(NSPredicate(
+            format: "label MATCHES %@", "[0-9]+ of [0-9]+ done"
+        )).firstMatch
+        XCTAssertTrue(label.waitForExistence(timeout: 15), "no done count on the plan")
+        return Int(label.label.split(separator: " ")[0]) ?? -1
+    }
+
     private func page(_ title: String, checkpoint: String? = nil, in app: XCUIApplication,
                       journey: String = #function) {
         XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 15))
