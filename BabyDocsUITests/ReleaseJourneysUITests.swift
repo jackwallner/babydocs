@@ -81,7 +81,7 @@ final class ReleaseJourneysUITests: XCTestCase {
         let open = app.buttons.matching(NSPredicate(
             format: "label BEGINSWITH 'Mark Order certified copies' AND label ENDSWITH ' done' AND NOT label ENDSWITH ' not done'"
         )).firstMatch
-        tapScrolling(open, in: app)
+        reveal(open, in: app)
         let title = open.label
             .replacingOccurrences(of: "Mark ", with: "")
             .replacingOccurrences(of: " done", with: "")
