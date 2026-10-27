@@ -6,7 +6,7 @@ Web page: https://jackwallner.com/ios/babydocs/newborn-paperwork-checklist.html
 
 ## Newborn paperwork checklist: birth certificate, Social Security number and health insurance
 
-By [Jack Wallner](https://jackwallner.com/) · Last updated October 27, 2026
+By [Jack Wallner](https://jackwallner.com/) · Last updated October 18, 2026
 
 Three things come first after a birth in the United States: the birth certificate, the Social Security number and card, and adding the baby to a health plan. The hospital starts the first two on the birth registration form, and the Social Security card usually arrives within about four weeks. The health plan is the one with a hard deadline: at least 30 days from the birth for a job-based plan, and 60 days for a Marketplace plan.
 
