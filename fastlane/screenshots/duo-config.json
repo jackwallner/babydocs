@@ -1,0 +1,35 @@
+{
+  "top": "#eef3fb",
+  "bottom": "#d4e1f5",
+  "ink": "#142641",
+  "font": "/System/Library/Fonts/SFNSRounded.ttf",
+  "variation": "Medium",
+  "frames": [
+    {
+      "out": "duo_01.png",
+      "src": "screen1-duo-screen-plan-inner.png",
+      "header": "See deadlines beside the papers you need"
+    },
+    {
+      "out": "duo_02.png",
+      "src": "screen2-duo-screen-task-insurance-employer-inner.png",
+      "header": "Check each deadline with your documents"
+    },
+    {
+      "out": "duo_03.png",
+      "src": "screen3-duo-screen-plus-inner.png",
+      "header": "Plan the next steps with papers in reach"
+    },
+    {
+      "out": "duo_04.png",
+      "src": "screen4-duo-screen-children-inner.png",
+      "header": "Keep each child and checklist together"
+    },
+    {
+      "out": "duo_05.png",
+      "src": "screen1-duo-screen-plan-outer.png",
+      "header": "Check the next deadline on the go",
+      "folded": true
+    }
+  ]
+}

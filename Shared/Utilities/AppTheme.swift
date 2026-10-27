@@ -210,12 +210,11 @@ extension View {
     /// continuous surface behind the system's floating tab bar. The list itself
     /// ends before the bar, so its rows cannot become unreadable behind glass.
     ///
-    /// The scroll view keeps its full height on purpose. It used to be given an
-    /// explicit one, 96 points short, inside a `GeometryReader`: that both cut
-    /// the page off at a hard horizontal edge above the bar and stopped the
-    /// system from insetting the list for the bar at all, which is why the inset
-    /// had to be guessed twice and was wrong twice. Full height, plus the
-    /// system's own safe area, plus a cushion, is the whole arrangement.
+    /// The phone's scroll viewport reserves the floating bar's footprint.
+    /// A transparent safe-area inset alone still draws rows behind its icons.
+    /// Padding keeps those rows above the bar while the page background fills
+    /// the available space. Unfolded panes keep their existing inset because
+    /// their navigation is at the top.
     ///
     /// The last row of every list still has to clear the bar: on a task detail
     /// it is the source footnote, the one element that carries the app's whole
@@ -224,19 +223,71 @@ extension View {
     /// Pass `underTabBar: false` on a sheet. A sheet is presented over the tab
     /// bar rather than behind it, so reserving the bar's height there is 96
     /// points of empty page under the last row and nothing else.
+    ///
+    /// Each pane of the unfolded iPhone Duo says what sits under it through
+    /// `\.tabBarBackdrop`, which this reads.
     func planPageBackground(underTabBar: Bool = true) -> some View {
-        self
+        modifier(PlanPageBackground(underTabBar: underTabBar))
+    }
+}
+
+/// What is under a page's bottom edge.
+enum TabBarBackdrop: Sendable {
+    /// The phone: the scroll viewport ends above the glass bar.
+    case glass
+    /// Either pane of the unfolded iPhone Duo. The leading pane's bar heads it
+    /// instead, so the system's bottom bar is hidden and the page runs to the
+    /// display's edge like the Documents pane beside it.
+    case none
+}
+
+extension EnvironmentValues {
+    @Entry var tabBarBackdrop: TabBarBackdrop = .glass
+    @Entry var hasSideToolbar = false
+}
+
+private struct PlanPageBackground: ViewModifier {
+    let underTabBar: Bool
+    @Environment(\.tabBarBackdrop) private var backdrop
+    @Environment(\.hasSideToolbar) private var hasSideToolbar
+
+    func body(content: Content) -> some View {
+        content
             .scrollContentBackground(.hidden)
+            .overlay(alignment: .bottom) {
+                if phoneClearance > 0 {
+                    LinearGradient(
+                        colors: [AppTheme.pageBackground.opacity(0), AppTheme.pageBackground],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: AppTheme.looseSpacing)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+                }
+            }
+            .padding(.bottom, phoneClearance)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 Color.clear
-                    .frame(
-                        height: underTabBar
-                            ? AppTheme.floatingTabBarInset
-                            : AppTheme.looseSpacing
-                    )
+                    .frame(height: phoneClearance == 0 ? inset : 0)
                     .allowsHitTesting(false)
             }
+            // Here rather than on the TabView: the visibility a tab bar obeys is
+            // the one set inside the NavigationStack, on every page it pushes.
+            .toolbar(backdrop == .glass ? .automatic : .hidden, for: .tabBar)
             .background(AppTheme.pageBackground.ignoresSafeArea())
+    }
+
+    private var inset: CGFloat {
+        guard underTabBar else { return AppTheme.looseSpacing }
+        switch backdrop {
+        case .glass: return AppTheme.floatingTabBarInset
+        case .none: return AppTheme.looseSpacing
+        }
+    }
+
+    private var phoneClearance: CGFloat {
+        underTabBar && backdrop == .glass && !hasSideToolbar ? AppTheme.floatingTabBarInset : 0
     }
 }
 

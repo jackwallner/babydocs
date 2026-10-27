@@ -19,6 +19,13 @@ struct RootView: View {
     /// screen, so a launch with a plan already in the store never opens it.
     @State private var hasFinishedIntake = true
     @Environment(\.requestReview) private var requestReview
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    /// The container's width and fold, measured so the unfolded iPhone Duo can
+    /// put the plan and the documents on opposite sides of the fold.
+    @State private var paneGeometry = PaneGeometry(width: 0, fold: nil)
+    /// The status bar's band, which the unfolded leading pane's bar sits in.
+    @State private var safeTop: CGFloat = 0
+    @State private var safeSide: CGFloat = 0
 
     init() {
         _selectedTab = State(initialValue: AppNavigator.shared.selectedTab)
@@ -50,32 +57,7 @@ struct RootView: View {
             } else if children.isEmpty {
                 ArchivedChildrenRecoveryView(children: archivedChildren)
             } else {
-                TabView(selection: $selectedTab) {
-                    PlanView()
-                        .tabItem { Label("Plan", systemImage: "checklist") }
-                        .tag(AppNavigator.Tab.plan)
-
-                    ChildrenView()
-                        .tabItem { Label("Children", systemImage: "figure.and.child.holdinghands") }
-                        .tag(AppNavigator.Tab.children)
-
-                    DocumentsView()
-                        .tabItem { Label("Documents", systemImage: "folder") }
-                        .tag(AppNavigator.Tab.documents)
-
-                    // A permanent slot rather than a sheet nobody opens on
-                    // purpose. Before Plus is bought it is the pitch; after, it
-                    // is the timeline, the reminder switches and the pages that
-                    // leave the phone, so the tab is worth its place in the bar
-                    // to a customer who has already paid.
-                    PlusView()
-                        .tabItem { Label("Plus", systemImage: "sparkles") }
-                        .tag(AppNavigator.Tab.plus)
-
-                    SettingsView()
-                        .tabItem { Label("Settings", systemImage: "gearshape") }
-                        .tag(AppNavigator.Tab.settings)
-                }
+                tabs
                 // **Nothing is set on the tab bar on purpose.**
                 //
                 // It used to be forced visible and painted with the page
@@ -160,6 +142,120 @@ struct RootView: View {
             purgeTombstonedVaultDocuments()
             purgeOrphanedVaultPages()
         }
+    }
+
+    /// Unfolded, Documents has its own pane beside the tabs, so it is never a
+    /// tab: what to do on one side of the fold, what to bring on the other.
+    private var split: UnfoldedSplit? {
+        UnfoldedSplit.make(
+            width: paneGeometry.width,
+            isRegularWidth: horizontalSizeClass == .regular,
+            fold: paneGeometry.fold
+        )
+    }
+
+    private var chrome: PaneChrome {
+        UnfoldedSplit.chrome(split, safeTop: safeTop)
+    }
+
+    /// Each unfolded pane is phone-width, so its screen lays out as on a phone.
+    private var paneSizeClass: UserInterfaceSizeClass? {
+        split == nil ? horizontalSizeClass : .compact
+    }
+
+    /// One view tree in every pose. Opening or closing the Duo only moves these
+    /// frames, so the plan keeps its tab, its pushed task and its scroll.
+    private var tabs: some View {
+        ZStack(alignment: .topLeading) {
+            TabView(selection: $selectedTab) {
+                PlanView()
+                    .tabItem { Label("Plan", systemImage: "checklist") }
+                    .tag(AppNavigator.Tab.plan)
+
+                ChildrenView()
+                    .tabItem { Label("Children", systemImage: "figure.and.child.holdinghands") }
+                    .tag(AppNavigator.Tab.children)
+
+                if split == nil {
+                    DocumentsView()
+                        .tabItem { Label("Documents", systemImage: "folder") }
+                        .tag(AppNavigator.Tab.documents)
+                }
+
+                // A permanent slot rather than a sheet nobody opens on
+                // purpose. Before Plus is bought it is the pitch; after, it
+                // is the timeline, the reminder switches and the pages that
+                // leave the phone, so the tab is worth its place in the bar
+                // to a customer who has already paid.
+                PlusView()
+                    .tabItem { Label("Plus", systemImage: "sparkles") }
+                    .tag(AppNavigator.Tab.plus)
+
+                SettingsView()
+                    .tabItem { Label("Settings", systemImage: "gearshape") }
+                    .tag(AppNavigator.Tab.settings)
+            }
+            .environment(\.horizontalSizeClass, paneSizeClass)
+            .environment(\.tabBarBackdrop, split == nil ? .glass : .none)
+            .environment(\.hasSideToolbar, safeSide > AppTheme.margin)
+            .padding(.top, chrome.contentInset)
+            // The tab bar sits within the leading pane, never across the fold.
+            .frame(maxWidth: split?.primaryWidth ?? .infinity, maxHeight: .infinity)
+
+            if let split {
+                DocumentsView()
+                    .environment(\.horizontalSizeClass, .compact)
+                    .environment(\.tabBarBackdrop, .none)
+                    .padding(.top, chrome.contentInset)
+                    .frame(maxWidth: split.secondaryWidth, maxHeight: .infinity)
+                    .padding(.leading, split.secondaryX)
+
+                // Unfolded, the bar heads the leading pane, as on iPad, so both
+                // panes run to the display's bottom edge and no row ever ends
+                // against a floating bar. Folded, the system's own bar.
+                PaneTabBar(selection: $selectedTab)
+                    .padding(.top, chrome.barTop)
+                    .frame(width: split.primaryWidth)
+                    .ignoresSafeArea(edges: .top)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(AppTheme.pageBackground.ignoresSafeArea())
+        .overlay { paneEdgeFade }
+        .horizontalToolbarsInPanes(split != nil)
+        .onGeometryChange(for: PaneGeometry.self) { proxy in
+            PaneGeometry(width: proxy.size.width, fold: proxy.verticalFold())
+        } action: { paneGeometry = $0 }
+        .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.top } action: { safeTop = $0 }
+        .onGeometryChange(for: CGFloat.self) {
+            max($0.safeAreaInsets.leading, $0.safeAreaInsets.trailing)
+        } action: { safeSide = $0 }
+        .onChange(of: split != nil) { _, _ in leaveDocumentsTabIfSplit() }
+        .onChange(of: selectedTab) { _, _ in leaveDocumentsTabIfSplit() }
+    }
+
+    /// Both panes scroll off the display's bottom edge; a short fade there keeps
+    /// the last line from being sliced mid-glyph. No height folded, where the
+    /// system's bar sits on that edge.
+    private var paneEdgeFade: some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+            LinearGradient(
+                colors: [AppTheme.pageBackground.opacity(0), AppTheme.pageBackground],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: UnfoldedSplit.bottomFade(split))
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    /// A route that still asks for the Documents tab lands on the plan, with
+    /// Documents already open beside it.
+    private func leaveDocumentsTabIfSplit() {
+        if split != nil, selectedTab == .documents { selectedTab = .plan }
     }
 
     /// A process can die while the add-child sheet is open. Those rows are
@@ -286,6 +382,74 @@ private struct StorageRecoveryView: View {
             .planPageBackground(underTabBar: false)
             .navigationTitle("Storage")
             .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+}
+
+/// The unfolded leading pane's tab bar: the four tabs left beside the
+/// Documents pane, as text in one glass capsule, the way iPad heads a regular
+/// width screen. Text alone, so no glyph can push one label off the others'
+/// baseline.
+private struct PaneTabBar: View {
+    @Binding var selection: AppNavigator.Tab
+
+    private static let tabs: [AppNavigator.Tab] = [.plan, .children, .plus, .settings]
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(Self.tabs, id: \.self) { tab in
+                Button {
+                    selection = tab
+                } label: {
+                    Text(Self.title(tab))
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                        .foregroundStyle(selection == tab ? Color.accentColor : Color.primary)
+                        .padding(.horizontal, AppTheme.margin)
+                        .frame(maxHeight: .infinity)
+                        .background {
+                            if selection == tab {
+                                Capsule().fill(Color.primary.opacity(0.08))
+                            }
+                        }
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(PaneTabButtonStyle())
+                .accessibilityAddTraits(selection == tab ? .isSelected : [])
+            }
+        }
+        .padding(AppTheme.hairSpacing)
+        .frame(height: UnfoldedSplit.paneTabBarHeight)
+        .paneTabBarGlass()
+        .animation(.snappy, value: selection)
+    }
+
+    private static func title(_ tab: AppNavigator.Tab) -> String {
+        switch tab {
+        case .plan: "Plan"
+        case .children: "Children"
+        case .documents: "Documents"
+        case .plus: "Plus"
+        case .settings: "Settings"
+        }
+    }
+}
+
+/// Answers a press the way a system tab does, without tinting the label.
+private struct PaneTabButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.6 : 1)
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func paneTabBarGlass() -> some View {
+        if #available(iOS 26.0, *) {
+            glassEffect(.regular, in: Capsule())
+        } else {
+            background(.regularMaterial, in: Capsule())
         }
     }
 }

@@ -66,6 +66,15 @@ enum SampleData {
             certificate.expectedByAt = calendar.date(byAdding: .day, value: -6, to: Date())
         }
 
+        // Eleven days in, a real family has a few things behind it, so the
+        // plan's progress line reads like a household at work, not "0 of 18".
+        let finished = ["pediatric_portal", "newborn_screening_result", "childcare_waitlist"]
+        for (offset, key) in finished.enumerated() {
+            guard let task = child.liveTasks.first(where: { $0.catalogKey == key }) else { continue }
+            task.completedAt = Calendar.current.date(byAdding: .day, value: -(offset + 2), to: Date())
+            task.completedByName = offset.isMultiple(of: 2) ? "Sam" : "Alex"
+        }
+
         try? context.save()
         return child
     }

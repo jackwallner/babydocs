@@ -38,8 +38,10 @@ Moved verbatim from AGENTS.md. Loads when a matching file is read; update it her
     inset back by hand: 44 (the bar's glyph height, not its footprint, so six
     screens were clipped) and then 96, which bought a hard horizontal edge where
     the shortened scroll view ended and 96 points of dead page under it. That
-    edge is the "big bar in the way" in the screenshots. The scroll view is full
-    height again, the system contributes the bar's footprint, and the constant
-    is 24 points of breathing room on top. `TabBarClearanceUITests` still
-    asserts it on every tab, because a single-screen layout test cannot catch a
-    bad shared constant. Sheets pass `underTabBar: false`.
+    edge is the "big bar in the way" in the screenshots. The release gate on
+    2026-10-24 showed that a clear safe-area inset alone still lets rows read
+    through the bar. The phone now reserves `floatingTabBarInset` with viewport
+    padding, while its page background continues behind the automatic system
+    bar. The unfolded Duo panes retain their existing inset because their bar
+    is at the top. `ReleaseJourneysUITests` checks every tab through the shared
+    overlap oracle. Sheets pass `underTabBar: false`.
