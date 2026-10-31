@@ -141,9 +141,21 @@ final class VaultStore {
     /// Removes a file left by a crash between writing a page and saving its
     /// model row. The model is the source of truth, so an unreferenced file is
     /// safe to remove and must not remain as an undiscoverable sensitive copy.
+    ///
+    /// **Only while the store is the whole story.** The caller passes the names
+    /// the live store holds, so the sweep is exactly as right as that store. An
+    /// unreadable store is moved aside and a blank one takes its place, and then
+    /// every photograph "belongs to nobody": the sweep would delete the lot on
+    /// the launch whose screen says nothing was deleted, and the photographs
+    /// are excluded from every backup. The same holds for a launch that fell
+    /// back to a store in memory. The moved-aside file still names them, so
+    /// nothing is removed while one exists, on this launch or any later one.
     @discardableResult
     func removeOrphanedPages(referencedNames: Set<String>) -> Int {
-        guard let dir = try? directory(),
+        guard !BabyModelStore.isInMemoryFallback,
+              let root = try? rootDirectory(),
+              !BabyModelStore.hasUnreadableArchive(in: root),
+              let dir = try? directory(),
               let contents = try? FileManager.default.contentsOfDirectory(
                   at: dir,
                   includingPropertiesForKeys: nil
