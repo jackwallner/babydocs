@@ -46,6 +46,13 @@ Moved verbatim from AGENTS.md. Loads when a matching file is read; update it her
     `finish()`, so the root used to swap itself for the tab bar in the same
     instant: the plan-is-ready page and the one prompt for notification
     permission were drawn for a fraction of a frame and never seen by anybody.
+  - **A shared plan imported over the intake ends it too.** The second parent's
+    whole journey is: install, tap the other parent's link, confirm the sheet.
+    The intake used to end only on its own last page, so the imported plan was
+    built behind the welcome screen and finishing the questions added the same
+    baby twice. `AppNavigator.planWasImported` marks the intake finished, and
+    `IntakeGateTests` holds it. The flag lives on the navigator rather than in
+    `RootView`, so a test can drive it without a view.
 
 - **A ticked document does not disappear.** The Documents tab was one list,
   "still to find", so ticking a row was indistinguishable from deleting it. That

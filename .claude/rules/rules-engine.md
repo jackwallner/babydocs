@@ -56,3 +56,14 @@ Moved verbatim from AGENTS.md. Loads when a matching file is read; update it her
   what the office told them and nudges from that. Processing times move
   constantly and differ by county, so a bundled figure would be a citation the
   app cannot support, which is the same rule as `StateVitalRecords`.
+
+- **"Waiting on something else" ends two ways, and the engine only produces one
+  of them as a tick.** A task with `StartAdvice.after(key:)` (the passport, the
+  check on the certificate, the newborn account, the tax return, the 529) is
+  open when the ordering task is ticked **or** when the family has recorded the
+  thing itself on the Children screen ("certified birth certificate in hand",
+  "Social Security: card received"). The second route stops the ordering rule
+  applying, so the engine *retires* the row and nothing is ever ticked.
+  `PlanTimeline.hasArrived` reads the child's answer for that reason, and a new
+  `.after` key needs an arrival answer there or it will be blocked for ever.
+  `TimelinePrerequisiteTests` holds it.

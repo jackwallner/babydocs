@@ -62,6 +62,16 @@ Moved verbatim from AGENTS.md. Loads when a matching file is read; update it her
   back a photograph already there. The paywall says so. Anything else is holding
   a parent's documents hostage, and Apple's refund team would agree.
 
+- **The launch sweep of orphaned photographs never runs on a store that is not
+  the family's.** `VaultStore.removeOrphanedPages` removes every file the live
+  store does not name. When the store on disk cannot be opened it is moved aside
+  (`BabyModelStore.unreadableArchivePrefix`) and a blank one takes its place, so
+  every photograph looked orphaned and the first launch after a recovery deleted
+  the lot, on the launch whose screen says "Nothing was deleted", from a folder
+  that is excluded from every backup. The sweep now does nothing while the
+  store is memory-only or an archive exists beside the vault, on this launch and
+  every later one. `VaultSweepTests` holds it.
+
 - **The review ask is `requestReview()` with nothing in front of it, and the
   only thing the app decides is when.** `ReviewPromptTracker` chooses the
   moment: a task with a **hard** deadline ticked **before** that deadline closed
