@@ -38,7 +38,14 @@ final class VaultStore {
 
     private let log = Logger(subsystem: "com.jackwallner.babydocs", category: "vault")
 
-    private init() {}
+    /// Where the vault folder lives. Application Support in the app; a scratch
+    /// folder in tests, so a test never touches the photographs of whatever
+    /// copy of the app is hosting it.
+    private let storageRoot: URL?
+
+    init(storageRoot: URL? = nil) {
+        self.storageRoot = storageRoot
+    }
 
     // MARK: - Unlocking
 
@@ -181,14 +188,20 @@ final class VaultStore {
         return candidate
     }
 
-    private func directory() throws -> URL {
-        let manager = FileManager.default
-        let base = try manager.url(
+    /// The folder that holds the vault folder, and the SwiftData store beside it.
+    private func rootDirectory() throws -> URL {
+        if let storageRoot { return storageRoot }
+        return try FileManager.default.url(
             for: .applicationSupportDirectory,
             in: .userDomainMask,
             appropriateFor: nil,
             create: true
         )
+    }
+
+    private func directory() throws -> URL {
+        let manager = FileManager.default
+        let base = try rootDirectory()
         var dir = base.appendingPathComponent("Vault", isDirectory: true)
         if !manager.fileExists(atPath: dir.path) {
             try manager.createDirectory(

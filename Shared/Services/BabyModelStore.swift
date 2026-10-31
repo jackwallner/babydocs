@@ -34,6 +34,16 @@ enum BabyModelStore {
     /// deleted the baby, and the parent's real work is still on the disk.
     @MainActor private(set) static var recoveredStoreURL: URL?
 
+    /// What an unreadable store is renamed to start with. One constant, because
+    /// the code that moves a store aside and the code that notices one was
+    /// moved aside have to agree on the name.
+    static let unreadableArchivePrefix = "BabyDocs-unreadable-"
+
+    /// True when neither the store on disk nor a fresh one could be opened and
+    /// this launch is running on a store that lives in memory only. Set once,
+    /// inside the container's own initialiser, before anybody can read it.
+    nonisolated(unsafe) private(set) static var isInMemoryFallback = false
+
     static let sharedModelContainer: ModelContainer = {
         let url = storeURL
 
@@ -63,11 +73,31 @@ enum BabyModelStore {
             cloudKitDatabase: .none
         )
         do {
-            return try ModelContainer(for: schema, configurations: [inMemory])
+            let container = try ModelContainer(for: schema, configurations: [inMemory])
+            isInMemoryFallback = true
+            return container
         } catch {
             fatalError("BabyModelStore could not initialize: \(error)")
         }
     }()
+
+    /// Whether an unreadable store was ever moved aside in `directory`.
+    ///
+    /// A moved-aside store still holds the rows that name the vault's
+    /// photographs, so while one exists the live store is not the whole story
+    /// and nothing may conclude that a photograph "belongs to nobody".
+    static func hasUnreadableArchive(in directory: URL) -> Bool {
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
+        return names.contains { $0.hasPrefix(unreadableArchivePrefix) }
+    }
+
+    #if DEBUG
+    /// Test seam for `isInMemoryFallback`, which only the container's own
+    /// initialiser can set in a real launch.
+    static func setInMemoryFallbackForTesting(_ value: Bool) {
+        isInMemoryFallback = value
+    }
+    #endif
 
     /// Moves an unreadable store and its sidecars out of the way, keeping every
     /// byte, and returns where they went. Nothing in this app deletes a store
@@ -80,7 +110,7 @@ enum BabyModelStore {
             .replacingOccurrences(of: ":", with: "-")
         let destination = url
             .deletingLastPathComponent()
-            .appendingPathComponent("BabyDocs-unreadable-\(stamp).store")
+            .appendingPathComponent("\(unreadableArchivePrefix)\(stamp).store")
 
         var moved: URL?
         var movedFiles: [(source: URL, target: URL)] = []

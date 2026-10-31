@@ -15,9 +15,6 @@ struct RootView: View {
     @State private var hasAcknowledgedRecovery = false
     /// One ask per launch at most, whatever else happens.
     @State private var hasRequestedReviewThisSession = false
-    /// Set by the intake's own last page. Nil until the intake has been on
-    /// screen, so a launch with a plan already in the store never opens it.
-    @State private var hasFinishedIntake = true
     @Environment(\.requestReview) private var requestReview
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     /// The container's width and fold, measured so the unfolded iPhone Duo can
@@ -52,8 +49,8 @@ struct RootView: View {
                 // permission were drawn for a fraction of a frame and never
                 // seen by anybody. An intake that cannot show its own last page
                 // cannot ask for the permission the whole product depends on.
-                OnboardingFlow { hasFinishedIntake = true }
-                    .onAppear { hasFinishedIntake = false }
+                OnboardingFlow { navigator.intakeDidFinish() }
+                    .onAppear { navigator.intakeDidAppear() }
             } else if children.isEmpty {
                 ArchivedChildrenRecoveryView(children: archivedChildren)
             } else {
@@ -94,7 +91,7 @@ struct RootView: View {
         }
         .sheet(item: $navigator.pendingSeed) { seed in
             ImportPlanSheet(seed: seed) {
-                navigator.selectedTab = .plan
+                navigator.planWasImported()
             }
         }
         // A local-only app that swallows a failed write is telling the parent
@@ -302,14 +299,12 @@ struct RootView: View {
         VaultStore.shared.removeOrphanedPages(referencedNames: referenced)
     }
 
-    /// Whether the intake owns the screen.
-    ///
-    /// An empty store opens it, and it stays open until the intake's own last
-    /// page says otherwise, even though the child it created is in the store by
-    /// then. That gap is where the plan-is-ready page and the notification
-    /// prompt live.
+    /// Whether the intake owns the screen. See `AppNavigator.isIntakeOpen`.
     private var isIntakeOpen: Bool {
-        (children.isEmpty && archivedChildren.isEmpty) || !hasFinishedIntake
+        navigator.isIntakeOpen(
+            activeChildren: children.count,
+            archivedChildren: archivedChildren.count
+        )
     }
 
     /// The system ask, one beat after the tick.
