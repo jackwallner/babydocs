@@ -70,7 +70,14 @@ final class AppNavigator {
     }
 
     /// A shared plan was applied. The Plan tab is where it lands.
+    ///
+    /// It also ends the intake. The import wrote the child and built the plan,
+    /// so the questions have nothing left to ask, and leaving them up let a
+    /// second parent who tapped the link on a fresh install work through the
+    /// whole form and add the same baby twice. The intake is not made to show
+    /// its closing pages here: it never reached them.
     func planWasImported() {
+        isIntakeFinished = true
         selectedTab = .plan
     }
 
