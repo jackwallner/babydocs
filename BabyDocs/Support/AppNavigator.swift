@@ -43,7 +43,36 @@ final class AppNavigator {
     /// succession cannot stack two paywalls.
     var isShowingPaywall = false
 
-    private init() {}
+    /// Whether the first-run intake has been left behind. True until the intake
+    /// appears, so a launch with a plan already in the store never opens it.
+    private(set) var isIntakeFinished = true
+
+    /// Internal rather than private so a test can build a navigator of its own
+    /// instead of sharing the app's.
+    init() {}
+
+    func intakeDidAppear() {
+        isIntakeFinished = false
+    }
+
+    func intakeDidFinish() {
+        isIntakeFinished = true
+    }
+
+    /// Whether the intake owns the screen.
+    ///
+    /// An empty store opens it, and it stays open until the intake's own last
+    /// page says otherwise, even though the child it created is in the store by
+    /// then. That gap is where the plan-is-ready page and the notification
+    /// prompt live.
+    func isIntakeOpen(activeChildren: Int, archivedChildren: Int) -> Bool {
+        (activeChildren == 0 && archivedChildren == 0) || !isIntakeFinished
+    }
+
+    /// A shared plan was applied. The Plan tab is where it lands.
+    func planWasImported() {
+        selectedTab = .plan
+    }
 
     /// The sheet, for a gate somebody has just walked into.
     ///
