@@ -124,7 +124,7 @@ enum PlanTimeline {
                 phase = daysAway <= 0 ? .now : (daysAway <= 7 ? .soon : .later)
                 reason = because
             case .after(let key, let because):
-                if completedKeys.contains(key) {
+                if hasArrived(key, completedKeys: completedKeys, child: task.child) {
                     phase = .now
                     reason = "\(because) That has arrived, so this one is open."
                 } else {
@@ -156,6 +156,26 @@ enum PlanTimeline {
         groups(for: tasks, now: now)
             .first { $0.phase == .now }?
             .steps.filter { !$0.isDone }.count ?? 0
+    }
+
+    /// Whether what a task waits on is already in the family's hands.
+    ///
+    /// There are two ways to say so. Ticking the ordering task is one. The
+    /// other is the answer on the Children screen ("certified birth certificate
+    /// in hand", "Social Security: card received"), and it ticks nothing: the
+    /// rule behind the ordering task stops applying and `RequirementEngine`
+    /// retires the row, so there is no ticked task to find. Looking only for
+    /// ticks held the passport, the newborn account, the tax return and the 529
+    /// "waiting" on things the family was holding, and could never open the
+    /// check on the certificate, which exists only once the copy does.
+    private static func hasArrived(_ key: String, completedKeys: Set<String>, child: Child?) -> Bool {
+        if completedKeys.contains(key) { return true }
+        guard let child else { return false }
+        switch key {
+        case RequirementCatalog.birthCertificate.key: return child.birthCertificateReceivedAt != nil
+        case RequirementCatalog.ssnCard.key: return child.hasSSN
+        default: return false
+        }
     }
 
     private static func openingDate(afterDays days: Int, from birthDate: Date) -> Date {
