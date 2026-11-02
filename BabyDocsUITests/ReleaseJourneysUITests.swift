@@ -54,16 +54,16 @@ final class ReleaseJourneysUITests: XCTestCase {
         tapScrolling(task, in: app)
         XCTAssertTrue(app.navigationBars["Birth certificate"].waitForExistence(timeout: 10))
         QA.checkpoint(app, "task-detail")
-        app.navigationBars.buttons.element(boundBy: 0).tap()
+        goBack(app)
         page("Plan", checkpoint: "plan-after-task", in: app)
 
         for (tab, title) in [("Documents", "Documents"), ("Children", "Children"),
                              ("Plus", "Baby Docs Plus"), ("Settings", "Settings")] {
-            app.tabBars.buttons[tab].tap()
+            openTab(tab, in: app)
             XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 10))
             QA.checkpoint(app, tab.lowercased(), paywall: tab == "Plus")
         }
-        app.tabBars.buttons["Plan"].tap()
+        openTab("Plan", in: app)
         page("Plan", checkpoint: "plan-return", in: app)
         QA.interrupt(app)
         page("Plan", checkpoint: "plan-after-background", in: app)
@@ -119,7 +119,7 @@ final class ReleaseJourneysUITests: XCTestCase {
         let footer = app.buttons["Continue"].firstMatch
         let bar = app.tabBars.firstMatch
         let navigation = app.navigationBars.firstMatch
-        for _ in 0..<32 {
+        for attempt in 0..<32 {
             let top = navigation.exists ? navigation.frame.maxY : app.frame.minY
             var bottom = app.frame.maxY
             if footer.exists && footer.isHittable { bottom = min(bottom, footer.frame.minY) }
@@ -130,18 +130,49 @@ final class ReleaseJourneysUITests: XCTestCase {
             }
             // QA.swipe, never a raw drag or swipeUp(): on the unfolded iPhone Duo the
             // inner display is rotated against the device and those land sideways.
-            QA.swipe(scroller(in: app), element.exists && center <= top ? .down : .up)
+            let towardTop = element.exists && center <= top
+            let page = scroller(in: app)
+            // If the standard swipe does not move the page (a rotated inner display),
+            // fall back to XCTest's own, then to a drag along the rotated axis.
+            switch attempt % 3 {
+            case 0: QA.swipe(page, towardTop ? .down : .up)
+            case 1: if towardTop { page.swipeDown() } else { page.swipeUp() }
+            default:
+                let from = CGVector(dx: towardTop ? 0.2 : 0.8, dy: 0.5)
+                let to = CGVector(dx: towardTop ? 0.8 : 0.2, dy: 0.5)
+                page.coordinate(withNormalizedOffset: from)
+                    .press(forDuration: 0.05, thenDragTo: page.coordinate(withNormalizedOffset: to))
+            }
         }
         XCTFail("Could not scroll the requested control into view: \(element)")
     }
 
-    /// The pane's scrolling content, found by type so it works with a tab bar and
-    /// with the Duo's two panes (the leading pane's list is first in the tree).
+    /// The tab bar's button, or on the unfolded Duo the pane's own tab buttons.
+    /// Documents has no tab there: it already sits beside the Plan.
+    private func openTab(_ name: String, in app: XCUIApplication) {
+        let bar = app.tabBars.buttons[name]
+        if bar.exists { bar.tap(); return }
+        let pane = app.buttons[name].firstMatch
+        if pane.waitForExistence(timeout: 5) { pane.tap() }
+    }
+
+    /// The largest scrolling container, so a small scroller (the Duo's pane tab
+    /// capsule) is never mistaken for the page.
     private func scroller(in app: XCUIApplication) -> XCUIElement {
-        for query in [app.scrollViews, app.collectionViews, app.tables] where query.firstMatch.exists {
-            return query.firstMatch
-        }
-        return app
+        let all = [app.scrollViews, app.collectionViews, app.tables]
+            .flatMap { $0.allElementsBoundByIndex }
+            .filter { $0.exists && $0.frame.height > 150 }
+        return all.max { $0.frame.width * $0.frame.height < $1.frame.width * $1.frame.height } ?? app
+    }
+
+    /// Back from a pushed screen: the nav bar's button, or on the Duo, where the
+    /// bar is vertical or hidden, a labelled button or an edge swipe.
+    private func goBack(_ app: XCUIApplication) {
+        let bar = app.navigationBars.buttons.element(boundBy: 0)
+        if bar.exists && bar.isHittable { bar.tap(); return }
+        let named = app.buttons.matching(NSPredicate(format: "label IN {'Back','Plan'}")).firstMatch
+        if named.exists && named.isHittable { named.tap(); return }
+        QA.swipe(app, .right)
     }
 
     private func chooseCalifornia(_ label: String, in app: XCUIApplication) {
