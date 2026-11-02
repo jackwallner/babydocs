@@ -1,1 +1,1 @@
-First release.
+Clearer App Store description of what is free and what Plus adds, plus small fixes.
