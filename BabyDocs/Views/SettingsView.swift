@@ -41,7 +41,7 @@ struct SettingsView: View {
                 if let recovered = BabyModelStore.recoveredStoreURL {
                     Section {
                         Label("The saved plan could not be opened", systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(AppTheme.alertOrange)
                         Text("Baby Docs started with an empty plan because the file it saves to could not be read. Nothing was deleted: the old file is still on this phone at \(recovered.lastPathComponent). Get in touch through Support before setting everything up again, and it may be recoverable.")
                             .font(.footnote)
                     } header: {

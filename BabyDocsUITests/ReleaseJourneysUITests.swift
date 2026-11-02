@@ -72,6 +72,30 @@ final class ReleaseJourneysUITests: XCTestCase {
         page("Plan", checkpoint: "plan-after-relaunch", in: app)
     }
 
+    /// The core loop: tick a task on the plan, and it is still ticked after a
+    /// kill and relaunch.
+    func testCoreLoopTickTaskSurvivesRelaunch() {
+        let app = XCUIApplication()
+        QA.launch(app, arguments: ["-uitest-wipe-store", "-uitest-seed"])
+        page("Plan", checkpoint: "core-plan", in: app)
+
+        let open = app.buttons.matching(NSPredicate(
+            format: "label BEGINSWITH 'Mark ' AND label ENDSWITH ' done' AND NOT label ENDSWITH ' not done'"
+        )).firstMatch
+        reveal(open, in: app)
+        let title = open.label.dropFirst("Mark ".count).dropLast(" done".count)
+        open.tap()
+        // A done task leaves the open list (it moves under the folded done section).
+        let stillOpen = app.buttons["Mark \(title) done"]
+        XCTAssertTrue(stillOpen.waitForNonExistence(timeout: 10), "ticked task leaves the open list")
+        QA.checkpoint(app, "core-ticked")
+
+        app.launchArguments.removeAll { $0 == "-uitest-wipe-store" || $0 == "-uitest-seed" }
+        QA.relaunch(app)
+        page("Plan", checkpoint: "core-after-relaunch", in: app)
+        XCTAssertFalse(app.buttons["Mark \(title) done"].exists, "the tick survives a relaunch")
+    }
+
     private func page(_ title: String, checkpoint: String? = nil, in app: XCUIApplication,
                       journey: String = #function) {
         XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 15))
@@ -104,17 +128,20 @@ final class ReleaseJourneysUITests: XCTestCase {
             if element.exists && element.isHittable && center > top && center < bottom {
                 return
             }
-            let down = element.exists && center <= top
-            let span = max(bottom - top, 100)
-            let start = top + span * (down ? 0.35 : 0.70)
-            let end = top + span * (down ? 0.60 : 0.45)
-            app.coordinate(withNormalizedOffset: CGVector(
-                dx: 0.5, dy: (start - app.frame.minY) / app.frame.height
-            )).press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(
-                dx: 0.5, dy: (end - app.frame.minY) / app.frame.height
-            )))
+            // QA.swipe, never a raw drag or swipeUp(): on the unfolded iPhone Duo the
+            // inner display is rotated against the device and those land sideways.
+            QA.swipe(scroller(in: app), element.exists && center <= top ? .down : .up)
         }
         XCTFail("Could not scroll the requested control into view: \(element)")
+    }
+
+    /// The pane's scrolling content, found by type so it works with a tab bar and
+    /// with the Duo's two panes (the leading pane's list is first in the tree).
+    private func scroller(in app: XCUIApplication) -> XCUIElement {
+        for query in [app.scrollViews, app.collectionViews, app.tables] where query.firstMatch.exists {
+            return query.firstMatch
+        }
+        return app
     }
 
     private func chooseCalifornia(_ label: String, in app: XCUIApplication) {

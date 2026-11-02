@@ -362,7 +362,7 @@ private struct StorageRecoveryView: View {
                 VStack(alignment: .leading, spacing: AppTheme.spacing) {
                     Image(systemName: "externaldrive.badge.exclamationmark")
                         .font(.system(size: 42))
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(AppTheme.alertOrange)
                     Text("Your saved plan needs attention")
                         .font(.title2.weight(.bold))
                         .fixedSize(horizontal: false, vertical: true)

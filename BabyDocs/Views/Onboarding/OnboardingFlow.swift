@@ -1023,7 +1023,7 @@ struct RequiredLabel: View {
         HStack(spacing: AppTheme.hairSpacing) {
             Text(text)
             Text("*")
-                .foregroundStyle(.red)
+                .foregroundStyle(AppTheme.alertRed)
                 .accessibilityHidden(true)
         }
     }
@@ -1080,7 +1080,7 @@ struct OnboardingFooter: View {
                 if !note.isEmpty {
                     Text(note)
                         .font(.footnote)
-                        .foregroundStyle(enabled ? .secondary : Color.red)
+                        .foregroundStyle(enabled ? .secondary : AppTheme.alertRed)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -1089,7 +1089,10 @@ struct OnboardingFooter: View {
         .padding(.horizontal, AppTheme.margin)
         .padding(.top, AppTheme.spacing)
         .padding(.bottom, AppTheme.tightSpacing)
-        .background(.bar)
+        // Opaque, not `.bar`: the material let the last option row read through
+        // the button and its note at an accessibility text size.
+        .background(AppTheme.pageBackground.ignoresSafeArea())
+        .overlay(alignment: .top) { Divider() }
     }
 }
 

@@ -496,7 +496,7 @@ struct AddVaultDocumentSheet: View {
                     if let photoLoadError {
                         Text(photoLoadError)
                             .font(.footnote)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(AppTheme.alertRed)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     if !images.isEmpty {

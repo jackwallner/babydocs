@@ -1,6 +1,17 @@
 import SwiftUI
 
 enum AppTheme {
+    /// Red and orange as text. The system hues are for fills and glyphs: as small
+    /// text on white or on their own 12% tint they measure 2.2 to 3.3:1. Light
+    /// mode gets a darker shade (at least 4.5:1 on white and on the tint); dark
+    /// mode keeps the system colour, which already clears it.
+    static let alertRed = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
+        ? .systemRed : UIColor(red: 0.70, green: 0.08, blue: 0.10, alpha: 1) })
+    static let calmGreen = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
+        ? .systemGreen : UIColor(red: 0.07, green: 0.42, blue: 0.16, alpha: 1) })
+    static let alertOrange = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
+        ? .systemOrange : UIColor(red: 0.62, green: 0.31, blue: 0.0, alpha: 1) })
+
     /// Each child gets a stable colour so a task, a document and a note all read
     /// as belonging to the same baby at a glance.
     static let childColors: [Color] = [
@@ -31,11 +42,11 @@ enum AppTheme {
     static func color(for kind: DeadlineKind, daysRemaining: Int?) -> Color {
         switch kind {
         case .hard:
-            guard let daysRemaining else { return .red }
-            if daysRemaining < 0 { return .red }
-            return daysRemaining <= 7 ? .red : .orange
+            guard let daysRemaining else { return alertRed }
+            if daysRemaining < 0 { return alertRed }
+            return daysRemaining <= 7 ? alertRed : alertOrange
         case .recommended:
-            return .orange
+            return alertOrange
         case .none:
             return .secondary
         }

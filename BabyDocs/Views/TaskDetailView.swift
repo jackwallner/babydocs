@@ -383,7 +383,7 @@ struct TaskDetailView: View {
                     } icon: {
                         Image(systemName: "clock.badge.exclamationmark.fill")
                     }
-                    .foregroundStyle(.red)
+                    .foregroundStyle(AppTheme.alertRed)
                 }
             }
         } header: {

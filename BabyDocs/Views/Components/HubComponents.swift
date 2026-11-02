@@ -50,7 +50,7 @@ struct LatePill: View {
             Text("Not arrived")
                 .font(.caption.weight(.semibold))
         }
-        .foregroundStyle(.red)
+        .foregroundStyle(AppTheme.alertRed)
         .padding(.horizontal, AppTheme.tightSpacing)
         .padding(.vertical, AppTheme.hairSpacing)
         .background(Color.red.opacity(0.12), in: Capsule())
@@ -310,7 +310,7 @@ struct PlanHeaderCard: View {
                           : "checkmark.circle.fill")
                         .font(.caption)
                 }
-                .foregroundStyle(overview.hasPastHardDeadline || overview.nextHardDeadline != nil ? Color.red : Color.green)
+                .foregroundStyle(overview.hasPastHardDeadline || overview.nextHardDeadline != nil ? AppTheme.alertRed : AppTheme.calmGreen)
 
                 Spacer(minLength: 0)
                 // No chevron of our own here. The row is a `NavigationLink`, and
@@ -326,7 +326,7 @@ struct PlanHeaderCard: View {
                     .fixedSize(horizontal: false, vertical: true)
                 Text(TaskPlanner.deadlineLine(for: date))
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.red)
+                    .foregroundStyle(AppTheme.alertRed)
                     .fixedSize(horizontal: false, vertical: true)
             } else if let date = overview.nextHardDeadline, let title = overview.nextHardDeadlineTitle {
                 Text(title)
@@ -338,7 +338,7 @@ struct PlanHeaderCard: View {
                 // of. See `TaskPlanner.deadlineLine`.
                 Text(TaskPlanner.deadlineLine(for: date))
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.red)
+                    .foregroundStyle(AppTheme.alertRed)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
                 Text("Every closing window is behind you. What is left has no date attached to it.")
@@ -382,7 +382,7 @@ struct PlanProgressCard: View {
                 if overview.overdueCount > 0 {
                     Text("\(overview.overdueCount) past due")
                         .font(.caption.weight(.medium))
-                        .foregroundStyle(.red)
+                        .foregroundStyle(AppTheme.alertRed)
                 }
             }
             // A real bar rather than the system hairline, which on a dark page
@@ -491,7 +491,7 @@ struct SourceFootnote: View {
                 if let verifiedOn {
                     Text(checkedLine(verifiedOn))
                         .font(.caption)
-                        .foregroundStyle(rule?.source?.status == .awaitingReview ? .orange : .secondary)
+                        .foregroundStyle(rule?.source?.status == .awaitingReview ? AppTheme.alertOrange : .secondary)
                 }
                 if let limitations = rule?.source?.limitations, !limitations.isEmpty {
                     Text("What it does not tell you: \(limitations)")
