@@ -54,7 +54,7 @@ final class ReleaseJourneysUITests: XCTestCase {
         tapScrolling(task, in: app)
         XCTAssertTrue(app.navigationBars["Birth certificate"].waitForExistence(timeout: 10))
         QA.checkpoint(app, "task-detail")
-        app.navigationBars.buttons.element(boundBy: 0).tap()
+        goBack(app)
         page("Plan", checkpoint: "plan-after-task", in: app)
 
         for (tab, title) in [("Documents", "Documents"), ("Children", "Children"),
@@ -135,13 +135,23 @@ final class ReleaseJourneysUITests: XCTestCase {
         XCTFail("Could not scroll the requested control into view: \(element)")
     }
 
-    /// The pane's scrolling content, found by type so it works with a tab bar and
-    /// with the Duo's two panes (the leading pane's list is first in the tree).
+    /// The largest scrolling container, so a small scroller (the Duo's pane tab
+    /// capsule) is never mistaken for the page.
     private func scroller(in app: XCUIApplication) -> XCUIElement {
-        for query in [app.scrollViews, app.collectionViews, app.tables] where query.firstMatch.exists {
-            return query.firstMatch
-        }
-        return app
+        let all = [app.scrollViews, app.collectionViews, app.tables]
+            .flatMap { $0.allElementsBoundByIndex }
+            .filter { $0.exists && $0.frame.height > 150 }
+        return all.max { $0.frame.width * $0.frame.height < $1.frame.width * $1.frame.height } ?? app
+    }
+
+    /// Back from a pushed screen: the nav bar's button, or on the Duo, where the
+    /// bar is vertical or hidden, a labelled button or an edge swipe.
+    private func goBack(_ app: XCUIApplication) {
+        let bar = app.navigationBars.buttons.element(boundBy: 0)
+        if bar.exists && bar.isHittable { bar.tap(); return }
+        let named = app.buttons.matching(NSPredicate(format: "label IN {'Back','Plan'}")).firstMatch
+        if named.exists && named.isHittable { named.tap(); return }
+        QA.swipe(app, .right)
     }
 
     private func chooseCalifornia(_ label: String, in app: XCUIApplication) {
