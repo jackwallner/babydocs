@@ -496,7 +496,7 @@ struct AddVaultDocumentSheet: View {
                     if let photoLoadError {
                         Text(photoLoadError)
                             .font(.footnote)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(AppTheme.urgent)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     if !images.isEmpty {
@@ -739,6 +739,7 @@ struct ZoomableImage: View {
     let image: UIImage
     @State private var scale: CGFloat = 1
     @State private var offset: CGSize = .zero
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Image(uiImage: image)
@@ -756,7 +757,7 @@ struct ZoomableImage: View {
                 )
             )
             .onTapGesture(count: 2) {
-                withAnimation(.snappy) { scale > 1 ? reset() : (scale = 3) }
+                withAnimation(reduceMotion ? nil : .snappy) { scale > 1 ? reset() : (scale = 3) }
             }
             .accessibilityValue("Zoom \(Int(scale * 100)) percent")
             .accessibilityHint("Use the accessibility adjustable action to zoom this page")
@@ -774,7 +775,7 @@ struct ZoomableImage: View {
     }
 
     private func zoom(by amount: CGFloat) {
-        withAnimation(.snappy) {
+        withAnimation(reduceMotion ? nil : .snappy) {
             scale = max(1, min(6, scale + amount))
             if scale == 1 { offset = .zero }
         }

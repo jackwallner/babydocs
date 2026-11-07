@@ -257,7 +257,7 @@ private struct ChildRow: View {
             Text("\(overview.openCount) left")
                 .font(.subheadline.weight(.medium))
                 .monospacedDigit()
-                .foregroundStyle(overview.overdueCount > 0 ? .red : .secondary)
+                .foregroundStyle(overview.overdueCount > 0 ? AppTheme.urgent : AppTheme.quiet)
         }
         .accessibilityElement(children: .combine)
         .accessibilityValue(

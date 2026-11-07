@@ -1023,7 +1023,7 @@ struct RequiredLabel: View {
         HStack(spacing: AppTheme.hairSpacing) {
             Text(text)
             Text("*")
-                .foregroundStyle(.red)
+                .foregroundStyle(AppTheme.urgent)
                 .accessibilityHidden(true)
         }
     }

@@ -31,15 +31,29 @@ enum AppTheme {
     static func color(for kind: DeadlineKind, daysRemaining: Int?) -> Color {
         switch kind {
         case .hard:
-            guard let daysRemaining else { return .red }
-            if daysRemaining < 0 { return .red }
-            return daysRemaining <= 7 ? .red : .orange
+            guard let daysRemaining else { return urgent }
+            if daysRemaining < 0 { return urgent }
+            return daysRemaining <= 7 ? urgent : caution
         case .recommended:
-            return .orange
+            return caution
         case .none:
-            return .secondary
+            return quiet
         }
     }
+
+    /// The three text colours of the urgency system, darkened in light mode so
+    /// they hold 4.5:1 on the page, a card and their own 12% tint. The system
+    /// red, orange and green are fills; as text on white they sit near 3:1.
+    static let urgent = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
+        ? .systemRed : UIColor(red: 0.74, green: 0.09, blue: 0.09, alpha: 1) })
+    static let caution = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
+        ? .systemOrange : UIColor(red: 0.62, green: 0.31, blue: 0.0, alpha: 1) })
+    static let positive = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
+        ? .systemGreen : UIColor(red: 0.07, green: 0.45, blue: 0.19, alpha: 1) })
+
+    /// Secondary text that stays legible on a tinted pill and on the page.
+    static let quiet = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
+        ? UIColor(white: 0.74, alpha: 1) : UIColor(white: 0.32, alpha: 1) })
 
     // MARK: - Surfaces
 
@@ -363,11 +377,14 @@ enum Haptics {
 /// on the standard system spring so it matches every other control on the
 /// phone rather than inventing an animation curve.
 struct PressableCardStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
             .opacity(configuration.isPressed ? 0.85 : 1)
-            .animation(.spring(response: 0.28, dampingFraction: 0.7), value: configuration.isPressed)
+            .animation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.7),
+                       value: configuration.isPressed)
     }
 }
 

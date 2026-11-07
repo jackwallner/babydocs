@@ -50,10 +50,10 @@ struct LatePill: View {
             Text("Not arrived")
                 .font(.caption.weight(.semibold))
         }
-        .foregroundStyle(.red)
+        .foregroundStyle(AppTheme.urgent)
         .padding(.horizontal, AppTheme.tightSpacing)
         .padding(.vertical, AppTheme.hairSpacing)
-        .background(Color.red.opacity(0.12), in: Capsule())
+        .background(AppTheme.urgent.opacity(0.12), in: Capsule())
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Sent, and past the date it was expected back")
     }
@@ -115,8 +115,8 @@ struct TaskRow: View {
         VStack(alignment: .leading, spacing: AppTheme.tightSpacing) {
             Text(task.title)
                 .font(.body)
-                .foregroundStyle(task.isDone ? .secondary : .primary)
-                .strikethrough(task.isDone, color: .secondary)
+                .foregroundStyle(task.isDone ? AppTheme.quiet : .primary)
+                .strikethrough(task.isDone, color: AppTheme.quiet)
                 .fixedSize(horizontal: false, vertical: true)
 
             if !task.isDone {
@@ -147,7 +147,7 @@ struct TaskRow: View {
             Text(secondaryLine)
                 .font(.caption)
         }
-        .foregroundStyle(.secondary)
+        .foregroundStyle(AppTheme.quiet)
         .accessibilityLabel("\(task.category.label). \(secondaryLine)")
     }
 
@@ -310,7 +310,7 @@ struct PlanHeaderCard: View {
                           : "checkmark.circle.fill")
                         .font(.caption)
                 }
-                .foregroundStyle(overview.hasPastHardDeadline || overview.nextHardDeadline != nil ? Color.red : Color.green)
+                .foregroundStyle(overview.hasPastHardDeadline || overview.nextHardDeadline != nil ? AppTheme.urgent : AppTheme.positive)
 
                 Spacer(minLength: 0)
                 // No chevron of our own here. The row is a `NavigationLink`, and
@@ -326,7 +326,7 @@ struct PlanHeaderCard: View {
                     .fixedSize(horizontal: false, vertical: true)
                 Text(TaskPlanner.deadlineLine(for: date))
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.red)
+                    .foregroundStyle(AppTheme.urgent)
                     .fixedSize(horizontal: false, vertical: true)
             } else if let date = overview.nextHardDeadline, let title = overview.nextHardDeadlineTitle {
                 Text(title)
@@ -338,7 +338,7 @@ struct PlanHeaderCard: View {
                 // of. See `TaskPlanner.deadlineLine`.
                 Text(TaskPlanner.deadlineLine(for: date))
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.red)
+                    .foregroundStyle(AppTheme.urgent)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
                 Text("Every closing window is behind you. What is left has no date attached to it.")
@@ -382,7 +382,7 @@ struct PlanProgressCard: View {
                 if overview.overdueCount > 0 {
                     Text("\(overview.overdueCount) past due")
                         .font(.caption.weight(.medium))
-                        .foregroundStyle(.red)
+                        .foregroundStyle(AppTheme.urgent)
                 }
             }
             // A real bar rather than the system hairline, which on a dark page
@@ -418,13 +418,13 @@ struct PlanSectionHeader: View {
                     Text("\(count)")
                         .font(.subheadline)
                         .monospacedDigit()
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppTheme.quiet)
                 }
             }
             if !blurb.isEmpty {
                 Text(blurb)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppTheme.quiet)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -449,9 +449,17 @@ struct ProgressBar: View {
             }
         }
         .frame(height: 6)
-        .accessibilityElement()
-        .accessibilityLabel("Progress")
-        .accessibilityValue("\(Int((value * 100).rounded())) percent")
+        .accessibilityHidden(true)
+        // The bar is six points tall; the element a finger or a switch lands
+        // on is drawn around it without taking any layout space.
+        .overlay {
+            Color.clear
+                .frame(height: 44)
+                .contentShape(Rectangle())
+                .accessibilityElement()
+                .accessibilityLabel("Progress")
+                .accessibilityValue("\(Int((value * 100).rounded())) percent")
+        }
     }
 }
 
@@ -491,7 +499,7 @@ struct SourceFootnote: View {
                 if let verifiedOn {
                     Text(checkedLine(verifiedOn))
                         .font(.caption)
-                        .foregroundStyle(rule?.source?.status == .awaitingReview ? .orange : .secondary)
+                        .foregroundStyle(rule?.source?.status == .awaitingReview ? AppTheme.caution : AppTheme.quiet)
                 }
                 if let limitations = rule?.source?.limitations, !limitations.isEmpty {
                     Text("What it does not tell you: \(limitations)")

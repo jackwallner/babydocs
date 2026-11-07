@@ -387,6 +387,7 @@ private struct StorageRecoveryView: View {
 /// baseline.
 private struct PaneTabBar: View {
     @Binding var selection: AppNavigator.Tab
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let tabs: [AppNavigator.Tab] = [.plan, .children, .plus, .settings]
 
@@ -416,7 +417,7 @@ private struct PaneTabBar: View {
         .padding(AppTheme.hairSpacing)
         .frame(height: UnfoldedSplit.paneTabBarHeight)
         .paneTabBarGlass()
-        .animation(.snappy, value: selection)
+        .animation(reduceMotion ? nil : .snappy, value: selection)
     }
 
     private static func title(_ tab: AppNavigator.Tab) -> String {

@@ -102,17 +102,28 @@ final class ReleaseJourneysUITests: XCTestCase {
         app.buttons.matching(NSPredicate(format: "label == %@", "Mark \(title) not done")).firstMatch
     }
 
+    private func doneLabel(matching format: String, _ argument: String, in app: XCUIApplication) -> XCUIElement {
+        app.staticTexts.matching(NSPredicate(format: format, argument)).firstMatch
+    }
+
+    /// The count sits in the plan's header card, which a list at an accessibility
+    /// text size unloads once it scrolls away, so look for it from the top.
+    private func scrollToCount(_ label: XCUIElement, in app: XCUIApplication) {
+        for _ in 0..<16 where !label.exists {
+            QA.swipe(scroller(for: label, in: app), .down)
+        }
+    }
+
     private func waitForDoneCount(_ expected: Int, in app: XCUIApplication) -> Bool {
-        app.staticTexts.matching(NSPredicate(
-            format: "label BEGINSWITH %@ AND label ENDSWITH ' done'", "\(expected) of "
-        )).firstMatch.waitForExistence(timeout: 10)
+        let label = doneLabel(matching: "label BEGINSWITH %@ AND label ENDSWITH ' done'", "\(expected) of ", in: app)
+        scrollToCount(label, in: app)
+        return label.waitForExistence(timeout: 10)
     }
 
     private func doneCount(in app: XCUIApplication) -> Int {
-        let label = app.staticTexts.matching(NSPredicate(
-            format: "label MATCHES %@", "[0-9]+ of [0-9]+ done"
-        )).firstMatch
+        let label = doneLabel(matching: "label MATCHES %@", "[0-9]+ of [0-9]+ done", in: app)
         XCTAssertTrue(label.waitForExistence(timeout: 15), "no done count on the plan")
+        scrollToCount(label, in: app)
         return Int(label.label.split(separator: " ")[0]) ?? -1
     }
 
@@ -149,16 +160,21 @@ final class ReleaseJourneysUITests: XCTestCase {
                 return
             }
             let down = element.exists && center <= top
-            let span = max(bottom - top, 100)
-            let start = top + span * (down ? 0.35 : 0.70)
-            let end = top + span * (down ? 0.60 : 0.45)
-            app.coordinate(withNormalizedOffset: CGVector(
-                dx: 0.5, dy: (start - app.frame.minY) / app.frame.height
-            )).press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(
-                dx: 0.5, dy: (end - app.frame.minY) / app.frame.height
-            )))
+            QA.swipe(scroller(for: element, in: app), down ? .down : .up)
         }
         XCTFail("Could not scroll the requested control into view: \(element)")
+    }
+
+    /// The scroll container to drag: the one under the element when it is known,
+    /// so the unfolded Duo scrolls the pane that holds it rather than the hinge.
+    private func scroller(for element: XCUIElement, in app: XCUIApplication) -> XCUIElement {
+        let containers = [XCUIElement.ElementType.scrollView, .table, .collectionView]
+            .flatMap { app.descendants(matching: $0).allElementsBoundByIndex }
+            .filter { $0.exists && $0.frame.height > 200 }
+        if element.exists, let owner = containers.first(where: {
+            $0.frame.minX <= element.frame.midX && element.frame.midX <= $0.frame.maxX
+        }) { return owner }
+        return containers.first ?? app
     }
 
     private func chooseCalifornia(_ label: String, in app: XCUIApplication) {
