@@ -157,16 +157,22 @@ final class ReleaseJourneysUITests: XCTestCase {
         let bar = app.tabBars.firstMatch
         let navigation = app.navigationBars.firstMatch
         for _ in 0..<32 {
+            let pane = scroller(for: element, in: app)
             let top = navigation.exists ? navigation.frame.maxY : app.frame.minY
-            var bottom = app.frame.maxY
+            var bottom = pane.frame.maxY
             if footer.exists && footer.isHittable { bottom = min(bottom, footer.frame.minY) }
-            if bar.exists && bar.frame.minY > app.frame.height / 2 { bottom = min(bottom, bar.frame.minY) }
+            // The floating bar over this pane, judged by the pane's own frame: on
+            // the unfolded Duo the app's frame is turned against its contents.
+            if bar.exists && bar.frame.minY > pane.frame.midY
+                && bar.frame.midX >= pane.frame.minX && bar.frame.midX <= pane.frame.maxX {
+                bottom = min(bottom, bar.frame.minY)
+            }
             let center = element.exists ? element.frame.midY : bottom
             if element.exists && element.isHittable && center > top && center < bottom {
                 return
             }
             let down = element.exists && center <= top
-            drag(scroller(for: element, in: app), down: down, between: top, and: bottom, in: app)
+            drag(pane, down: down, between: top, and: bottom, in: app)
         }
         XCTFail("Could not scroll the requested control into view: \(element)")
     }
