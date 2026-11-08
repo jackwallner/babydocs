@@ -164,56 +164,56 @@ struct ChildrenView: View {
 struct ArchivedChildrenRecoveryView: View {
     @Environment(\.modelContext) private var context
     let children: [Child]
-    @State private var isStartingOver = false
 
     var body: some View {
-        if isStartingOver {
-            OnboardingFlow()
-        } else {
-            NavigationStack {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: AppTheme.looseSpacing) {
-                        Text("This child is archived")
-                            .font(.title2.weight(.semibold))
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppTheme.looseSpacing) {
+                    Text("This child is archived")
+                        .font(.title2.weight(.semibold))
 
-                        Text("The plan and any receipts are still on this phone. Restore the child to reopen the plan, or start with a new child while keeping this archive.")
-                            .foregroundStyle(.secondary)
+                    Text("The plan and any receipts are still on this phone. Restore the child to reopen the plan, or start with a new child while keeping this archive.")
+                        .foregroundStyle(.secondary)
 
-                        ForEach(children) { child in
-                            Button {
-                                restore(child)
-                            } label: {
-                                HStack {
-                                    ChildRow(child: child)
-                                    Spacer(minLength: AppTheme.tightSpacing)
-                                    Image(systemName: "arrow.uturn.backward")
-                                        .foregroundStyle(.tint)
-                                }
-                                .padding(AppTheme.spacing)
-                                .background(AppTheme.surface, in: AppTheme.cardShape)
+                    ForEach(children) { child in
+                        Button {
+                            restore(child)
+                        } label: {
+                            HStack {
+                                ChildRow(child: child)
+                                Spacer(minLength: AppTheme.tightSpacing)
+                                Image(systemName: "arrow.uturn.backward")
+                                    .foregroundStyle(.tint)
                             }
-                            .pressableCard()
-                            .accessibilityLabel("Restore \(child.displayName)")
-                            .accessibilityHint("Puts this child back in the plan")
+                            .padding(AppTheme.spacing)
+                            .background(AppTheme.surface, in: AppTheme.cardShape)
                         }
-
-                        Button("Start with a new child") {
-                            isStartingOver = true
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .frame(maxWidth: .infinity)
-                        .accessibilityHint("Keeps the archived child and opens the questions for a new plan")
-
-                        Text("Archiving changes only this phone. No household data is uploaded by archiving, and the child stays available until you restore them.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        .pressableCard()
+                        .accessibilityLabel("Restore \(child.displayName)")
+                        .accessibilityHint("Puts this child back in the plan")
                     }
-                    .padding(AppTheme.margin)
-                    .readableColumn()
+
+                    // Through the root's own intake, not a copy of it here:
+                    // only that one keeps the screen until its last page,
+                    // so the plan-is-ready page and the notification ask
+                    // are seen instead of swapped out the moment the child
+                    // is written.
+                    Button("Start with a new child") {
+                        AppNavigator.shared.intakeDidAppear()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityHint("Keeps the archived child and opens the questions for a new plan")
+
+                    Text("Archiving changes only this phone. No household data is uploaded by archiving, and the child stays available until you restore them.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
-                .background(AppTheme.pageBackground)
-                .navigationTitle("Baby Docs")
+                .padding(AppTheme.margin)
+                .readableColumn()
             }
+            .background(AppTheme.pageBackground)
+            .navigationTitle("Baby Docs")
         }
     }
 

@@ -55,4 +55,21 @@ struct IntakeGateTests {
         #expect(navigator.isIntakeOpen(activeChildren: 0, archivedChildren: 0))
         #expect(!navigator.isIntakeOpen(activeChildren: 0, archivedChildren: 1))
     }
+
+    @Test("Starting a new child from an archive goes through the intake that keeps its last page")
+    func newChildBesideAnArchiveSeesTheLastPage() {
+        let navigator = AppNavigator()
+        #expect(!navigator.isIntakeOpen(activeChildren: 0, archivedChildren: 1))
+
+        // "Start with a new child" on the archived-children screen.
+        navigator.intakeDidAppear()
+        #expect(navigator.isIntakeOpen(activeChildren: 0, archivedChildren: 1))
+
+        // finish() wrote the child; the plan-is-ready page and the
+        // notification ask are still to come.
+        #expect(navigator.isIntakeOpen(activeChildren: 1, archivedChildren: 1))
+
+        navigator.intakeDidFinish()
+        #expect(!navigator.isIntakeOpen(activeChildren: 1, archivedChildren: 1))
+    }
 }
