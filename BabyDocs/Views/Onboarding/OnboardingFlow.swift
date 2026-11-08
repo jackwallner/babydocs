@@ -112,7 +112,10 @@ struct OnboardingFlow: View {
             }
             .onAppear(perform: restoreDraft)
             .onChange(of: draftSnapshot) { _, draft in
-                guard didLoadDraft else { return }
+                // Not once the plan exists: `finish()` has just cleared the
+                // draft, and moving to the last page would write the household
+                // answers straight back into UserDefaults.
+                guard didLoadDraft, step != .done, step != .plus else { return }
                 OnboardingDraftStore.save(draft)
             }
             .onChange(of: scenePhase) { _, phase in
