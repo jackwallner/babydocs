@@ -468,6 +468,7 @@ struct AddVaultDocumentSheet: View {
     @State private var photoLoadError: String?
     @State private var photoSelectionID = UUID()
     @State private var errorMessage: String?
+    @State private var isSaving = false
 
     var body: some View {
         NavigationStack {
@@ -526,7 +527,7 @@ struct AddVaultDocumentSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: attemptSave)
-                        .disabled(images.isEmpty || isLoadingPhotos || photoLoadError != nil)
+                        .disabled(images.isEmpty || isLoadingPhotos || photoLoadError != nil || isSaving)
                 }
             }
             .onChange(of: picked) { _, items in
@@ -609,27 +610,44 @@ struct AddVaultDocumentSheet: View {
         }
     }
 
+    /// The vault locks whenever the app leaves the foreground, and that can
+    /// happen between choosing the photos and tapping Save: a call, Control
+    /// Center, the phone locking. Every page write then threw `.locked`, the
+    /// alert blamed storage, and every retry failed the same way.
     private func save() {
-        let document = VaultDocument(kind: kind, child: child)
-        document.customTitle = customTitle
+        guard !isSaving else { return }
+        isSaving = true
+        Task {
+            defer { isSaving = false }
+            guard await VaultStore.shared.unlock(reason: "Unlock the document vault") else {
+                errorMessage = "The document vault stayed locked, so nothing was saved. Tap Save to try again."
+                return
+            }
+            writeDocument()
+        }
+    }
+
+    private func writeDocument() {
         var names: [String] = []
-        var inserted = false
         do {
             for image in images {
                 names.append(try VaultStore.shared.addPage(image))
             }
+            // Made only once every page is on disk: linking a new model to the
+            // child can insert it, and a failed page write must not leave an
+            // empty document behind for the next save to keep.
+            let document = VaultDocument(kind: kind, child: child)
+            document.customTitle = customTitle
             document.pageFileNames = names
             context.insert(document)
-            inserted = true
             guard document.recordLocalChange(in: context) else {
-                if inserted { context.delete(document) }
+                context.delete(document)
                 _ = VaultStore.shared.removePages(named: names)
                 errorMessage = "Could not save the document. Nothing was kept. Try again after freeing some space."
                 return
             }
             dismiss()
         } catch {
-            if inserted { context.delete(document) }
             _ = VaultStore.shared.removePages(named: names)
             errorMessage = "The document could not be saved. Nothing was kept. Try again after freeing some space."
         }
