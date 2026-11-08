@@ -47,4 +47,10 @@ No P0 or P1 findings. Nothing was changed in app code.
 
 ## Tests
 
-See the commit message for the `gh-sim` run id and result.
+Not run. `gh-sim test --scheme BabyDocs --only BabyDocsTests` (run
+`babydocs@20261107-225923-d46e-claude-imaced9d-1107-230656-17395`, GitHub
+Actions 42457449836) sat queued for 90 minutes: the Air lane had no room and
+GitHub's Macs showed 0 of 5 running with 23 runs queued fleet-wide. It was
+cancelled at the time limit. No app code changed in this review, so the
+existing suite on `794112b` is what needs to pass before submission. This
+machine (imac, Linux) has no Xcode or xcodegen.
