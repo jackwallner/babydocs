@@ -45,6 +45,13 @@ paths:
   hard against it. Text labels, not icons: no SF Symbol can push
   one label off the others' baseline. Folded keeps `.glass`, the phone's
   system bar, unchanged.
+- The first TabView frame must already know it is split (2026-11-08). `RootView`
+  measured the pane on the tabs, so the first frame had no width, `split` was
+  nil and the system bar drew. iOS 27.1 kept it when the next frame set
+  `.toolbar(.hidden, for: .tabBar)`; it only went after a tab change or any
+  later re-render, so cold launches with an empty plan showed two bars. The
+  measurement now sits on the root `Group` and the tabs are not built until
+  `paneGeometry.width > 0`. Fold and unfold at run time already worked.
 - Still across the fold: the intake, the storage recovery and archived-children
   screens, and sheets (household answers, paywall, add a document). None are in
   the store set.

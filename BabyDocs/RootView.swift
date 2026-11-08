@@ -53,7 +53,11 @@ struct RootView: View {
                     .onAppear { navigator.intakeDidAppear() }
             } else if children.isEmpty {
                 ArchivedChildrenRecoveryView(children: archivedChildren)
-            } else {
+            } else if paneGeometry.width > 0 {
+                // Not before the width is known: a TabView whose first frame
+                // says "no split" draws the system bar, and iOS 27.1 then keeps
+                // it when the next frame says "hidden". One frame of page
+                // colour is cheaper than two tab bars.
                 tabs
                 // **Nothing is set on the tab bar on purpose.**
                 //
@@ -65,8 +69,23 @@ struct RootView: View {
                 // own material from whatever scrolls under it, and there are no
                 // gutters because there is no slab. `planPageBackground()` on
                 // each tab is what gives the glass something to refract.
+            } else {
+                AppTheme.pageBackground.ignoresSafeArea()
             }
         }
+        // Measured out here, not on `tabs`: the intake, the recovery screen and
+        // an empty store all come before the tabs, and a seed or a first child
+        // brings the TabView in later. Measured on the tabs, the first frame
+        // had no width, so `split` was nil and the system bar was drawn
+        // visible; iOS 27.1 does not take a floating bar back when the pane
+        // geometry arrives a frame later and the visibility turns to hidden.
+        .onGeometryChange(for: PaneGeometry.self) { proxy in
+            PaneGeometry(width: proxy.size.width, fold: proxy.verticalFold())
+        } action: { paneGeometry = $0 }
+        .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.top } action: { safeTop = $0 }
+        .onGeometryChange(for: CGFloat.self) {
+            max($0.safeAreaInsets.leading, $0.safeAreaInsets.trailing)
+        } action: { safeSide = $0 }
         .overlay {
             if scenePhase != .active {
                 AppTheme.pageBackground
@@ -220,13 +239,6 @@ struct RootView: View {
         .background(AppTheme.pageBackground.ignoresSafeArea())
         .overlay { paneEdgeFade }
         .horizontalToolbarsInPanes(split != nil)
-        .onGeometryChange(for: PaneGeometry.self) { proxy in
-            PaneGeometry(width: proxy.size.width, fold: proxy.verticalFold())
-        } action: { paneGeometry = $0 }
-        .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.top } action: { safeTop = $0 }
-        .onGeometryChange(for: CGFloat.self) {
-            max($0.safeAreaInsets.leading, $0.safeAreaInsets.trailing)
-        } action: { safeSide = $0 }
         .onChange(of: split != nil) { _, _ in leaveDocumentsTabIfSplit() }
         .onChange(of: selectedTab) { _, _ in leaveDocumentsTabIfSplit() }
     }
