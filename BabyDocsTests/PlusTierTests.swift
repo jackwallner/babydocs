@@ -145,6 +145,29 @@ struct PlusTierTests {
 
     // MARK: - What is free
 
+    @Test("Buying or losing Plus tells the reminder schedule to rebuild")
+    func entitlementChangeAnnouncesItself() {
+        let store = StoreService.shared
+        let original = store.isPro
+        let counter = PostCounter()
+        let token = NotificationCenter.default.addObserver(
+            forName: .babyDocsEntitlementChanged, object: nil, queue: nil
+        ) { _ in counter.count += 1 }
+        defer {
+            NotificationCenter.default.removeObserver(token)
+            store.setLocalOverride(isPro: original)
+            store.setLocalOverride(isPro: nil)
+        }
+
+        store.setLocalOverride(isPro: !original)
+        #expect(counter.count == 1)
+        // The same answer twice is not a change, and must not reschedule.
+        store.setLocalOverride(isPro: !original)
+        #expect(counter.count == 1)
+        store.setLocalOverride(isPro: original)
+        #expect(counter.count == 2)
+    }
+
     @Test("A free family still gets both warnings for a window that closes")
     func hardDeadlinesAreNeverGated() {
         let hard = task(title: "Add the baby to the plan", dueInDays: 30, kind: .hard)
@@ -344,4 +367,10 @@ struct ReminderPreferenceTests {
         #expect(reopened.suggestedDateReminders == false)
         #expect(reopened.weeklyDigest == false)
     }
+}
+
+/// The observer block is `@Sendable`; it fires synchronously on the posting
+/// (main) thread here, so nothing races on the count.
+private final class PostCounter: @unchecked Sendable {
+    var count = 0
 }

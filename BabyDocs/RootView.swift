@@ -129,6 +129,12 @@ struct RootView: View {
         .onReceive(NotificationCenter.default.publisher(for: .babyDocsDeadlineMet)) { _ in
             scheduleReviewRequestAfterDeadlineMet()
         }
+        // Plus decides which reminders exist, and the launch reschedule runs
+        // before the store has answered. Rebuild once the answer is known, and
+        // again the moment a purchase lands or a subscription lapses.
+        .onReceive(NotificationCenter.default.publisher(for: .babyDocsEntitlementChanged)) { _ in
+            Task { await DeadlineReminderScheduler.reschedule(in: context) }
+        }
         .task(id: children.count) {
             // Runs the catalog against whatever is in the store, at launch and
             // whenever a child is added. Cheap when nothing changed: the engine

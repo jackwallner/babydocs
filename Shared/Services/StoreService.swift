@@ -67,6 +67,15 @@ enum ProProduct {
     }
 }
 
+extension Notification.Name {
+    /// Posted whenever `StoreService.isPro` actually flips. The reminder set is
+    /// built from the entitlement, and it is read once at launch before the
+    /// store has answered, so without this a Plus family's suggested-date
+    /// reminders and digest were cleared on every cold launch and never laid
+    /// down after a purchase until the app next came to the foreground.
+    static let babyDocsEntitlementChanged = Notification.Name("com.jackwallner.babydocs.entitlementChanged")
+}
+
 enum RevenueCatConfig {
     static let apiKey = "appl_LIrLhMIPlUeqSjOlWhYtkPSTvtP"
     /// Entitlement identifier as configured on the RevenueCat dashboard. Not
@@ -115,7 +124,7 @@ final class StoreService: NSObject {
     func setLocalOverride(isPro value: Bool?) {
         localOverride = value
         if let value {
-            isPro = value
+            setPro(value)
         }
     }
 
@@ -126,7 +135,7 @@ final class StoreService: NSObject {
 
     func refresh() async {
         if let localOverride {
-            isPro = localOverride
+            setPro(localOverride)
         }
 
         isLoading = true
@@ -410,7 +419,13 @@ final class StoreService: NSObject {
     private func apply(_ info: CustomerInfo) {
         guard localOverride == nil else { return }
         let identifiers = [RevenueCatConfig.proEntitlement] + RevenueCatConfig.fallbackEntitlements
-        isPro = identifiers.contains { info.entitlements[$0]?.isActive == true }
+        setPro(identifiers.contains { info.entitlements[$0]?.isActive == true })
+    }
+
+    private func setPro(_ value: Bool) {
+        guard isPro != value else { return }
+        isPro = value
+        NotificationCenter.default.post(name: .babyDocsEntitlementChanged, object: nil)
     }
 
     private func configureIfNeeded() {
