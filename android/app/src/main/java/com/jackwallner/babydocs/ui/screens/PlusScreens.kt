@@ -392,7 +392,7 @@ fun TimelineScreen() {
     Page("Timeline", onBack = { nav.pop() }) {
         item { LocalGraph.current.store.revision; Footnote("Every date on your plan is somebody else's. The order is Baby Docs' own opinion, and a closing window always goes first.") }
         data.liveChildren.forEach { child ->
-            val groups = PlanTimeline.groups(data.liveTasks(child), { data.child(it.childId)?.birthDate })
+            val groups = PlanTimeline.groups(data.liveTasks(child), { data.child(it.childId)?.birthDate }, arrivedKeysOf = { arrivedKeys(data.child(it.childId)) })
             if (data.liveChildren.size > 1) item { SectionHeader(child.displayName) }
             groups.forEach { group ->
                 item(key = "${child.id}-${group.phase}") {
@@ -552,4 +552,10 @@ fun ImportPlanScreen(payload: String) {
             Footnote("Your phone will run the same rules and produce the same deadlines.")
         }
     }
+}
+
+/** What the Children screen says is already in hand: those answers tick nothing, they retire the ordering task. */
+private fun arrivedKeys(child: Child?): Set<String> = buildSet {
+    if (child?.birthCertificateReceivedAt != null) add("birth_certificate")
+    if (child?.hasSSN == true) add("ssn_card")
 }

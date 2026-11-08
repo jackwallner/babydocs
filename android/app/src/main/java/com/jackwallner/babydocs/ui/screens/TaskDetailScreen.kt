@@ -155,7 +155,7 @@ fun TaskDetailScreen(taskID: UUID, activity: MainActivity) {
                     Text(task.deadlineBasis, style = Type.footnote, color = c.secondary)
                 }
                 val siblings = data.liveTasks(data.child(task.childId) ?: return@Card)
-                val step = PlanTimeline.step(task, siblings.filter { it.isDone }.map { it.catalogKey }.toSet(), data.child(task.childId)?.birthDate)
+                val step = PlanTimeline.step(task, siblings.filter { it.isDone }.map { it.catalogKey }.toSet() + listOfNotNull("birth_certificate".takeIf { data.child(task.childId)?.birthCertificateReceivedAt != null }, "ssn_card".takeIf { data.child(task.childId)?.hasSSN == true }), data.child(task.childId)?.birthDate)
                 if (step.reason.isNotEmpty() && !task.isDone) {
                     Spacer(Modifier.height(AppTheme.tightSpacing))
                     Row {

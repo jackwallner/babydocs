@@ -179,10 +179,15 @@ object PlanTimeline {
 
     data class Group(val phase: Phase, val steps: List<Step>)
 
-    fun groups(tasks: List<RequirementTask>, birthDateOf: (RequirementTask) -> LocalDate?, today: LocalDate = LocalDate.now()): List<Group> {
+    fun groups(
+        tasks: List<RequirementTask>,
+        birthDateOf: (RequirementTask) -> LocalDate?,
+        today: LocalDate = LocalDate.now(),
+        arrivedKeysOf: (RequirementTask) -> Set<String> = { emptySet() },
+    ): List<Group> {
         val live = tasks.filter { it.deletedAt == null && !it.isDismissed }
         val completedKeys = live.filter { it.isDone }.map { it.catalogKey }.toSet()
-        val byPhase = live.map { step(it, completedKeys, birthDateOf(it), today) }.groupBy { it.phase }
+        val byPhase = live.map { step(it, completedKeys + arrivedKeysOf(it), birthDateOf(it), today) }.groupBy { it.phase }
         return Phase.entries.mapNotNull { phase ->
             byPhase[phase]?.takeIf { it.isNotEmpty() }?.let { Group(phase, it.sortedWith(order)) }
         }

@@ -154,7 +154,7 @@ final class ReleaseJourneysUITests: XCTestCase {
             let top = navigation.exists ? navigation.frame.maxY : app.frame.minY
             var bottom = app.frame.maxY
             if footer.exists && footer.isHittable { bottom = min(bottom, footer.frame.minY) }
-            if bar.exists && bar.frame.width > app.frame.width / 2 { bottom = min(bottom, bar.frame.minY) }
+            if bar.exists && bar.frame.minY > app.frame.height / 2 { bottom = min(bottom, bar.frame.minY) }
             let center = element.exists ? element.frame.midY : bottom
             if element.exists && element.isHittable && center > top && center < bottom {
                 return
@@ -165,19 +165,21 @@ final class ReleaseJourneysUITests: XCTestCase {
         XCTFail("Could not scroll the requested control into view: \(element)")
     }
 
-    /// QA.swipe starts 80% of the way down the container, which on the unfolded Duo
-    /// and at accessibility sizes is under the footer or the floating tab bar, so
-    /// the drag never reaches the list. This one stays inside the visible band.
+    /// The drag is laid out in the scroller's own coordinates, as QA.swipe does,
+    /// because on the unfolded Duo the app's frame and its coordinate space are
+    /// turned against each other. It stays inside the band the footer and the
+    /// floating tab bar leave visible, which QA.swipe's 80% start does not.
     private func drag(_ scroller: XCUIElement, down: Bool, between top: CGFloat, and bottom: CGFloat,
                       in app: XCUIApplication) {
-        let band = max(bottom - top, 100)
-        let x = scroller.frame.midX - app.frame.minX
-        let near = top + band * 0.75 - app.frame.minY
-        let far = top + band * 0.25 - app.frame.minY
-        let origin = app.coordinate(withNormalizedOffset: .zero)
-        origin.withOffset(CGVector(dx: x, dy: down ? far : near))
+        let frame = scroller.frame
+        guard frame.height > 0 else { return }
+        let low = max(top, frame.minY), high = min(bottom, frame.maxY)
+        let band = max(high - low, 100)
+        func fraction(_ y: CGFloat) -> CGFloat { min(max((y - frame.minY) / frame.height, 0.02), 0.98) }
+        let near = fraction(low + band * 0.75), far = fraction(low + band * 0.25)
+        scroller.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? far : near))
             .press(forDuration: 0.05,
-                   thenDragTo: origin.withOffset(CGVector(dx: x, dy: down ? near : far)),
+                   thenDragTo: scroller.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? near : far)),
                    withVelocity: .fast, thenHoldForDuration: 0)
     }
 
