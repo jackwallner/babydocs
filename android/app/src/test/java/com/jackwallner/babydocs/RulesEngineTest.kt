@@ -243,4 +243,16 @@ class RulesEngineTest {
         // The timeline never sets a date.
         assertEquals(RequirementCatalog.rule("passport")!!.deadline(RequirementEngine.makeInput(child, data.profile)).date, opened.dueAt)
     }
+
+    @Test
+    fun timelineOpensThePassportWhenTheCertificateIsInHand() {
+        val (data, child) = family()
+        data.profile.wantsPassport = true
+        RequirementEngine.reconcile(child, data.profile, data)
+        val tasks = data.liveTasks(child)
+        val arrived = setOf("birth_certificate")
+        val passport = PlanTimeline.groups(tasks, { child.birthDate }, today, { arrived })
+            .flatMap { it.steps }.first { it.title.contains("passport") }
+        assertEquals(PlanTimeline.Phase.NOW, passport.phase)
+    }
 }
