@@ -23,6 +23,25 @@ struct TaskPlannerTests {
         return task
     }
 
+    @Test("A child arriving widens the plan to everyone instead of hiding behind the filter")
+    func newChildIsNotHiddenByTheFilter() {
+        let first = UUID()
+        let second = UUID()
+
+        // One child: selected, so sharing has a target.
+        #expect(PlanView.selection(nil, from: [], to: [first]) == first)
+
+        // A second child is added, imported or restored.
+        #expect(PlanView.selection(first, from: [first], to: [first, second]) == nil)
+
+        // A choice the parent made survives anything that is not an arrival.
+        #expect(PlanView.selection(second, from: [first, second], to: [first, second]) == second)
+        // A filtered child that is archived leaves the filter.
+        let third = UUID()
+        #expect(PlanView.selection(third, from: [first, second, third], to: [first, second]) == nil)
+        #expect(PlanView.selection(second, from: [first, second], to: [first]) == first)
+    }
+
     @Test("Tasks land in the right bucket")
     func bucketing() {
         #expect(TaskPlanner.bucket(for: task(dueInDays: -3), now: now) == .overdue)

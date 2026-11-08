@@ -240,8 +240,8 @@ struct PlanView: View {
                     SharePlanSheet(child: child)
                 }
             }
-            .onChange(of: children.map { $0.id }) { _, _ in
-                normalizeSelection()
+            .onChange(of: children.map { $0.id }) { old, new in
+                selectedChildID = Self.selection(selectedChildID, from: old, to: new)
             }
             .task {
                 normalizeSelection()
@@ -273,16 +273,21 @@ struct PlanView: View {
     }
 
     private func normalizeSelection() {
-        guard let selectedChildID else {
-            if children.count == 1 {
-                self.selectedChildID = children.first?.id
-            }
-            return
-        }
-        guard children.contains(where: { $0.id == selectedChildID }) else {
-            self.selectedChildID = children.count == 1 ? children.first?.id : nil
-            return
-        }
+        let ids = children.map(\.id)
+        selectedChildID = Self.selection(selectedChildID, from: ids, to: ids)
+    }
+
+    /// Which child the plan is filtered to after the set of children changes.
+    ///
+    /// A lone child is selected so sharing has a target. A child arriving
+    /// (added, imported or restored) widens the view to everyone: the filter
+    /// was the app's choice while there was one child, and keeping it hid the
+    /// newcomer's whole plan, hard deadlines included, behind a picker.
+    static func selection(_ current: UUID?, from old: [UUID], to new: [UUID]) -> UUID? {
+        if new.count == 1 { return new.first }
+        if new.count > old.count { return nil }
+        guard let current, new.contains(current) else { return nil }
+        return current
     }
 
     /// **A ticked task stays where it was.**
