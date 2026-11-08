@@ -160,9 +160,25 @@ final class ReleaseJourneysUITests: XCTestCase {
                 return
             }
             let down = element.exists && center <= top
-            QA.swipe(scroller(for: element, in: app), down ? .down : .up)
+            drag(scroller(for: element, in: app), down: down, between: top, and: bottom, in: app)
         }
         XCTFail("Could not scroll the requested control into view: \(element)")
+    }
+
+    /// QA.swipe starts 80% of the way down the container, which on the unfolded Duo
+    /// and at accessibility sizes is under the footer or the floating tab bar, so
+    /// the drag never reaches the list. This one stays inside the visible band.
+    private func drag(_ scroller: XCUIElement, down: Bool, between top: CGFloat, and bottom: CGFloat,
+                      in app: XCUIApplication) {
+        let band = max(bottom - top, 100)
+        let x = scroller.frame.midX - app.frame.minX
+        let near = top + band * 0.75 - app.frame.minY
+        let far = top + band * 0.25 - app.frame.minY
+        let origin = app.coordinate(withNormalizedOffset: .zero)
+        origin.withOffset(CGVector(dx: x, dy: down ? far : near))
+            .press(forDuration: 0.05,
+                   thenDragTo: origin.withOffset(CGVector(dx: x, dy: down ? near : far)),
+                   withVelocity: .fast, thenHoldForDuration: 0)
     }
 
     /// The scroll container to drag: the one under the element when it is known,

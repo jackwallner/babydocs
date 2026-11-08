@@ -412,7 +412,7 @@ struct PlanSectionHeader: View {
             HStack(alignment: .firstTextBaseline, spacing: AppTheme.tightSpacing) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color(uiColor: .label))
                 Spacer(minLength: 0)
                 if let count {
                     Text("\(count)")
