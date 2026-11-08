@@ -59,6 +59,12 @@ final class ReleaseJourneysUITests: XCTestCase {
 
         for (tab, title) in [("Documents", "Documents"), ("Children", "Children"),
                              ("Plus", "Baby Docs Plus"), ("Settings", "Settings")] {
+            // Unfolded, Documents sits beside the Plan instead of in the bar.
+            if tab == "Documents" && !app.tabBars.buttons[tab].exists {
+                XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 10))
+                QA.checkpoint(app, tab.lowercased())
+                continue
+            }
             app.tabBars.buttons[tab].tap()
             XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 10))
             QA.checkpoint(app, tab.lowercased(), paywall: tab == "Plus")
@@ -189,6 +195,11 @@ final class ReleaseJourneysUITests: XCTestCase {
         let containers = [XCUIElement.ElementType.scrollView, .table, .collectionView]
             .flatMap { app.descendants(matching: $0).allElementsBoundByIndex }
             .filter { $0.exists && $0.frame.height > 200 }
+        if element.exists, !element.label.isEmpty,
+           let owner = containers.first(where: {
+               $0.descendants(matching: .any).matching(NSPredicate(format: "label == %@", element.label))
+                   .firstMatch.exists
+           }) { return owner }
         if element.exists, let owner = containers.first(where: {
             $0.frame.minX <= element.frame.midX && element.frame.midX <= $0.frame.maxX
         }) { return owner }
