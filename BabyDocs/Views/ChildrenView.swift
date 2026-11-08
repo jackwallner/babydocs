@@ -409,7 +409,6 @@ struct ChildEditorSheet: View {
     /// See `ChildrenView.addChild()`.
     var isDraft = false
     var onConfirm: (() -> Void)?
-    @State private var originalBirthStateCode: String?
     @State private var original: ChildSnapshot?
     @State private var isShowingArchiveConfirmation = false
     @State private var birthDateConfirmed = false
@@ -494,9 +493,6 @@ struct ChildEditorSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .interactiveDismissDisabled()
             .onAppear {
-                if originalBirthStateCode == nil {
-                    originalBirthStateCode = child.birthStateCode
-                }
                 if original == nil, !isDraft {
                     original = ChildSnapshot(child: child)
                     birthDateConfirmed = true
@@ -545,9 +541,6 @@ struct ChildEditorSheet: View {
         child.birthDate = DateOnly.canonical(child.birthDate)
         child.isUSCitizen = citizenship
         child.isEphemeralDraft = false
-        if originalBirthStateCode != child.birthStateCode {
-            child.birthCounty = ""
-        }
         let result = RequirementEngine.reconcile(
             child: child,
             profile: FamilyProfileStore.current(in: context),
