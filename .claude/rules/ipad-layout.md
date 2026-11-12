@@ -54,3 +54,14 @@ once shipped, so keep this file true.
   (paid and free), settings, onboarding welcome and first question, on iOS 27.0
   and 27.2. On 27.0 the trailing pane's large title sits at the pane edge; on
   27.2 it has its margin. That is the OS, not this code.
+- **Store set.** `scripts/compose-ipad-screenshots.py` builds `en-US/ipad_01..05.png`
+  (2064x2752) from `fastlane/screenshots/ipad-raw/`, with the iPhone set's five
+  headlines word for word. The raws came from an iPad Pro 13-inch capture at
+  9:41 (`simctl status_bar override`): the newborn-account and coverage intake
+  pages, the plan beside Documents, the birth-certificate task and the
+  job-based plan task. Upload only that type:
+  `~/ios/appstore-screenshots/bin/asc-sync-screenshots --repo ~/babydocs --bundle com.jackwallner.babydocs --version <draft> --only-type APP_IPAD_PRO_3GEN_129 --only-locale en-US --apply`.
+  The listing has one locale, en-US.
+- **Known copy gap.** About thirty strings say "this phone" (vault, notes,
+  sharing). They read wrong on an iPad and show in the Documents pane of the
+  store frames. A device noun used in those strings is the fix.
