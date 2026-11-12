@@ -27,6 +27,7 @@ struct PlusPurchaseView: View {
     /// where this screen sits between a parent and the plan they just built.
     var onSkip: (() -> Void)?
 
+    @Environment(\.tabBarBackdrop) private var backdrop
     @State private var store = StoreService.shared
     @State private var selection: String?
     @State private var isWorking = false
@@ -48,6 +49,7 @@ struct PlusPurchaseView: View {
                 }
                 .padding(.horizontal, AppTheme.margin)
                 .padding(.bottom, AppTheme.looseSpacing)
+                .readableColumn()
             }
             buyBar
                 .safeAreaPadding(.bottom)
@@ -305,8 +307,9 @@ struct PlusPurchaseView: View {
             }
         }
         .padding(.horizontal, AppTheme.margin)
+        .readableColumn()
         .padding(.vertical, AppTheme.spacing)
-        .background(Color(uiColor: .systemBackground))
+        .background(backdrop == .none ? AppTheme.pageBackground : Color(uiColor: .systemBackground))
     }
 
     /// "Continue" tells a buyer nothing about what is about to happen. When the

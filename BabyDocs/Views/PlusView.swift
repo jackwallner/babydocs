@@ -14,6 +14,7 @@ struct PlusView: View {
     private var children: [Child]
 
     @State private var store = StoreService.shared
+    @Environment(\.tabBarBackdrop) private var backdrop
 
     var body: some View {
         NavigationStack {
@@ -22,6 +23,10 @@ struct PlusView: View {
                     PlusToolsView(children: children)
                 } else {
                     PlusPurchaseView(placement: .tab)
+                        // While split the bar heads the pane instead, and the
+                        // pitch sits on the same page colour as its neighbour.
+                        .toolbar(backdrop == .glass ? .automatic : .hidden, for: .tabBar)
+                        .background(backdrop == .glass ? Color.clear : AppTheme.pageBackground, ignoresSafeAreaEdges: .all)
                 }
             }
             .navigationTitle("Baby Docs Plus")

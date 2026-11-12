@@ -385,6 +385,7 @@ private struct StorageRecoveryView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(AppTheme.margin)
+                .readableColumn()
             }
             .planPageBackground(underTabBar: false)
             .navigationTitle("Storage")

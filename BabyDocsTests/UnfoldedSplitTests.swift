@@ -54,11 +54,12 @@ struct UnfoldedSplitTests {
         #expect(UnfoldedSplit.bottomFade(split) == UnfoldedSplit.paneEdgeFade)
     }
 
-    @Test func aShortSafeAreaPushesTheScreensBelowTheBar() {
-        let split = UnfoldedSplit.make(width: 951, isRegularWidth: true, fold: nil)
-        let chrome = UnfoldedSplit.chrome(split, safeTop: 20)
-        #expect(chrome.barTop == UnfoldedSplit.paneTabBarGap)
+    @Test func aShortSafeAreaPutsTheBarBelowIt() {
+        // An iPad's status bar is about 24 pt and carries its own text.
+        let split = UnfoldedSplit.make(width: 1032, isRegularWidth: true, fold: nil)
+        let chrome = UnfoldedSplit.chrome(split, safeTop: 24)
+        #expect(chrome.barTop == 24 + UnfoldedSplit.paneTabBarGap)
         // The screens start a gap below the bar's bottom edge.
-        #expect(20 + chrome.contentInset == chrome.barTop + UnfoldedSplit.paneTabBarHeight + UnfoldedSplit.paneTabBarGap)
+        #expect(24 + chrome.contentInset == chrome.barTop + UnfoldedSplit.paneTabBarHeight + UnfoldedSplit.paneTabBarGap)
     }
 }

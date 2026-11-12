@@ -209,6 +209,7 @@ struct ArchivedChildrenRecoveryView: View {
                             .foregroundStyle(.secondary)
                     }
                     .padding(AppTheme.margin)
+                    .readableColumn()
                 }
                 .background(AppTheme.pageBackground)
                 .navigationTitle("Baby Docs")

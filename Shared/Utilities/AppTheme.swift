@@ -154,6 +154,20 @@ enum AppTheme {
     /// points leaves a readable gap at the largest accessibility text size,
     /// where a smaller cushion let the last checklist row slip under the bar.
     static let floatingTabBarInset: CGFloat = 80
+
+    /// The widest a single column of reading or form content gets. A phone is
+    /// never wider; on iPad it keeps the intake, the pitch and the recovery
+    /// screens one comfortable column instead of a phone stretched to 1000 pt.
+    static let readableWidth: CGFloat = 560
+}
+
+extension View {
+    /// Centres this content in a column no wider than `AppTheme.readableWidth`.
+    /// A no-op at phone widths.
+    func readableColumn() -> some View {
+        frame(maxWidth: AppTheme.readableWidth)
+            .frame(maxWidth: .infinity)
+    }
 }
 
 extension RequirementCategory {
@@ -292,8 +306,12 @@ private struct PlanPageBackground: ViewModifier {
             .background(AppTheme.pageBackground.ignoresSafeArea())
     }
 
+    /// The bar floats at the bottom on a phone and sits at the top on an iPad,
+    /// where nothing needs clearing at the bottom edge.
+    private var barIsAtBottom: Bool { UIDevice.current.userInterfaceIdiom == .phone }
+
     private var inset: CGFloat {
-        guard underTabBar else { return AppTheme.looseSpacing }
+        guard underTabBar, barIsAtBottom else { return AppTheme.looseSpacing }
         switch backdrop {
         case .glass: return AppTheme.floatingTabBarInset
         case .none: return AppTheme.looseSpacing
@@ -301,7 +319,7 @@ private struct PlanPageBackground: ViewModifier {
     }
 
     private var phoneClearance: CGFloat {
-        underTabBar && backdrop == .glass && !hasSideToolbar ? AppTheme.floatingTabBarInset : 0
+        underTabBar && barIsAtBottom && backdrop == .glass && !hasSideToolbar ? AppTheme.floatingTabBarInset : 0
     }
 }
 

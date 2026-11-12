@@ -35,6 +35,13 @@ struct UnfoldedSplit: Equatable, Sendable {
     /// - Parameter safeTop: the container's top safe-area inset.
     static func chrome(_ split: UnfoldedSplit?, safeTop: CGFloat) -> PaneChrome {
         guard split != nil else { return PaneChrome(barTop: 0, contentInset: 0) }
+        // An iPad's status bar is a thin strip with its own date and title
+        // on it, too short to hold the bar beside them: the bar starts just
+        // under it instead.
+        if safeTop < paneTabBarHeight + 2 * paneTabBarGap {
+            let barTop = safeTop + paneTabBarGap
+            return PaneChrome(barTop: barTop, contentInset: paneTabBarGap + paneTabBarHeight + paneTabBarGap)
+        }
         let barTop = max(paneTabBarGap, safeTop - paneTabBarGap - paneTabBarHeight)
         let barBottom = barTop + paneTabBarHeight + paneTabBarGap
         // Never zero: a pane that touches the safe area's edge extends up

@@ -120,6 +120,20 @@ struct OnboardingFlow: View {
                 persistDraft()
             }
         }
+        // One column on iPad: the intake is a form, and a form stretched across
+        // a 13-inch display is a worse form.
+        .readableColumn()
+        .background(pageColor.ignoresSafeArea())
+        .environment(\.onboardingPageColor, pageColor)
+    }
+
+    /// The page behind the column matches the page inside it: the welcome and
+    /// the offer sit on the plain background, every form step on the grouped one.
+    private var pageColor: Color {
+        switch step {
+        case .welcome, .plus: Color(uiColor: .systemBackground)
+        default: AppTheme.pageBackground
+        }
     }
 
     // MARK: - Welcome
@@ -1037,6 +1051,8 @@ struct RequiredLabel: View {
 /// see the button assumes there is nothing there, and an intake that looks like
 /// a dead end on question two is an intake that gets abandoned on question two.
 struct OnboardingFooter: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.onboardingPageColor) private var pageColor
     var title = "Continue"
     var enabled = true
     var note = ""
@@ -1089,8 +1105,20 @@ struct OnboardingFooter: View {
         .padding(.horizontal, AppTheme.margin)
         .padding(.top, AppTheme.spacing)
         .padding(.bottom, AppTheme.tightSpacing)
-        .background(.bar)
+        .background {
+            // The bar's material is a phone's. In the iPad column it would
+            // show as a box on the page, so the footer takes the page's colour.
+            if horizontalSizeClass == .regular {
+                Rectangle().fill(pageColor)
+            } else {
+                Rectangle().fill(.bar)
+            }
+        }
     }
+}
+
+extension EnvironmentValues {
+    @Entry var onboardingPageColor: Color = AppTheme.pageBackground
 }
 
 /// The top of every question, in the same place, at the same size.
@@ -1211,15 +1239,22 @@ struct OnboardingDisclosure: View {
 /// size had been accounted for. A scroll view is slightly less decorative on a
 /// short screen, but it never clips the promise or hides the only way forward.
 struct CentredIfItFits<Content: View>: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @ViewBuilder var content: Content
 
     var body: some View {
-        ScrollView {
-            content
-                .padding(.top, AppTheme.looseSpacing)
-                .padding(.bottom, AppTheme.spacing)
+        GeometryReader { proxy in
+            ScrollView {
+                content
+                    .padding(.top, AppTheme.looseSpacing)
+                    .padding(.bottom, AppTheme.spacing)
+                    // On iPad the screen is tall and the content short, so it
+                    // sits in the middle rather than hanging from the top. A
+                    // phone keeps its top-aligned layout.
+                    .frame(minHeight: horizontalSizeClass == .regular ? proxy.size.height : 0)
+            }
+            .scrollBounceBehavior(.basedOnSize)
         }
-        .scrollBounceBehavior(.basedOnSize)
     }
 }
 
