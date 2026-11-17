@@ -163,10 +163,14 @@ final class ReleaseJourneysUITests: XCTestCase {
     private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
         let footer = app.buttons["Continue"].firstMatch
         let bar = app.tabBars.firstMatch
-        let navigation = app.navigationBars.firstMatch
         for _ in 0..<32 {
             let pane = scroller(for: element, in: app)
-            let top = navigation.exists ? navigation.frame.maxY : app.frame.minY
+            // The bar above this pane: on a split layout each pane has its own,
+            // and firstMatch may be its neighbour's or one the pane never reaches.
+            let top = app.navigationBars.allElementsBoundByIndex
+                .filter { $0.exists && $0.frame.midX >= pane.frame.minX && $0.frame.midX <= pane.frame.maxX
+                    && $0.frame.maxY < pane.frame.midY }
+                .map { $0.frame.maxY }.max() ?? max(app.frame.minY, pane.frame.minY)
             var bottom = pane.frame.maxY
             if footer.exists && footer.isHittable { bottom = min(bottom, footer.frame.minY) }
             // The floating bar over this pane, judged by the pane's own frame: on
