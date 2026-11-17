@@ -143,7 +143,9 @@ final class ReleaseJourneysUITests: XCTestCase {
     private func proceed(_ app: XCUIApplication) {
         let button = app.buttons["Continue"].firstMatch
         XCTAssertTrue(button.waitForExistence(timeout: 5))
-        XCTAssertTrue(button.isEnabled)
+        let enabled = NSPredicate(format: "isEnabled == true")
+        let wait = XCTNSPredicateExpectation(predicate: enabled, object: button)
+        XCTAssertEqual(XCTWaiter().wait(for: [wait], timeout: 10), .completed, "Continue stayed disabled")
         button.tap()
     }
 
@@ -223,6 +225,10 @@ final class ReleaseJourneysUITests: XCTestCase {
         }) { return owner }
         // A control not on screen yet: on the split layouts the plan's pane is the
         // one that holds the task ticks, so scroll that one, not its neighbour.
+        let planBar = app.navigationBars["Plan"]
+        if planBar.exists, let plan = containers.first(where: {
+            $0.frame.minX <= planBar.frame.midX && planBar.frame.midX <= $0.frame.maxX
+        }) { return plan }
         let tick = NSPredicate(format: "label MATCHES 'Mark .* (done|not done)' AND NOT label ENDSWITH 'in hand'")
         if let plan = containers.first(where: {
             $0.descendants(matching: .button).matching(tick).firstMatch.exists
