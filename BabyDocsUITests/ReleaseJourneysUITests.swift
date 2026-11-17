@@ -16,7 +16,10 @@ final class ReleaseJourneysUITests: XCTestCase {
 
         let date = app.switches["I checked this date"].firstMatch
         reveal(date, in: app)
-        date.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        for dx in [0.92, 0.85, 0.96] where (date.value as? String) != "1" {
+            date.coordinate(withNormalizedOffset: CGVector(dx: dx, dy: 0.5)).tap()
+            _ = date.waitForExistence(timeout: 1)
+        }
         tapScrolling(app.buttons["US citizen"].firstMatch, in: app)
         chooseCalifornia("State of birth", in: app)
         proceed(app)
@@ -173,7 +176,8 @@ final class ReleaseJourneysUITests: XCTestCase {
                 .filter { $0.exists && $0.frame.midX >= pane.frame.minX && $0.frame.midX <= pane.frame.maxX
                     && $0.frame.maxY < pane.frame.midY }
                 .map { $0.frame.maxY }.max() ?? max(app.frame.minY, pane.frame.minY)
-            var bottom = pane.frame.maxY
+            // Short of the home indicator, where a tap can be swallowed.
+            var bottom = pane.frame.maxY - 60
             if footer.exists && footer.isHittable { bottom = min(bottom, footer.frame.minY) }
             // The floating bar over this pane, judged by the pane's own frame: on
             // the unfolded Duo the app's frame is turned against its contents.
