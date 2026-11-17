@@ -54,7 +54,9 @@ final class ReleaseJourneysUITests: XCTestCase {
         let task = app.buttons.matching(NSPredicate(
             format: "label BEGINSWITH %@", "Order certified copies of the birth certificate"
         )).firstMatch
-        tapScrolling(task, in: app)
+        // A tall row: tap its upper part, clear of the home indicator below it.
+        reveal(task, in: app)
+        task.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.25)).tap()
         XCTAssertTrue(app.navigationBars["Birth certificate"].waitForExistence(timeout: 10))
         QA.checkpoint(app, "task-detail")
         app.navigationBars.buttons.element(boundBy: 0).tap()
@@ -176,8 +178,7 @@ final class ReleaseJourneysUITests: XCTestCase {
                 .filter { $0.exists && $0.frame.midX >= pane.frame.minX && $0.frame.midX <= pane.frame.maxX
                     && $0.frame.maxY < pane.frame.midY }
                 .map { $0.frame.maxY }.max() ?? max(app.frame.minY, pane.frame.minY)
-            // Short of the home indicator, where a tap can be swallowed.
-            var bottom = pane.frame.maxY - 60
+            var bottom = pane.frame.maxY
             if footer.exists && footer.isHittable { bottom = min(bottom, footer.frame.minY) }
             // The floating bar over this pane, judged by the pane's own frame: on
             // the unfolded Duo the app's frame is turned against its contents.
