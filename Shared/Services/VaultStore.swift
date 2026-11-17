@@ -124,7 +124,7 @@ final class VaultStore {
             }
             return true
         } catch {
-            lastError = "The document could not be removed from this phone. Try again."
+            lastError = "The document could not be removed from this device. Try again."
             log.error("Could not remove vault page: \(error.localizedDescription, privacy: .private(mask: .hash))")
             return false
         }
@@ -257,7 +257,7 @@ enum VaultError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .couldNotEncode: return "That photo could not be saved."
-        case .couldNotProtectStorage: return "The document vault could not be protected on this phone. Nothing was saved."
+        case .couldNotProtectStorage: return "The document vault could not be protected on this device. Nothing was saved."
         case .locked: return "Unlock the document vault before saving a photo."
         }
     }

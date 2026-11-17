@@ -193,7 +193,7 @@ enum RequirementCatalog {
     /// Shown wherever a document or a task mentions the number. Repeated
     /// verbatim rather than paraphrased, because it has to be the same sentence
     /// every time a parent sees it.
-    static let ssnWarning = "Do not type the number into Baby Docs. Nothing here needs it, and receipts and notes are stored as ordinary text on this phone."
+    static let ssnWarning = "Do not type the number into Baby Docs. Nothing here needs it, and receipts and notes are stored as ordinary text on this device."
 
     static let all: [RequirementRule] = [
         ssnCard,

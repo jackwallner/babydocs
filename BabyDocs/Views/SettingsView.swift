@@ -42,7 +42,7 @@ struct SettingsView: View {
                     Section {
                         Label("The saved plan could not be opened", systemImage: "exclamationmark.triangle.fill")
                             .foregroundStyle(.orange)
-                        Text("Baby Docs started with an empty plan because the file it saves to could not be read. Nothing was deleted: the old file is still on this phone at \(recovered.lastPathComponent). Get in touch through Support before setting everything up again, and it may be recoverable.")
+                        Text("Baby Docs started with an empty plan because the file it saves to could not be read. Nothing was deleted: the old file is still on this device at \(recovered.lastPathComponent). Get in touch through Support before setting everything up again, and it may be recoverable.")
                             .font(.footnote)
                     } header: {
                         Text("Storage")
@@ -74,13 +74,13 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    LabeledContent("On this phone") {
+                    LabeledContent("On this device") {
                         Text(vaultSize)
                     }
                 } header: {
                     Text("Document vault")
                 } footer: {
-                    Text("Photographs of your documents live in this app, unreadable while the phone is locked, and are excluded from every iCloud and computer backup. That is the trade: nothing can leak them, and nothing can restore them to a new phone either. The originals are still the record.")
+                    Text("Photographs of your documents live in this app, unreadable while the device is locked, and are excluded from every iCloud and computer backup. That is the trade: nothing can leak them, and nothing can restore them to a new phone either. The originals are still the record.")
                 }
 
                 Section("Plus") {
@@ -113,7 +113,7 @@ struct SettingsView: View {
 
                 Section {
                     Label {
-                        Text("Baby Docs has no account. Everything you enter, and every photograph you add, stays on this phone unless you choose to send it: nothing is uploaded on its own, so there is nothing for us to delete on your behalf and nothing for anyone to breach. Sending a plan to the other parent puts your household answers and the baby's first name in that link, deliberately, and only when you tap it. Photographs never travel at all. If you tap the location helper, iOS may send one position to Apple's geocoding service to name the state and county, and Baby Docs does not store that position. If you buy Plus, Apple and RevenueCat hold the purchase itself; that record carries nothing about your family. The privacy policy sets out exactly what it contains.")
+                        Text("Baby Docs has no account. Everything you enter, and every photograph you add, stays on this device unless you choose to send it: nothing is uploaded on its own, so there is nothing for us to delete on your behalf and nothing for anyone to breach. Sending a plan to the other parent puts your household answers and the baby's first name in that link, deliberately, and only when you tap it. Photographs never travel at all. If you tap the location helper, iOS may send one position to Apple's geocoding service to name the state and county, and Baby Docs does not store that position. If you buy Plus, Apple and RevenueCat hold the purchase itself; that record carries nothing about your family. The privacy policy sets out exactly what it contains.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)

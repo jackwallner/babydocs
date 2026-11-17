@@ -4,7 +4,7 @@ import Foundation
 /// looks.
 ///
 /// The app's own reminders are good at one thing: they fire at 9am three days
-/// before a window closes, on this phone, for the person holding it. A calendar
+/// before a window closes, on this device, for the person holding it. A calendar
 /// is good at a different thing: the other parent sees it, it survives a new
 /// phone, and it sits beside the pediatrician appointment that the paperwork is
 /// actually competing with. Neither replaces the other, which is why this

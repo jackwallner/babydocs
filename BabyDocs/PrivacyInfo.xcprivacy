@@ -70,7 +70,7 @@
 			</array>
 		</dict>
 		<dict>
-			<!-- The "on this phone" size in Settings. -->
+			<!-- The "on this device" size in Settings. -->
 			<key>NSPrivacyAccessedAPIType</key>
 			<string>NSPrivacyAccessedAPICategoryDiskSpace</string>
 			<key>NSPrivacyAccessedAPITypeReasons</key>

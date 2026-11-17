@@ -51,7 +51,7 @@
 	<key>UIUserInterfaceStyle</key>
 	<string>Automatic</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>To add a document you have already photographed. The copy stays on this phone, is not backed up, and is never uploaded anywhere.</string>
+	<string>To add a document you have already photographed. The copy stays on this device, is not backed up, and is never uploaded anywhere.</string>
 	<!-- Used once, when you tap "Use my location" on the household questions, to
 	     fill in your state and county. iOS may send the position to Apple's
 	     geocoding service to resolve the place; Baby Docs never stores it. -->

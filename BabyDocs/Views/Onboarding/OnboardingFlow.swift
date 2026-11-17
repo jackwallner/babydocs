@@ -477,7 +477,7 @@ struct OnboardingFlow: View {
                 } header: {
                     Text("Which plan? (optional)")
                 } footer: {
-                    Text("Both go onto the task and into the reminder, so the notification names the plan and who to ring. Neither changes the deadline, and neither leaves this phone.")
+                    Text("Both go onto the task and into the reminder, so the notification names the plan and who to ring. Neither changes the deadline, and neither leaves this device.")
                 }
             }
 

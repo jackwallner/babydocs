@@ -62,6 +62,6 @@ once shipped, so keep this file true.
   job-based plan task. Upload only that type:
   `~/ios/appstore-screenshots/bin/asc-sync-screenshots --repo ~/babydocs --bundle com.jackwallner.babydocs --version <draft> --only-type APP_IPAD_PRO_3GEN_129 --only-locale en-US --apply`.
   The listing has one locale, en-US.
-- **Known copy gap.** About thirty strings say "this phone" (vault, notes,
-  sharing). They read wrong on an iPad and show in the Documents pane of the
-  store frames. A device noun used in those strings is the fix.
+- **Say "device", not "phone", in user-facing copy.** The app runs on iPad, so
+  strings that named the phone (vault, notes, sharing, Info.plist, the store
+  description) were changed to "this device". Keep it that way in new copy.

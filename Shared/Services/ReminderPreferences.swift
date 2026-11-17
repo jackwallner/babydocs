@@ -3,7 +3,7 @@ import Foundation
 /// What the family has asked to be told about, beyond the two dates that close.
 ///
 /// Stored in `UserDefaults` rather than SwiftData on purpose: these are settings
-/// for this phone, not household facts, and they must survive being read from
+/// for this device, not household facts, and they must survive being read from
 /// the scheduler at launch without touching the store.
 ///
 /// **Both default to on and both mean nothing without Plus.** The scheduler

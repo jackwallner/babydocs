@@ -379,7 +379,7 @@ private struct StorageRecoveryView: View {
                     Text("Your saved plan needs attention")
                         .font(.title2.weight(.bold))
                         .fixedSize(horizontal: false, vertical: true)
-                    Text("Baby Docs could not open the file that contains your household answers and completed work. Nothing was deleted. The previous file is still on this phone as \(location).")
+                    Text("Baby Docs could not open the file that contains your household answers and completed work. Nothing was deleted. The previous file is still on this device as \(location).")
                         .fixedSize(horizontal: false, vertical: true)
                     Text("Before starting again, contact support so the saved plan can be checked. A new plan will not repair the old file.")
                         .foregroundStyle(.secondary)

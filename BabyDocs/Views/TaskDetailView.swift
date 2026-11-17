@@ -79,7 +79,7 @@ struct TaskDetailView: View {
                 // This is a free-text field on a task about a Social Security
                 // card, which is the one place someone would helpfully type the
                 // number in.
-                Text("Plain text, on this phone. Not the place for the Social Security number: nothing in Baby Docs needs it.")
+                Text("Plain text, on this device. Not the place for the Social Security number: nothing in Baby Docs needs it.")
             }
 
             Section {
@@ -405,7 +405,7 @@ struct TaskDetailView: View {
         } header: {
             Text("Who has this")
         } footer: {
-            Text("A name, for your own benefit. Both of you keep your own copy of the plan, so this does not appear on their phone.")
+            Text("A name, for your own benefit. Both of you keep your own copy of the plan, so this does not appear on their device.")
         }
     }
 
@@ -436,7 +436,7 @@ struct TaskDetailView: View {
         } header: {
             Text("Confirmations")
         } footer: {
-            Text("Confirmation numbers, tracking numbers and short notes about what came back. Everything here is stored as ordinary text on this phone, so do not put the Social Security number in it: nothing in Baby Docs needs the number, only whether the card has arrived.")
+            Text("Confirmation numbers, tracking numbers and short notes about what came back. Everything here is stored as ordinary text on this device, so do not put the Social Security number in it: nothing in Baby Docs needs the number, only whether the card has arrived.")
         }
     }
 

@@ -132,7 +132,7 @@ struct PlusToolsView: View {
                     }
                 }
             } header: {
-                Text("Pages that leave the phone")
+                Text("Pages that leave the device")
             } footer: {
                 Text("The calendar file carries the dates, why each one exists and the official link, and nothing else: no notes, no confirmation numbers, and nothing at all from the document vault. Import it and the deadlines sit beside the appointments they are competing with, where the other parent can see them too.")
             }

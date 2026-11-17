@@ -39,7 +39,7 @@ struct SharePlanSheet: View {
                 } header: {
                     Text("The other parent")
                 } footer: {
-                    Text("They tap the link and their phone builds the same plan: the same tasks, the same dates, their own reminders. Their copy starts blank on who has done what.\n\nThe link carries the answers that build a plan: \(child.displayName)'s first name and date of birth, where the birth was registered, where you live, your household answers, and, for a job-based plan, the plan name and benefits contact if you entered them. No completed tasks, no notes, no confirmation numbers and no photographs. Anyone the link is forwarded to can read it, so send it the way you would send a page of a form.")
+                    Text("They tap the link and their device builds the same plan: the same tasks, the same dates, their own reminders. Their copy starts blank on who has done what.\n\nThe link carries the answers that build a plan: \(child.displayName)'s first name and date of birth, where the birth was registered, where you live, your household answers, and, for a job-based plan, the plan name and benefits contact if you entered them. No completed tasks, no notes, no confirmation numbers and no photographs. Anyone the link is forwarded to can read it, so send it the way you would send a page of a form.")
                 }
 
                 Section {
@@ -72,7 +72,7 @@ struct SharePlanSheet: View {
 
                 Section {
                     Label {
-                        Text("The link carries your answers between two phones. Baby Docs has no server to keep a copy on, and the payload rides in the part of the address a browser never sends anywhere.")
+                        Text("The link carries your answers between two devices. Baby Docs has no server to keep a copy on, and the payload rides in the part of the address a browser never sends anywhere.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -100,7 +100,7 @@ struct SharePlanSheet: View {
 
     private var messageBody: String {
         """
-        Here is our newborn paperwork plan. Open this on your phone and Baby Docs \
+        Here is our newborn paperwork plan. Open this on your device and Baby Docs \
         will build the same list of deadlines for \(child.displayName).
         """
     }
@@ -167,7 +167,7 @@ struct ImportPlanSheet: View {
                         Picker("This child is", selection: $mergeTargetID) {
                             Text("Someone new").tag(UUID?.none)
                             ForEach(allChildren) { child in
-                                let suffix = child.deletedAt == nil ? "already on this phone" : "archived on this phone"
+                                let suffix = child.deletedAt == nil ? "already on this device" : "archived on this device"
                                 Text("\(child.displayName), \(suffix)").tag(UUID?.some(child.id))
                             }
                         }
@@ -227,7 +227,7 @@ struct ImportPlanSheet: View {
         if let target = mergeTarget {
             return "\(target.displayName) was born on the same day in the same state, so this link is probably about them. Choosing them updates that child's details rather than adding a second row for the same baby. If it is a different baby, pick \"Someone new\"."
         }
-        return "Nothing on this phone obviously matches, so this will be added as another child. Twins share a birth date and a birth state, so Baby Docs will not guess between them."
+        return "Nothing on this device obviously matches, so this will be added as another child. Twins share a birth date and a birth state, so Baby Docs will not guess between them."
     }
 
     private var actionTitle: String {
@@ -241,13 +241,13 @@ struct ImportPlanSheet: View {
     /// just the one in the link.
     private var consequenceText: String {
         if children.isEmpty {
-            return "Your phone will run the same rules and produce the same deadlines."
+            return "Your device will run the same rules and produce the same deadlines."
         }
         let names = children.map(\.displayName).joined(separator: ", ")
         let affected = children.count == 1
             ? "\(names)'s plan is rebuilt from them"
             : "every child's plan is rebuilt from them: \(names)"
-        return "The household answers above replace the ones on this phone, and \(affected). What you have already done is kept: completed tasks, notes, confirmations and your documents are untouched."
+        return "The household answers above replace the ones on this device, and \(affected). What you have already done is kept: completed tasks, notes, confirmations and your documents are untouched."
     }
 
     private var birthPlace: String {

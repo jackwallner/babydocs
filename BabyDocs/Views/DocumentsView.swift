@@ -111,7 +111,7 @@ struct DocumentsView: View {
                 Button("Delete the photos", role: .destructive) { confirmDelete() }
                 Button("Keep them", role: .cancel) { pendingDeletion = nil }
             } message: {
-                Text("The photos are removed from this phone now and cannot be recovered: they are not backed up anywhere. The document itself is unaffected.")
+                Text("The photos are removed from this device now and cannot be recovered: they are not backed up anywhere. The document itself is unaffected.")
             }
             .alert("Could not remove all photos", isPresented: errorBinding) {
                 Button("OK", role: .cancel) { errorMessage = nil }
@@ -394,9 +394,9 @@ struct DocumentsView: View {
 
     private func footerText(count: Int) -> String {
         if count == 0 {
-            return "They stay on this phone: not backed up, not uploaded, and Baby Docs has no server to put them on."
+            return "They stay on this device: not backed up, not uploaded, and Baby Docs has no server to put them on."
         }
-        return "On this phone only. Not backed up, not uploaded. If you lose the phone these copies go with it, so keep the originals where you always kept them."
+        return "On this device only. Not backed up, not uploaded. If you lose the device these copies go with it, so keep the originals where you always kept them."
     }
 
     private func pageLabel(_ document: VaultDocument) -> String {
@@ -433,7 +433,7 @@ struct DocumentsView: View {
         // launch cleanup can retry without exposing the document again.
         let names = document.pageFileNames
         guard document.tombstone(in: context) else {
-            errorMessage = "That document could not be removed. Your photos are still on this phone."
+            errorMessage = "That document could not be removed. Your photos are still on this device."
             return
         }
 
@@ -543,7 +543,7 @@ struct AddVaultDocumentSheet: View {
                 }
                 Button("Not now", role: .cancel) { }
             } message: {
-                Text("This copy stays on this phone. It is not backed up and never leaves the device, so if you lose the phone the copy is gone. The card itself is still the record: keep it somewhere safe.")
+                Text("This copy stays on this device. It is not backed up and never leaves the device, so if you lose the device the copy is gone. The card itself is still the record: keep it somewhere safe.")
             }
             .alert("Could not save", isPresented: errorBinding) {
                 Button("OK", role: .cancel) { errorMessage = nil }
@@ -674,7 +674,7 @@ struct VaultDocumentViewer: View {
                         symbol: "photo",
                         title: "Nothing to show",
                         message: missingPageCount > 0
-                            ? "Some pages for this document are no longer available on this phone."
+                            ? "Some pages for this document are no longer available on this device."
                             : (vault.lastError ?? "Unlock the vault to view this document."),
                         actionTitle: "Unlock and try again",
                         action: { Task { await loadImages() } }
@@ -685,7 +685,7 @@ struct VaultDocumentViewer: View {
                 } else {
                     VStack(spacing: 0) {
                         if missingPageCount > 0 {
-                            Text("Some pages are unavailable. The copies on this phone may be incomplete.")
+                            Text("Some pages are unavailable. The copies on this device may be incomplete.")
                                 .font(.footnote)
                                 .foregroundStyle(.primary)
                                 .multilineTextAlignment(.center)
@@ -716,7 +716,7 @@ struct VaultDocumentViewer: View {
             }
             // Deliberately no share button, no save-to-photos, no print. There
             // is no way out of this screen that carries an image with it, which
-            // is the only version of "it never leaves your phone" that is true
+            // is the only version of "it never leaves your device" that is true
             // rather than aspirational.
         }
         .task {

@@ -64,7 +64,7 @@ final class SaveFailureReporter {
         // on the glass, before anybody has read a word of the alert.
         Haptics.failed()
         message = """
-        Your last change could not be saved to this phone, so what you are \
+        Your last change could not be saved to this device, so what you are \
         looking at may not survive closing the app. This is usually storage \
         being full. Free some space and make the change again.
         """

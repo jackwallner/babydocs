@@ -172,7 +172,7 @@ struct ArchivedChildrenRecoveryView: View {
                     Text("This child is archived")
                         .font(.title2.weight(.semibold))
 
-                    Text("The plan and any receipts are still on this phone. Restore the child to reopen the plan, or start with a new child while keeping this archive.")
+                    Text("The plan and any receipts are still on this device. Restore the child to reopen the plan, or start with a new child while keeping this archive.")
                         .foregroundStyle(.secondary)
 
                     ForEach(children) { child in
@@ -205,7 +205,7 @@ struct ArchivedChildrenRecoveryView: View {
                     .frame(maxWidth: .infinity)
                     .accessibilityHint("Keeps the archived child and opens the questions for a new plan")
 
-                    Text("Archiving changes only this phone. No household data is uploaded by archiving, and the child stays available until you restore them.")
+                    Text("Archiving changes only this device. No household data is uploaded by archiving, and the child stays available until you restore them.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -527,7 +527,7 @@ struct ChildEditorSheet: View {
                 Button("Archive this child", role: .destructive) { archive() }
                 Button("Keep this child", role: .cancel) { }
             } message: {
-                Text("The plan, completed work and receipts stay on this phone and can be restored from Children.")
+                Text("The plan, completed work and receipts stay on this device and can be restored from Children.")
             }
         }
     }

@@ -107,7 +107,7 @@ struct PlusPurchaseView: View {
             benefit("clock.badge.exclamationmark", "Chase what has not arrived",
                     "Record what you sent and what you were told to expect. The plan speaks up when that date passes, because nothing else will.")
             benefit("lock.doc", "The document vault after twelve weeks",
-                    "Photographs of the birth certificate, the card and the insurance details, on your phone at the counter. Adding stays free during the first twelve weeks. Never backed up, never uploaded.")
+                    "Photographs of the birth certificate, the card and the insurance details, on your device at the counter. Adding stays free during the first twelve weeks. Never backed up, never uploaded.")
             benefit("doc.text", "The printable summary and the employer packet",
                     "A plain-text plan for the folder or the other parent, and the qualifying-life-event page HR asks for with the event, the date and the enclosures already filled in.")
         }
