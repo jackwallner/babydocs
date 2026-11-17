@@ -141,7 +141,7 @@ struct PlusPurchaseView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 Text(detail)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppTheme.quiet)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

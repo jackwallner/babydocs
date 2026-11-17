@@ -343,7 +343,7 @@ struct PlanHeaderCard: View {
             } else {
                 Text("Every closing window is behind you. What is left has no date attached to it.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppTheme.quiet)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

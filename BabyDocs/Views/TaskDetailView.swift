@@ -44,6 +44,7 @@ struct TaskDetailView: View {
                             task.officialLinkLabel.isEmpty ? "Open the official page" : task.officialLinkLabel,
                             systemImage: "arrow.up.right.square"
                         )
+                        .foregroundStyle(AppTheme.link)
                     }
                     Text("Baby Docs never submits anything for you. This opens the official site so you file it yourself.")
                         .font(.caption)
@@ -300,6 +301,7 @@ struct TaskDetailView: View {
                 }
             } header: {
                 Text("Have these ready")
+                    .foregroundStyle(AppTheme.quiet)
             } footer: {
                 let outstanding = documents.filter { !$0.isOnHand }.count
                 Text(outstanding == 0

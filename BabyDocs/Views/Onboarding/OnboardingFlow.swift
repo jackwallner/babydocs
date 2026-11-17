@@ -1096,7 +1096,7 @@ struct OnboardingFooter: View {
                 if !note.isEmpty {
                     Text(note)
                         .font(.footnote)
-                        .foregroundStyle(enabled ? .secondary : Color.red)
+                        .foregroundStyle(enabled ? AppTheme.quiet : AppTheme.urgent)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -1144,7 +1144,7 @@ struct OnboardingHero: View {
                 .fixedSize(horizontal: false, vertical: true)
             Text(subtitle)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.quiet)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -217,6 +217,12 @@ final class ReleaseJourneysUITests: XCTestCase {
         if element.exists, let owner = containers.first(where: {
             $0.frame.minX <= element.frame.midX && element.frame.midX <= $0.frame.maxX
         }) { return owner }
+        // A control not on screen yet: on the split layouts the plan's pane is the
+        // one that holds the task ticks, so scroll that one, not its neighbour.
+        let tick = NSPredicate(format: "label MATCHES 'Mark .* (done|not done)' AND NOT label ENDSWITH 'in hand'")
+        if let plan = containers.first(where: {
+            $0.descendants(matching: .button).matching(tick).firstMatch.exists
+        }) { return plan }
         return containers.first ?? app
     }
 

@@ -55,6 +55,10 @@ enum AppTheme {
     static let quiet = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
         ? UIColor(white: 0.74, alpha: 1) : UIColor(white: 0.32, alpha: 1) })
 
+    /// Link text that holds 4.5:1 on a grouped row; the system blue is a fill.
+    static let link = Color(uiColor: UIColor { $0.userInterfaceStyle == .dark
+        ? .systemBlue : UIColor(red: 0.0, green: 0.36, blue: 0.80, alpha: 1) })
+
     // MARK: - Surfaces
 
     /// The page behind everything.
