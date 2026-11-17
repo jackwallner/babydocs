@@ -28,6 +28,16 @@ done
 # One thing does need a human eye instead: docs/plan.html has to be published at
 # its exact path before any build whose share links are live, because those links
 # outlive the build that wrote them.
+# jackwallner.com injects the tap counter script and a robots meta into every
+# page it serves, so compare with those and blank lines stripped from both sides.
+same_page() {
+  diff -w \
+    <(sed -e 's#<script src="/clicks.js" defer></script>##' \
+          -e '/<meta name="robots" content="noindex, follow">/d' \
+          -e '/^[[:space:]]*$/d' "$1") \
+    <(sed -e '/^[[:space:]]*$/d' "$2") >/dev/null
+}
+
 echo "==> Checking published pages..."
 LIVE_PLAN_FILE=$(mktemp "${TMPDIR:-/tmp}/babydocs-live-plan.XXXXXX")
 LIVE_PRIVACY_FILE=$(mktemp "${TMPDIR:-/tmp}/babydocs-live-privacy.XXXXXX")
@@ -38,11 +48,11 @@ curl --fail --silent --show-error --location --max-time 20 \
 curl --fail --silent --show-error --location --max-time 20 \
   --output "$LIVE_PRIVACY_FILE" "$PRIVACY_URL"
 
-if ! cmp -s "$LIVE_PLAN_FILE" docs/plan.html; then
+if ! same_page "$LIVE_PLAN_FILE" docs/plan.html; then
   echo "error: published shared-plan page differs from docs/plan.html" >&2
   exit 1
 fi
-if ! cmp -s "$LIVE_PRIVACY_FILE" docs/privacy-policy.html; then
+if ! same_page "$LIVE_PRIVACY_FILE" docs/privacy-policy.html; then
   echo "error: published privacy policy differs from docs/privacy-policy.html" >&2
   exit 1
 fi
