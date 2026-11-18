@@ -70,11 +70,11 @@ final class ReleaseJourneysUITests: XCTestCase {
                 QA.checkpoint(app, tab.lowercased())
                 continue
             }
-            tabButton(tab, in: app).tap()
+            QA.openTab(app, tab)
             XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 10))
             QA.checkpoint(app, tab.lowercased(), paywall: tab == "Plus")
         }
-        tabButton("Plan", in: app).tap()
+        QA.openTab(app, "Plan")
         page("Plan", checkpoint: "plan-return", in: app)
         QA.interrupt(app)
         page("Plan", checkpoint: "plan-after-background", in: app)
@@ -157,9 +157,7 @@ final class ReleaseJourneysUITests: XCTestCase {
     /// A tab by its label: the system bar on iPhone, or the pane's own bar beside
     /// Documents on the unfolded Duo and a regular-width iPad.
     private func tabButton(_ label: String, in app: XCUIApplication) -> XCUIElement {
-        let system = app.tabBars.buttons[label]
-        if system.exists { return system }
-        return app.buttons.matching(NSPredicate(format: "label == %@", label)).firstMatch
+        QA.tab(app, label)
     }
 
     private func tapScrolling(_ element: XCUIElement, in app: XCUIApplication) {
