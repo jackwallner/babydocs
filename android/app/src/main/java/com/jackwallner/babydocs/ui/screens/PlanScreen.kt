@@ -82,8 +82,7 @@ fun PlanScreen() {
     val data = graph.store.data
     graph.store.revision
     val children = data.liveChildren
-    var selected by rememberSaveable { mutableStateOf<String?>(nav.selectedChildID?.toString()) }
-    val selectedChild = children.firstOrNull { it.id.toString() == selected } ?: if (children.size == 1) children.first() else null
+    val selectedChild = children.firstOrNull { it.id == nav.selectedChildID } ?: if (children.size == 1) children.first() else null
     val tasks = if (selectedChild != null) data.liveTasks(selectedChild) else children.flatMap(data::liveTasks)
     val open = tasks.filter { !it.isDismissed }
     val overview = TaskPlanner.overview(tasks)
@@ -146,10 +145,10 @@ fun PlanScreen() {
             item {
                 LocalGraph.current.store.revision
                 Card(padding = PaddingValues(0.dp)) {
-                    ChoiceRow("Everyone", selectedChild == null) { selected = null; nav.selectedChildID = null }
+                    ChoiceRow("Everyone", selectedChild == null) { nav.selectedChildID = null }
                     children.forEach { child ->
                         RowDivider()
-                        ChoiceRow(child.displayName, selectedChild?.id == child.id) { selected = child.id.toString(); nav.selectedChildID = child.id }
+                        ChoiceRow(child.displayName, selectedChild?.id == child.id) { nav.selectedChildID = child.id }
                     }
                 }
                 if (selectedChild == null) Footnote("Choose one child before sending or exporting a plan.")

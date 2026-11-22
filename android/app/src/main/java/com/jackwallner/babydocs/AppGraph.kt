@@ -15,6 +15,7 @@ import com.jackwallner.babydocs.data.ReviewPromptTracker
 import com.jackwallner.babydocs.data.SharedPreferencesStore
 import com.jackwallner.babydocs.data.SubscriptionService
 import com.jackwallner.babydocs.data.VaultStore
+import com.jackwallner.babydocs.rules.PlanSelection
 import java.io.File
 import java.util.UUID
 
@@ -87,6 +88,19 @@ class Navigator {
     var intakeOpen by mutableStateOf(false)
 
     val top: Overlay? get() = overlays.lastOrNull()
+
+    private var knownChildIDs: List<UUID>? = null
+
+    /**
+     * Called with the live children's ids whenever they may have changed. A child
+     * arriving (added, imported or restored) widens the Plan filter to everyone;
+     * see [PlanSelection.selection].
+     */
+    fun liveChildrenChanged(ids: List<UUID>) {
+        val old = knownChildIDs ?: ids
+        knownChildIDs = ids
+        selectedChildID = PlanSelection.selection(selectedChildID, old, ids)
+    }
 
     fun push(overlay: Overlay) {
         if (top != overlay) overlays.add(overlay)

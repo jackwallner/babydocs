@@ -58,8 +58,11 @@ fun RootScreen(activity: MainActivity) {
     val graph = LocalGraph.current
     val nav = graph.navigator
     graph.store.revision // Recompose on every committed change.
-    val hasChild = graph.store.data.liveChildren.isNotEmpty()
+    val liveChildIDs = graph.store.data.liveChildren.map { it.id }
+    val hasChild = liveChildIDs.isNotEmpty()
 
+    // Whoever arrives (added, imported, restored) is shown: the plan filter widens to everyone.
+    LaunchedEffect(liveChildIDs) { nav.liveChildrenChanged(liveChildIDs) }
     LaunchedEffect(hasChild) { if (!hasChild) nav.intakeOpen = true }
 
     if (!hasChild || nav.intakeOpen) {
