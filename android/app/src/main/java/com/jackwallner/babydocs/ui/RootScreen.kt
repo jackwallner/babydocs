@@ -66,10 +66,15 @@ fun RootScreen(activity: MainActivity) {
     LaunchedEffect(hasChild) { if (!hasChild) nav.intakeOpen = true }
 
     if (!hasChild || nav.intakeOpen) {
-        OnboardingScreen(activity) {
-            nav.intakeOpen = false
-            nav.tab = Tab.PLAN
+        // A plan link opened on a fresh install is confirmed over the intake, which it then ends.
+        Box(Modifier.fillMaxSize()) {
+            OnboardingScreen(activity) {
+                nav.intakeOpen = false
+                nav.tab = Tab.PLAN
+            }
+            OverlayStack(activity)
         }
+        BackHandler(enabled = nav.overlays.isNotEmpty()) { nav.pop() }
         SaveFailureAlert()
         return
     }
@@ -87,18 +92,25 @@ fun RootScreen(activity: MainActivity) {
             }
             TabBar()
         }
-        nav.overlays.forEach { overlay ->
-            // Each overlay swallows touches so nothing underneath reacts.
-            Box(
-                Modifier.fillMaxSize().background(AppTheme.colors.page)
-                    .clickable(interactionSource = remember(overlay), indication = null) {},
-            ) { OverlayContent(overlay, activity) }
-        }
+        OverlayStack(activity)
     }
     BackHandler(enabled = nav.overlays.isNotEmpty()) { nav.pop() }
     BackHandler(enabled = nav.overlays.isEmpty() && nav.tab != Tab.PLAN) { nav.tab = Tab.PLAN }
     SaveFailureAlert()
     ReviewRequester(activity)
+}
+
+/** What sits over the tabs, or over the intake, top of the stack last. */
+@Composable
+private fun OverlayStack(activity: MainActivity) {
+    val nav = LocalGraph.current.navigator
+    nav.overlays.forEach { overlay ->
+        // Each overlay swallows touches so nothing underneath reacts.
+        Box(
+            Modifier.fillMaxSize().background(AppTheme.colors.page)
+                .clickable(interactionSource = remember(overlay), indication = null) {},
+        ) { OverlayContent(overlay, activity) }
+    }
 }
 
 @Composable

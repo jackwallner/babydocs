@@ -92,6 +92,17 @@ class Navigator {
     private var knownChildIDs: List<UUID>? = null
 
     /**
+     * A shared plan was applied. It also ends the intake: the import wrote the child
+     * and built the plan, so the questions have nothing left to ask, and leaving them
+     * up let a second parent work through the whole form and add the same baby twice.
+     */
+    fun planWasImported() {
+        intakeOpen = false
+        overlays.clear()
+        tab = Tab.PLAN
+    }
+
+    /**
      * Called with the live children's ids whenever they may have changed. A child
      * arriving (added, imported or restored) widens the Plan filter to everyone;
      * see [PlanSelection.selection].

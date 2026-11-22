@@ -546,7 +546,7 @@ fun ImportPlanScreen(payload: String) {
                     child.updatedAt = System.currentTimeMillis()
                 }
                 graph.rescheduleReminders()
-                nav.overlays.clear()
+                nav.planWasImported()
             }
             SecondaryButton("Not now") { nav.pop() }
             Footnote("Your phone will run the same rules and produce the same deadlines.")
