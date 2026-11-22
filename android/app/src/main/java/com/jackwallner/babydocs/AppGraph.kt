@@ -42,6 +42,12 @@ class AppGraph(context: Context) {
     val vault = VaultStore(appContext)
     val navigator = Navigator()
 
+    init {
+        // Plus decides which reminders exist. Rebuild the moment the answer changes (a purchase
+        // landing, a lapse, a pending payment approved), not only when the app next resumes.
+        subscriptions.onEntitlementChanged = { rescheduleReminders() }
+    }
+
     /** `DeadlineReminderScheduler.Options.current`: hard windows always, the rest with Plus. */
     val reminderOptions: DeadlineReminderPlanner.Options
         get() {

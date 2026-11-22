@@ -59,7 +59,8 @@ class SubscriptionService(
     private val diagnostics: ConversionDiagnostics,
 ) {
     private val reviewAccess = ReviewAccess(defaults, BuildConfig.PLAY_REVIEW_CODE_SHA256)
-    private var entitlementActive by mutableStateOf(defaults.getBoolean(CACHED_PRO))
+    private val entitlement = EntitlementFlag(defaults.getBoolean(CACHED_PRO)) { onEntitlementChanged?.invoke() }
+    private val entitlementActive: Boolean get() = entitlement.active
     private var overrideActive by mutableStateOf(BuildConfig.DEBUG && defaults.getBoolean(LOCAL_OVERRIDE))
     private var reviewGranted by mutableStateOf(reviewAccess.isGranted)
 
@@ -67,6 +68,9 @@ class SubscriptionService(
     val isPro: Boolean get() = entitlementActive || overrideActive || reviewGranted
 
     val hasReviewAccess: Boolean get() = reviewGranted
+
+    /** Called when Plus actually flips, so the reminder schedule is rebuilt for the new answer. */
+    var onEntitlementChanged: (() -> Unit)? = null
 
     var isConfigured by mutableStateOf(false)
         private set
@@ -229,8 +233,9 @@ class SubscriptionService(
         customerInfoLoaded = true
         hasSubscriptionHistory = info.allExpirationDatesByProduct.isNotEmpty()
         introEligibilityResolved = packages.isNotEmpty()
-        entitlementActive = ENTITLEMENTS.any { info.entitlements[it]?.isActive == true }
-        defaults.putBoolean(CACHED_PRO, entitlementActive)
+        val active = ENTITLEMENTS.any { info.entitlements[it]?.isActive == true }
+        defaults.putBoolean(CACHED_PRO, active)
+        entitlement.set(active)
     }
 
     private fun configureIfNeeded(): Boolean {
