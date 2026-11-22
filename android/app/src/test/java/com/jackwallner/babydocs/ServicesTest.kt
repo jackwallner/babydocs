@@ -132,6 +132,19 @@ class ServicesTest {
     }
 
     @Test
+    fun anUnreadableStoreIsMovedAsideNotOverwritten() {
+        val dir = kotlin.io.path.createTempDirectory("babydocs").toFile()
+        val file = File(dir, "babydocs-store.json").apply { writeText("{not json") }
+        val store = BabyStore(file)
+        assertTrue(store.data.children.isEmpty())
+        assertTrue(store.commit { SampleData.seed(it, today) })
+        val aside = dir.listFiles()!!.single { it.name.startsWith("babydocs-store-unreadable-") }
+        assertEquals("{not json", aside.readText())
+        assertTrue(file.exists())
+        dir.deleteRecursively()
+    }
+
+    @Test
     fun storeRoundTripsAndRefusesAnSSN() {
         val file = File.createTempFile("babydocs", ".json").apply { delete() }
         val store = BabyStore(file)

@@ -107,7 +107,12 @@ class BabyStore(private val file: File?) {
     private fun load(): BabyData {
         val f = file ?: return BabyData()
         if (!f.exists()) return BabyData()
-        return runCatching { Codecs.decode(f.readText()) }.getOrElse { BabyData() }
+        return runCatching { Codecs.decode(f.readText()) }.getOrElse {
+            // Keep the unreadable file beside the store, as iOS does, so the next
+            // save starts a fresh store instead of overwriting the household.
+            f.renameTo(File(f.parentFile, "${f.nameWithoutExtension}-unreadable-${System.currentTimeMillis()}.json"))
+            BabyData()
+        }
     }
 
     private fun writeAtomically(target: File, text: String) {
