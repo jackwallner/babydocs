@@ -168,6 +168,9 @@ final class ReleaseJourneysUITests: XCTestCase {
     private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
         let footer = app.buttons["Continue"].firstMatch
         let bar = app.tabBars.firstMatch
+        // The footer is onboarding's; read it once, since a miss costs a full tree snapshot per pass
+        // and a regular-width iPad's tree is large enough to time one out.
+        let footerFrame: CGRect? = footer.exists && footer.isHittable ? footer.frame : nil
         for _ in 0..<32 {
             let pane = scroller(for: element, in: app)
             // The bar above this pane: on a split layout each pane has its own,
@@ -177,7 +180,7 @@ final class ReleaseJourneysUITests: XCTestCase {
                     && $0.frame.maxY < pane.frame.midY }
                 .map { $0.frame.maxY }.max() ?? max(app.frame.minY, pane.frame.minY)
             var bottom = pane.frame.maxY
-            if footer.exists && footer.isHittable { bottom = min(bottom, footer.frame.minY) }
+            if let footerFrame { bottom = min(bottom, footerFrame.minY) }
             // The floating bar over this pane, judged by the pane's own frame: on
             // the unfolded Duo the app's frame is turned against its contents.
             if bar.exists && bar.frame.minY > pane.frame.midY
