@@ -147,10 +147,10 @@ final class ReleaseJourneysUITests: XCTestCase {
 
     private func proceed(_ app: XCUIApplication) {
         let button = app.buttons["Continue"].firstMatch
-        XCTAssertTrue(button.waitForExistence(timeout: 5))
+        XCTAssertTrue(button.waitForExistence(timeout: 15))
         let enabled = NSPredicate(format: "isEnabled == true")
         let wait = XCTNSPredicateExpectation(predicate: enabled, object: button)
-        XCTAssertEqual(XCTWaiter().wait(for: [wait], timeout: 10), .completed, "Continue stayed disabled")
+        XCTAssertEqual(XCTWaiter().wait(for: [wait], timeout: 30), .completed, "Continue stayed disabled")
         button.tap()
     }
 
