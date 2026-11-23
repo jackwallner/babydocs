@@ -268,7 +268,7 @@ fun PlanHeaderCard(overview: TaskPlanner.Overview, onOpen: (UUID) -> Unit) {
             Text(title, style = Type.headline, color = c.label)
             Text(TaskPlanner.deadlineLine(date), style = Type.subheadline.copy(fontWeight = FontWeight.Medium), color = c.red)
         } else {
-            Text("Every closing window is behind you. What is left has no date attached to it.", style = Type.subheadline, color = c.secondary)
+            Text(overview.nothingClosingLine, style = Type.subheadline, color = c.secondary)
         }
         Spacer(Modifier.height(AppTheme.spacing))
         RowDivider()

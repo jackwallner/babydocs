@@ -156,8 +156,19 @@ enum TaskPlanner {
         var pastHardDeadline: Date?
         var pastHardDeadlineTitle: String?
         var pastHardDeadlineID: UUID?
+        /// Open tasks that carry a date, hard or not. With no hard window open,
+        /// the card above the plan must not claim the rest are undated while a
+        /// suggested "Due Dec 7" sits right under it.
+        var datedOpenCount = 0
 
         var hasPastHardDeadline: Bool { pastHardDeadlineID != nil }
+
+        /// What the plan card says when no hard window is open or missed.
+        var nothingClosingLine: String {
+            datedOpenCount > 0
+                ? "No hard deadlines ahead. The dates below are suggested."
+                : "No hard deadlines ahead, and nothing left has a date."
+        }
 
         var totalCount: Int { openCount + doneCount }
 
@@ -181,6 +192,7 @@ enum TaskPlanner {
                 continue
             }
             overview.openCount += 1
+            if task.dueAt != nil { overview.datedOpenCount += 1 }
             let days = task.daysRemaining(from: now)
             if let days, days < 0 { overview.overdueCount += 1 }
 

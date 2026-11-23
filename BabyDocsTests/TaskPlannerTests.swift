@@ -94,6 +94,16 @@ struct TaskPlannerTests {
         #expect(overview.nextHardDeadlineTitle == "B")
     }
 
+    @Test("With no hard window open, the card never calls dated tasks undated")
+    func nothingClosingLineMatchesTheDates() {
+        let suggested = TaskPlanner.overview(for: [task(dueInDays: 14), task(dueInDays: nil)], now: now)
+        #expect(suggested.nextHardDeadline == nil)
+        #expect(suggested.nothingClosingLine.contains("suggested"))
+
+        let undated = TaskPlanner.overview(for: [task(dueInDays: nil), task(dueInDays: 3, done: true)], now: now)
+        #expect(!undated.nothingClosingLine.contains("suggested"))
+    }
+
     @Test("A dismissed task is not presented as completed progress")
     func dismissedDoesNotInflateProgress() {
         let dismissed = task(dueInDays: 2)

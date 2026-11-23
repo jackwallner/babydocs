@@ -81,8 +81,12 @@ object TaskPlanner {
         var pastHardDeadline: LocalDate? = null,
         var pastHardDeadlineTitle: String? = null,
         var pastHardDeadlineID: UUID? = null,
+        var datedOpenCount: Int = 0,
     ) {
         val hasPastHardDeadline: Boolean get() = pastHardDeadlineID != null
+        val nothingClosingLine: String
+            get() = if (datedOpenCount > 0) "No hard deadlines ahead. The dates below are suggested."
+            else "No hard deadlines ahead, and nothing left has a date."
         val totalCount: Int get() = openCount + doneCount
         val progress: Double get() = if (totalCount == 0) 0.0 else doneCount.toDouble() / totalCount
     }
@@ -98,6 +102,7 @@ object TaskPlanner {
                 continue
             }
             overview.openCount += 1
+            if (task.dueAt != null) overview.datedOpenCount += 1
             val days = task.daysRemaining(today)
             if (days != null && days < 0) overview.overdueCount += 1
             val due = task.dueAt

@@ -341,7 +341,7 @@ struct PlanHeaderCard: View {
                     .foregroundStyle(AppTheme.urgent)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
-                Text("Every closing window is behind you. What is left has no date attached to it.")
+                Text(overview.nothingClosingLine)
                     .font(.subheadline)
                     .foregroundStyle(AppTheme.quiet)
                     .fixedSize(horizontal: false, vertical: true)
