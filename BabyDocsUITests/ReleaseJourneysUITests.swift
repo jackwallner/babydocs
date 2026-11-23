@@ -168,10 +168,12 @@ final class ReleaseJourneysUITests: XCTestCase {
     private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
         let footer = app.buttons["Continue"].firstMatch
         let bar = app.tabBars.firstMatch
-        // The footer is onboarding's; read it once, since a miss costs a full tree snapshot per pass
-        // and a regular-width iPad's tree is large enough to time one out.
-        let footerFrame: CGRect? = footer.exists && footer.isHittable ? footer.frame : nil
+        // The footer is onboarding's. Once it is absent it stays absent, so stop asking: a miss
+        // costs a full tree snapshot per pass, enough to time out on a regular-width iPad.
+        // While it is present, reread it every pass, because it can leave mid-scroll.
+        var footerFrame: CGRect? = footer.exists && footer.isHittable ? footer.frame : nil
         for _ in 0..<32 {
+            if footerFrame != nil { footerFrame = footer.exists && footer.isHittable ? footer.frame : nil }
             let pane = scroller(for: element, in: app)
             // The bar above this pane: on a split layout each pane has its own,
             // and firstMatch may be its neighbour's or one the pane never reaches.
