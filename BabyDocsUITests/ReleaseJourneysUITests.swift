@@ -195,6 +195,7 @@ final class ReleaseJourneysUITests: XCTestCase {
             }
             let center = element.exists ? element.frame.midY : bottom
             if element.exists && element.isHittable && center > top && center < bottom {
+                settle(element)
                 return
             }
             let down = element.exists && center <= top
@@ -221,7 +222,19 @@ final class ReleaseJourneysUITests: XCTestCase {
         scroller.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? far : near))
             .press(forDuration: 0.05,
                    thenDragTo: scroller.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? near : far)),
-                   withVelocity: scale < 1 ? .slow : .fast, thenHoldForDuration: 0)
+                   withVelocity: scale < 1 ? .slow : .fast, thenHoldForDuration: 0.25)
+    }
+
+    /// Waits for a revealed row to stop moving. A tap on a list that is still
+    /// decelerating only stops the scroll, so the row never opens.
+    private func settle(_ element: XCUIElement) {
+        var last = element.frame
+        for _ in 0..<10 {
+            Thread.sleep(forTimeInterval: 0.15)
+            let now = element.frame
+            if abs(now.minY - last.minY) < 0.5 { return }
+            last = now
+        }
     }
 
     /// The scroll container to drag: the one under the element when it is known,
