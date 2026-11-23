@@ -172,6 +172,10 @@ final class ReleaseJourneysUITests: XCTestCase {
         // costs a full tree snapshot per pass, enough to time out on a regular-width iPad.
         // While it is present, reread it every pass, because it can leave mid-scroll.
         var footerFrame: CGRect? = footer.exists && footer.isHittable ? footer.frame : nil
+        // A drag that overshoots the visible band flips the target between "above it" and "unloaded
+        // below it" forever on a short pane, so each reversal of direction halves the next drag.
+        var scale: CGFloat = 1
+        var lastDown: Bool?
         for _ in 0..<32 {
             if footerFrame != nil { footerFrame = footer.exists && footer.isHittable ? footer.frame : nil }
             let pane = scroller(for: element, in: app)
@@ -194,7 +198,9 @@ final class ReleaseJourneysUITests: XCTestCase {
                 return
             }
             let down = element.exists && center <= top
-            drag(pane, down: down, between: top, and: bottom, in: app)
+            if let lastDown, lastDown != down { scale = max(scale / 2, 0.1) }
+            lastDown = down
+            drag(pane, down: down, between: top, and: bottom, scale: scale, in: app)
         }
         XCTFail("Could not scroll the requested control into view: \(element)")
     }
@@ -204,17 +210,18 @@ final class ReleaseJourneysUITests: XCTestCase {
     /// turned against each other. It stays inside the band the footer and the
     /// floating tab bar leave visible, which QA.swipe's 80% start does not.
     private func drag(_ scroller: XCUIElement, down: Bool, between top: CGFloat, and bottom: CGFloat,
-                      in app: XCUIApplication) {
+                      scale: CGFloat = 1, in app: XCUIApplication) {
         let frame = scroller.frame
         guard frame.height > 0 else { return }
         let low = max(top, frame.minY), high = min(bottom, frame.maxY)
         let band = max(high - low, 100)
         func fraction(_ y: CGFloat) -> CGFloat { min(max((y - frame.minY) / frame.height, 0.02), 0.98) }
-        let near = fraction(low + band * 0.75), far = fraction(low + band * 0.25)
+        let mid = low + band / 2
+        let near = fraction(mid + band * 0.25 * scale), far = fraction(mid - band * 0.25 * scale)
         scroller.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? far : near))
             .press(forDuration: 0.05,
                    thenDragTo: scroller.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? near : far)),
-                   withVelocity: .fast, thenHoldForDuration: 0)
+                   withVelocity: scale < 1 ? .slow : .fast, thenHoldForDuration: 0)
     }
 
     /// The scroll container to drag: the one under the element when it is known,
