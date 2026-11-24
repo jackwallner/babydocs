@@ -260,14 +260,15 @@ final class ReleaseJourneysUITests: XCTestCase {
         let containers = [XCUIElement.ElementType.scrollView, .table, .collectionView]
             .flatMap { app.descendants(matching: $0).allElementsBoundByIndex }
             .filter { $0.exists && $0.frame.height > 200 }
-        if element.exists, !element.label.isEmpty,
-           let owner = containers.first(where: {
-               $0.descendants(matching: .any).matching(NSPredicate(format: "label == %@", element.label))
-                   .firstMatch.exists
-           }) { return owner }
-        if element.exists, let owner = containers.first(where: {
-            $0.frame.minX <= element.frame.midX && element.frame.midX <= $0.frame.maxX
-        }) { return owner }
+        // Frame containment, not a descendant scan: a label search walks every
+        // container's whole tree, which times out on a slow unfolded Duo.
+        if element.exists {
+            let mid = CGPoint(x: element.frame.midX, y: element.frame.midY)
+            if let owner = containers.first(where: { $0.frame.contains(mid) })
+                ?? containers.first(where: { $0.frame.minX <= mid.x && mid.x <= $0.frame.maxX }) {
+                return owner
+            }
+        }
         // A control not on screen yet: on the split layouts the plan's pane is the
         // one that holds the task ticks, so scroll that one, not its neighbour.
         let planBar = app.navigationBars["Plan"]
