@@ -1,1 +1,1 @@
-A fresh new app icon, plus small fixes and refinements.
+The plan card now says clearly when your remaining dates are suggestions, plus small fixes.
