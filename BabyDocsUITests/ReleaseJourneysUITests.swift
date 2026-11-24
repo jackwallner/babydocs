@@ -54,9 +54,8 @@ final class ReleaseJourneysUITests: XCTestCase {
         let task = app.buttons.matching(NSPredicate(
             format: "label BEGINSWITH %@", "Order certified copies of the birth certificate"
         )).firstMatch
-        // A tall row: tap its upper part, clear of the home indicator below it.
         reveal(task, in: app)
-        task.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.25)).tap()
+        tapVisiblePart(of: task, in: app)
         XCTAssertTrue(app.navigationBars["Birth certificate"].waitForExistence(timeout: 10))
         QA.checkpoint(app, "task-detail")
         app.navigationBars.buttons.element(boundBy: 0).tap()
@@ -158,6 +157,24 @@ final class ReleaseJourneysUITests: XCTestCase {
     /// Documents on the unfolded Duo and a regular-width iPad.
     private func tabButton(_ label: String, in app: XCUIApplication) -> XCUIElement {
         QA.tab(app, label)
+    }
+
+    /// A tall row can be taller than the band between the navigation bar and the floating
+    /// tab bar on a short or zoomed screen, so a fixed fraction of it may sit under either.
+    /// Tap the upper part of what is actually visible instead.
+    private func tapVisiblePart(of element: XCUIElement, in app: XCUIApplication) {
+        let frame = element.frame
+        var low = frame.minY, high = frame.maxY
+        let nav = app.navigationBars.firstMatch
+        if nav.exists, nav.frame.maxY < frame.maxY { low = max(low, nav.frame.maxY) }
+        let bar = app.tabBars.firstMatch
+        if bar.exists, bar.frame.minY > frame.minY { high = min(high, bar.frame.minY) }
+        guard high > low, frame.height > 0 else {
+            element.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.25)).tap()
+            return
+        }
+        let y = (low + (high - low) * 0.3 - frame.minY) / frame.height
+        element.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: min(max(y, 0.02), 0.98))).tap()
     }
 
     private func tapScrolling(_ element: XCUIElement, in app: XCUIApplication) {
