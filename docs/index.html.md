@@ -61,6 +61,12 @@ next, and what is simply waiting on a certificate to arrive.
 
 Included with Baby Docs Plus
 
+### Send it to the other parent
+
+One link, free. Their phone builds the same plan from the same
+answers, with reminders of its own. After that the two plans are
+separate.
+
 ### Works at the counter
 
 Everything is on your phone, so the plan opens at the counter with
@@ -118,8 +124,8 @@ Plus is the timing and the order: reminders for the dates the app
 suggests as well as the two the law sets, one Sunday message
 naming what the week holds, the plan shown as a sequence including
 what is still waiting on something else, and the dates exported to
-your own calendar. It also keeps a place for photographs of the
-documents themselves, tracking for the things you have sent and
+your own calendar. It also keeps the document vault open for photographs
+after the first twelve weeks (adding them is free before then), tracking for the things you have sent and
 are waiting on, the packet your employer asks for and the
 printable one-pager. It is priced weekly because the need lasts six to thirteen weeks and then ends. There is a one-time option for
 people who want to keep the document vault for good.
@@ -187,7 +193,7 @@ No account is needed, and the plan works with no signal. Everything you enter st
 
 ## Is Baby Docs free?
 
-Yes. Every task, deadline, document checklist and official link is free, for every child. The optional Plus upgrade adds timing, a document vault and exports, and nothing with a date on it is behind a paywall. Prices are shown in the app before you buy and vary by region.
+Yes. Every task, deadline, document checklist and official link is free, for every child. The optional Plus upgrade adds timing, the document vault after twelve weeks and exports, and nothing with a date on it is behind a paywall. Prices are shown in the app before you buy and vary by region.
 
 ## Find out what actually applies to you
 
