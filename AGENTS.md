@@ -48,7 +48,7 @@ provisioned, so nothing was ever hosted and no user was ever affected.
 
 `Shared/Services/`: `StoreService`, `NotificationService` (local only),
 `DeadlineReminderScheduler`, `ReminderPreferences` (what else may speak, Plus
-only), `PlanExporter` (summary + employer packet), `CalendarExporter` (the dates
+only), `RemoteConfig` (offering-metadata reader: `trial_cta`, `rating_prompt`), `PlanExporter` (summary + employer packet), `CalendarExporter` (the dates
 as an `.ics`, and nothing a parent typed), `PlanSeed` (the shareable link),
 `VaultStore` (document photographs), `LocationLookup` (one-shot state/county
 prefill), `BabyModelStore`.
@@ -67,6 +67,7 @@ Condensed from the deep notes below; the reasoning behind each one lives there.
 - Free is every deadline, every link, every document list, every child, the two hard-window warnings and sending the plan. Further children must never be gated again. Vault access survives a lapse.
 - What Plus gates lives in the binary (`SummaryShareControl`, `TaskDetailView`, `DocumentsView.addButton`, `PlusToolsView`, `DeadlineReminderScheduler.Options`), and those places drift apart. `asc-readiness.py`'s `PAID_FEATURES` is the check that the description and the App Review notes still say what the binary charges for.
 - Never put a question in front of `requestReview()`.
+- Trial button wording tests go through the current offering's metadata key `trial_cta` (`RemoteConfig`, `TrialCTA`); a missing or unknown value is the shipped copy, and keys a switch reads (`rating_prompt`) must be set the same on every offering.
 - Sales copy may never imply live sync, and "no server" is a claim about household data, never about the purchase.
 - `docs/plan.html` must stay published at that exact path, and the plan payload stays in the URL fragment, never the query string.
 - `project-docs/design/design.md` is the design system: run `scripts/design-audit.py` before a release. `AppTheme.margin` is the only horizontal inset.

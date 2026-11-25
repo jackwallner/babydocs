@@ -252,6 +252,9 @@ struct PlusPurchaseView: View {
         // in RevenueCat.
         store.trackPaywallImpression(id: "babydocs_\(placement)", oncePerSession: true)
         await store.refresh()
+        if store.plans.contains(where: \.offersFreeTrial) {
+            store.recordTrialCTAShown()
+        }
         let available = Set(store.plans.map(\.id))
         if let selection, available.contains(selection) { return }
         selection = store.plans.first { $0.id == ProProduct.weekly }?.id
@@ -337,15 +340,17 @@ struct PlusPurchaseView: View {
     private var buyTitle: String {
         if store.isPro { return "You already have Plus" }
         guard let plan = store.plans.first(where: { $0.id == selection }) else { return "Continue" }
-        if let intro = plan.introOffer, intro.hasSuffix("free") {
-            // In the intake the trial *is* the way forward, so the button says
-            // what it is doing in the intake's own words. The price, the period
-            // and the renewal are printed directly above it either way, and
-            // Apple's own sheet still has to be confirmed after it, so nothing
-            // here is hidden by the shorter verb.
-            return placement == .onboarding ? "Get started" : "Start my free trial"
-        }
-        return plan.isLifetime ? "Buy it once" : "Continue"
+        // In the intake the trial *is* the way forward, so the control says
+        // what it is doing in the intake's own words. The price, the period
+        // and the renewal are printed directly above it either way, and
+        // Apple's own sheet still has to be confirmed after it, so nothing
+        // here is hidden by the shorter verb. The wording is tested through
+        // the offering's `trial_cta` metadata (`TrialCTA`).
+        return store.trialCTAArm.buttonTitle(for: plan, on: ctaSurface)
+    }
+
+    private var ctaSurface: TrialCTA.Surface {
+        placement == .onboarding ? .onboarding : .paywall
     }
 
     /// Both terms, not one.

@@ -23,6 +23,10 @@ struct PlanOption: Identifiable, Sendable {
     var introOffer: String?
 
     var isLifetime: Bool { id == ProProduct.lifetime }
+
+    /// An introductory offer that costs nothing, which `introLabel` writes as
+    /// "... free".
+    var offersFreeTrial: Bool { introOffer?.hasSuffix("free") == true }
 }
 
 enum ProProduct {
@@ -408,6 +412,13 @@ final class StoreService: NSObject {
         let attributes = ConversionDiagnostics.subscriberAttributes
         guard !attributes.isEmpty else { return }
         Purchases.shared.attribution.setAttributes(attributes)
+    }
+
+    /// Sets one subscriber attribute naming a remote-config arm the customer
+    /// saw. Queued like the funnel attributes; nothing leaves a simulator.
+    func recordRemoteVariant(_ key: String, _ value: String) {
+        guard isConfigured else { return }
+        Purchases.shared.attribution.setAttributes([key: value])
     }
 
     /// What a restore actually did. "Nothing happened" and "nothing was there to

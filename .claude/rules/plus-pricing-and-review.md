@@ -1,6 +1,7 @@
 ---
 paths:
   - "Shared/Services/StoreService.swift"
+  - "Shared/Services/RemoteConfig.swift"
   - "Shared/Services/ReviewPromptTracker.swift"
   - "Shared/Services/VaultStore.swift"
   - "BabyDocs/Views/PaywallView.swift"
@@ -122,3 +123,10 @@ Moved verbatim from AGENTS.md. Loads when a matching file is read; update it her
   with the pitch still up finishes it (`onPurchased`). Network and offline
   errors read as the store's own "could not be reached" line, and every other
   error keeps the message the paywall always had.
+- **Trial button wording is remote (2026-11-25).** `TrialCTA` reads the current
+  offering's `trial_cta` metadata: `three_day` (control, exactly the shipped
+  "Get started" in the intake and "Start my free trial" on the sheet and tab),
+  `my`, `your`. Only a plan with a free trial this account can take gets trial
+  wording; otherwise "Continue" or "Buy it once" as before. `rating_prompt` set
+  to `off` pauses the automatic review ask. The arm a customer saw is set as the
+  `trial_cta` subscriber attribute.

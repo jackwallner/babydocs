@@ -360,6 +360,7 @@ struct RootView: View {
         !hasRequestedReviewThisSession
             && !navigator.isShowingPaywall
             && navigator.pendingSeed == nil
+            && StoreService.shared.isOn(.ratingPrompt)
             && ReviewPromptTracker.shouldRequestAfterPositiveMoment()
     }
 
