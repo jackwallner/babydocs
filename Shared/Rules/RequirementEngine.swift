@@ -295,6 +295,21 @@ enum RequirementEngine {
         ].joined(separator: "\u{1F}")
     }
 
+    /// The same document on another of this child's live tasks, already in
+    /// hand. Same identity as the Documents tab and the task screen use: the
+    /// title within one child.
+    private static func onHandSibling(of task: RequirementTask, titled title: String) -> DocumentItem? {
+        let key = documentIdentity(title)
+        return (task.child?.liveTasks ?? [])
+            .filter { $0.id != task.id }
+            .flatMap(\.liveDocuments)
+            .first { $0.isOnHand && documentIdentity($0.title) == key }
+    }
+
+    static func documentIdentity(_ title: String) -> String {
+        title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
     /// Adds any document the catalog gained. Never removes one: a spec that
     /// disappears from the catalog may still be the thing the family already
     /// ticked, and an unexpected extra line costs nothing next to losing that.
@@ -336,6 +351,13 @@ enum RequirementEngine {
             item.sortWeight = index
             item.task = task
             item.updatedAt = now
+            // A tick is about the paper, not the row: the family has already
+            // said this child's copy is in hand, so a task added by a changed
+            // answer must not ask for it again. Inherited, never rewritten.
+            if let inHand = onHandSibling(of: task, titled: spec.title) {
+                item.isOnHand = true
+                item.markedOnHandAt = inHand.markedOnHandAt ?? now
+            }
             context.insert(item)
             changed = true
         }
