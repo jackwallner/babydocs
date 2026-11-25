@@ -343,13 +343,24 @@ final class StoreService: NSObject {
     ]
     #endif
 
+    /// Throws a `PurchaseFailure`, never RevenueCat's own error: its
+    /// descriptions are English developer text, and a pending Ask to Buy is not
+    /// a failure at all.
     func purchase(_ plan: PlanOption) async throws {
         guard let package = plan.package else {
             // StoreKit Testing render only; there is nothing to charge against.
             return
         }
         let startedTrial = package.storeProduct.introductoryDiscount?.paymentMode == .freeTrial
-        let result = try await Purchases.shared.purchase(package: package)
+        let result: PurchaseResultData
+        do {
+            result = try await Purchases.shared.purchase(package: package)
+        } catch {
+            let failure = PurchaseFailure(error)
+            let outcome = failure == .waitingForApproval ? "pending" : "error"
+            log.info("purchase finished: \(outcome, privacy: .public) \((error as NSError).code, privacy: .public)")
+            throw failure
+        }
         guard !result.userCancelled else { return }
         apply(result.customerInfo)
         if isPro {
@@ -459,6 +470,63 @@ final class StoreService: NSObject {
         Purchases.configure(withAPIKey: RevenueCatConfig.apiKey)
         isConfigured = true
         #endif
+        if isConfigured {
+            Purchases.shared.delegate = self
+        }
+    }
+}
+
+/// An Ask to Buy approved later, a renewal or a lapse arrives here while the
+/// app is open, so Plus unlocks without a relaunch or a trip to the
+/// background. Same `apply` as every other path.
+extension StoreService: PurchasesDelegate {
+    nonisolated func purchases(_ purchases: Purchases, receivedUpdated customerInfo: CustomerInfo) {
+        Task { @MainActor in
+            self.apply(customerInfo)
+        }
+    }
+}
+
+/// What a purchase that did not complete is shown as.
+enum PurchaseFailure: Error, Equatable {
+    /// Ask to Buy: the request is with a parent. Approval arrives later
+    /// through `PurchasesDelegate` and unlocks Plus then.
+    case waitingForApproval
+    /// No connection, or the store did not answer.
+    case storeUnreachable
+    /// Anything else. The same line the paywall has always shown.
+    case failed
+
+    init(_ error: Error) {
+        if let failure = error as? PurchaseFailure {
+            self = failure
+            return
+        }
+        switch Self.revenueCatCode(error) {
+        case .paymentPendingError: self = .waitingForApproval
+        case .networkError, .offlineConnectionError: self = .storeUnreachable
+        default: self = .failed
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .waitingForApproval:
+            return "Waiting for approval. Your purchase unlocks once it is approved."
+        case .storeUnreachable:
+            return "The store could not be reached. Check your connection and try again."
+        case .failed:
+            return "The purchase could not be completed. Check your Apple Account and try again."
+        }
+    }
+
+    /// RevenueCat throws its codes bridged to `NSError`, so match the domain
+    /// as well as the Swift type.
+    private static func revenueCatCode(_ error: Error) -> ErrorCode? {
+        if let code = error as? ErrorCode { return code }
+        let nsError = error as NSError
+        guard nsError.domain == (ErrorCode.unknownError as NSError).domain else { return nil }
+        return ErrorCode(rawValue: nsError.code)
     }
 }
 

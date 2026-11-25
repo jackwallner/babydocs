@@ -110,3 +110,15 @@ Moved verbatim from AGENTS.md. Loads when a matching file is read; update it her
     way forward, with the price, period and renewal printed directly above it
     and Apple's own sheet still to confirm. "Continue with the free plan" is
     always there.
+
+- **A pending Ask to Buy is not a failure (2026-11-25).** RevenueCat's
+  `paymentPendingError` maps to `PurchaseFailure.waitingForApproval`, which
+  `PlusPurchaseView` shows as one calm line above the button ("Waiting for
+  approval. Your purchase unlocks once it is approved."), never as the error
+  alert. The flag is the view's own `@State`, so it dies with the sheet and
+  cannot arm anything later. The approval reaches the app through
+  `StoreService`'s `PurchasesDelegate`, which runs the same `apply` as every
+  other path, so Plus unlocks while the app stays open; an approval that lands
+  with the pitch still up finishes it (`onPurchased`). Network and offline
+  errors read as the store's own "could not be reached" line, and every other
+  error keeps the message the paywall always had.

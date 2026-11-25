@@ -32,6 +32,9 @@ struct PlusPurchaseView: View {
     @State private var selection: String?
     @State private var isWorking = false
     @State private var errorMessage: String?
+    /// Ask to Buy sent the request to a parent. Lives and dies with this
+    /// screen, so it can never keep an action armed after the screen closes.
+    @State private var isAwaitingApproval = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -55,6 +58,14 @@ struct PlusPurchaseView: View {
                 .safeAreaPadding(.bottom)
         }
         .task { await refreshStore() }
+        // An approval that lands while this screen is still up finishes the
+        // purchase it was waiting for, as if Apple's sheet had just closed.
+        .onChange(of: store.isPro) { _, isPro in
+            guard isPro, isAwaitingApproval else { return }
+            isAwaitingApproval = false
+            Haptics.purchased()
+            onPurchased?()
+        }
         .alert("Purchases", isPresented: errorBinding) {
             Button("OK", role: .cancel) { errorMessage = nil }
         } message: {
@@ -288,6 +299,13 @@ struct PlusPurchaseView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity)
             }
+            if isAwaitingApproval {
+                Text(PurchaseFailure.waitingForApproval.message)
+                    .font(.footnote)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity)
+            }
             Button {
                 purchase()
             } label: {
@@ -362,6 +380,7 @@ struct PlusPurchaseView: View {
     private func purchase() {
         guard let plan = store.plans.first(where: { $0.id == selection }) else { return }
         isWorking = true
+        isAwaitingApproval = false
         Task {
             defer { isWorking = false }
             do {
@@ -371,7 +390,12 @@ struct PlusPurchaseView: View {
                     onPurchased?()
                 }
             } catch {
-                errorMessage = "The purchase could not be completed. Check your Apple Account and try again."
+                let failure = PurchaseFailure(error)
+                if failure == .waitingForApproval {
+                    isAwaitingApproval = true
+                } else {
+                    errorMessage = failure.message
+                }
             }
         }
     }
