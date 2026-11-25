@@ -51,8 +51,8 @@ so you never have to find the email again.
 ### Only when it matters
 
 The two deadlines that legally close are announced for everybody,
-free, and nothing else speaks unless you ask it to. An app that
-pings you about everything gets muted.
+free. The plan labels other dates as suggestions, not deadlines.
+Nothing else speaks unless you ask it to.
 
 ### What to do this week
 
@@ -173,7 +173,7 @@ In the United States it usually covers the birth certificate, the Social Securit
 
 ## How long do I have to add a newborn to health insurance?
 
-A job-based plan must allow at least 30 days after a birth, and the Marketplace is generally 60 days. Baby Docs checks which kind of coverage you have and shows the window that applies, and these are the two deadlines it sends reminders for.
+A job-based plan must allow at least 30 days after a birth, and the Marketplace is generally 60 days. Baby Docs shows which window applies and reminds you about these two hard deadlines. Any other dates on your plan are labeled as suggestions.
 
 ## How do I get a birth certificate for a newborn?
 

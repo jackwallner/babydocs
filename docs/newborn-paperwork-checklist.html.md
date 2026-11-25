@@ -6,7 +6,7 @@ Web page: https://jackwallner.com/ios/babydocs/newborn-paperwork-checklist.html
 
 ## Newborn paperwork checklist: birth certificate, Social Security number and health insurance
 
-By [Jack Wallner](https://jackwallner.com/) · Last updated October 28, 2026
+By [Jack Wallner](https://jackwallner.com/) · Last updated November 25, 2026
 
 Three things come first after a birth in the United States: the birth certificate, the Social Security number and card, and adding the baby to a health plan. The hospital starts the first two on the birth registration form, and the Social Security card usually arrives within about four weeks. The health plan is the one with a hard deadline: at least 30 days from the birth for a job-based plan, and 60 days for a Marketplace plan.
 
@@ -64,7 +64,7 @@ Once those three are moving, the rest is mostly timing: claiming parental leave,
 
 ## How does Baby Docs help?
 
-Baby Docs is a free iPhone checklist for US families. You enter the birth date, your state and how you are covered, and it shows only the tasks that apply, each with its deadline, the documents to bring and the official link. The two legally closing deadlines, the health plan windows above, get reminders. It tracks whether the Social Security number was requested and whether the card arrived, and it never asks for the number itself. It works offline with no account. [See the Baby Docs app page](https://jackwallner.com/ios/babydocs/).
+Baby Docs is a free iPhone checklist for US families. You enter the birth date, your state and how you are covered, and it shows only the tasks that apply. It distinguishes legally closing deadlines from suggested dates, and lists the documents to bring and official link for each task. It offers reminders for the two health-plan windows above. It tracks whether the Social Security number was requested and whether the card arrived, and it never asks for the number itself. It works offline with no account. [See the Baby Docs app page](https://jackwallner.com/ios/babydocs/).
 
 ## Frequently asked questions
 
