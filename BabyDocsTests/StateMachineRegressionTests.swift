@@ -83,7 +83,7 @@ struct StateMachineRegressionTests {
 
         let proofs = documents(titled: "Proof of the birth", in: child)
         try #require(proofs.count >= 2)
-        #expect(proofs.allSatisfy(\.isOnHand))
+        #expect(proofs.allSatisfy { $0.isOnHand })
     }
 
     @Test("B1 control: a document nobody ticked stays to find")
