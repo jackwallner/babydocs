@@ -8,6 +8,8 @@ Developer notes and historical audits for this repository. The published site re
 - [laudit811.md](audits/laudit811.md): Baby Docs audit and product blueprint
 - [lsa817.md](audits/lsa817.md): Baby Docs target-user release audit
 - [presubmit-review-2026-11-07.md](audits/presubmit-review-2026-11-07.md): Baby Docs 1.1.4 pre-submit code review
+- [rollout-2026-11-24.md](audits/rollout-2026-11-24.md): Rollouts M, A and C (state machines, Ask to Buy pending, remote trial wording)
+- [state-machines-2026-11-24.md](audits/state-machines-2026-11-24.md): State machine audit, with its repro suite and [fixes](audits/state-machines-2026-11-24-fixes.md)
 
 ## Design
 
